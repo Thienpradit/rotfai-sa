@@ -1165,14 +1165,12 @@ function netMsg(m){
     case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
-      for(const a of m.p){const[id,x,y,an,ms,fl,hp]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;if(id<0&&Math.floor(-id/10000)===NET.id)continue;
+      for(const a of m.p){const[id,x,y,an,ms,fl,ts,hp]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;if(id<0&&Math.floor(-id/10000)===NET.id)continue;
         const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
-        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||100;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;w.nx=x;w.ny=y;w.vx=0;w.vy=0;w.lt=performance.now();worms.push(w)}
+        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||100;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
-        const now=performance.now(),dtm=Math.max(.03,(now-w.lt)/1000);
-        if(Math.hypot(x-w.nx,y-w.ny)<300){w.vx=(x-w.nx)/dtm;w.vy=(y-w.ny)/dtm}else{w.vx=w.vy=0}
-        w.nx=x;w.ny=y;w.na=an;w.nm=ms;w.lt=now;w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;if(hp!==undefined)w.hp=hp}
+        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;if(hp!==undefined)w.hp=hp}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;
@@ -1226,11 +1224,24 @@ function netSpawnMe(sp){
   worms=worms.filter(w=>!w.isP);worms.push(player);cam.x=x;cam.y=y;state='play';NET.respawnT=0;
   $('snd').classList.remove('hidden');lastBtn='';updBtns();
 }
+// ---- การเคลื่อนไหวของรถไฟคนอื่นให้ลื่น: เก็บสถานะพร้อมเวลาของเครื่องผู้ส่ง แล้ววาดย้อนหลัง INTERP ms โดยเลื่อนระหว่างสองสถานะ ----
+const INTERP=130;
+function netSnap(w,x,y,a,m,ts){
+  const now=Date.now();ts=+ts||now;const s=w.snaps||(w.snaps=[]);
+  if(s.length&&ts<=s[s.length-1].t)return;                       // ซ้ำหรือมาช้ากว่าอันล่าสุด ข้าม
+  const off=now-ts;w.off=w.off===undefined||off<w.off?off:w.off+(off-w.off)*.02;   // ประมาณเวลาต่างระหว่างเครื่อง (ใช้ค่าที่เร็วสุด)
+  s.push({t:ts,x,y,a,m});if(s.length>30)s.shift();
+}
 function netUpdate(w,dt){
-  const h=w.pts[0];const k=Math.min(.15,(performance.now()-w.lt)/1000);
-  const tx=w.nx+(w.vx||0)*k,ty=w.ny+(w.vy||0)*k,dx=tx-h.x,dy=ty-h.y;
-  if(dx*dx+dy*dy>300*300){for(const q of w.pts){q.x+=dx;q.y+=dy}}else{const a=Math.min(1,dt*14);h.x+=dx*a;h.y+=dy*a}
-  if(w.na!==undefined)w.angle=w.na;if(w.nm)w.mass=w.nm;w.follow();
+  const s=w.snaps;if(!s||!s.length){w.follow();return}
+  const rt=Date.now()-w.off-INTERP;while(s.length>2&&s[1].t<=rt)s.shift();
+  let x,y,a,m;const A=s[0],B=s[1];
+  if(B&&rt>=A.t){const k=Math.min(1.25,(rt-A.t)/Math.max(1,B.t-A.t));   // เลยสถานะล่าสุดได้นิดหน่อย (เดาต่อ) ถ้าข้อมูลมาช้า
+    x=A.x+(B.x-A.x)*k;y=A.y+(B.y-A.y)*k;let d=B.a-A.a;d=Math.atan2(Math.sin(d),Math.cos(d));a=A.a+d*Math.min(1,k);m=A.m+(B.m-A.m)*Math.min(1,k)}
+  else{x=A.x;y=A.y;a=A.a;m=A.m}
+  const h=w.pts[0],dx=x-h.x,dy=y-h.y;
+  if(dx*dx+dy*dy>300*300){for(const q of w.pts){q.x+=dx;q.y+=dy}}else{h.x=x;h.y=y}   // ลอดอุโมงค์/เกิดใหม่ → ย้ายทั้งขบวน
+  w.angle=a;if(m)w.mass=m;w.follow();
 }
 function netTick(dt){
   if(!NET)return;
@@ -1238,11 +1249,11 @@ function netTick(dt){
   if(player&&!player.alive&&NET.respawnT>0){NET.respawnT-=dt;if(NET.respawnT<=0&&NET.phase==='play'){const sc=player.kills,kp=player.kPaid;netSpawnMe();player.kills=sc;player.kPaid=kp;player.safe=2.5}}
   NET.sendT-=dt;if(NET.sendT<=0&&player){NET.sendT=.05;
     const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0);
-    const o={t:'st',x:Math.round(h.x),y:Math.round(h.y),a:+player.angle.toFixed(3),m:+player.mass.toFixed(1),f:fl};
+    const o={t:'st',x:Math.round(h.x),y:Math.round(h.y),a:+player.angle.toFixed(3),m:+player.mass.toFixed(1),f:fl,ts:Date.now()};
     if(NET.q.eat.length){o.eat=NET.q.eat;NET.q.eat=[]}netSend(o)}
-  if(NET.ffa&&NET.host){NET.botT-=dt;if(NET.botT<=0){NET.botT=.066;const b=[];
+  if(NET.ffa&&NET.host){NET.botT-=dt;if(NET.botT<=0){NET.botT=.05;const b=[];
     for(const w of worms){if(!w.isBot||w.isRemote||!w.alive)continue;const h=w.pts[0];const row=[w.netId,Math.round(h.x),Math.round(h.y),+w.angle.toFixed(2),+w.mass.toFixed(1),(w.boost&&w.energy>0?1:0)|4|(w.slow>0?8:0)|(w.safe>0?16:0)];if(w.isBoss)row.push(Math.ceil(w.hp));b.push(row)}
-    if(b.length)netSend({t:'bs',b})}}
+    if(b.length)netSend({t:'bs',b,ts:Date.now()})}}
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;

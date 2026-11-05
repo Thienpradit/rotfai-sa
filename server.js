@@ -14,7 +14,7 @@ const MATCH = +process.env.MATCH_SECS || 300;   // วินาทีต่อ�
 const SHRINK = Math.min(120, Math.round(MATCH * .4));   // วงเริ่มหดเมื่อเหลือกี่วินาที
 const TEAM_MAX = 2;
 const PU_KEYS = ['magnet', 'x3', 'speed', 'freeze'];
-const TICK = 1 / 15;
+const TICK = 1 / 20;   // ส่งสถานะ 20 ครั้ง/วินาที
 
 // ---------- static files ----------
 const PUBLIC = path.join(__dirname, 'public');
@@ -147,7 +147,7 @@ wss.on('connection', ws => {
         break;
       case 'st':
         me.lastT = Date.now();
-        me.st = { x: +m.x || 0, y: +m.y || 0, a: +m.a || 0, m: Math.min(5000, +m.m || 0), f: m.f | 0 };
+        me.st = { x: +m.x || 0, y: +m.y || 0, a: +m.a || 0, m: Math.min(5000, +m.m || 0), f: m.f | 0, ts: +m.ts || Date.now() };   // ts = เวลาของเครื่องผู้ส่ง ใช้ทำการเคลื่อนไหวให้ลื่น
         if (me.st.m > me.maxLen) me.maxLen = me.st.m;
         if (Array.isArray(m.eat) && m.eat.length) {
           const gone = [];
@@ -190,7 +190,8 @@ wss.on('connection', ws => {
       case 'bs':
         if (!room.ffa || !me.host || !Array.isArray(m.b)) break;
         me.lastT = Date.now();
-        for (const a of m.b.slice(0, 60)) { if (!Array.isArray(a)) continue; const b = room.bots.get(a[0]); if (b) { b.st = [a[0], +a[1] || 0, +a[2] || 0, +a[3] || 0, Math.min(5000, +a[4] || 0), a[5] | 0]; if (b.info.boss && a.length > 6) b.st.push(Math.max(0, +a[6] || 0)); } }
+        { const ts = +m.ts || Date.now();
+          for (const a of m.b.slice(0, 60)) { if (!Array.isArray(a)) continue; const b = room.bots.get(a[0]); if (b) { b.st = [a[0], +a[1] || 0, +a[2] || 0, +a[3] || 0, Math.min(5000, +a[4] || 0), a[5] | 0, ts]; if (b.info.boss && a.length > 6) b.st.push(Math.max(0, +a[6] || 0)); } } }
         break;
       case 'bhit': {   // ผู้เล่นชนบอส → ส่งให้เครื่องหัวหน้าห้องที่คุมบอสอยู่คำนวณ
         if (!room.ffa) break;
@@ -249,7 +250,7 @@ setInterval(() => {
     }
     // states
     const p = [];
-    for (const pl of room.players.values()) if (pl.st) p.push([pl.id, pl.st.x, pl.st.y, pl.st.a, pl.st.m, pl.st.f]);
+    for (const pl of room.players.values()) if (pl.st) p.push([pl.id, pl.st.x, pl.st.y, pl.st.a, pl.st.m, pl.st.f, pl.st.ts]);
     for (const b of room.bots.values()) if (b.st) p.push(b.st);
     bcast(room, { t: 's', p, tl: +room.timeLeft.toFixed(2), sc: teamScore(room) });
     if (!room.ffa && room.timeLeft <= 0) endMatch(room);
