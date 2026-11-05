@@ -153,7 +153,11 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
 - ข้อจำกัด: ไม่มีคนใช้ 15 นาทีแล้วเซิร์ฟเวอร์จะหลับ ตื่นใช้เวลาประมาณ 1 นาที
 - **เว็บทดสอบ:** https://rotfai-sa-test.onrender.com (service `rotfai-sa-test`, Render แผนฟรี, deploy จาก branch `test` แบบ Manual Deploy เหมือนกัน)
   - ขั้นตอนทำงาน: แก้ → push `test` → Manual Deploy ที่ rotfai-sa-test → ให้เจ้าของลอง → **เจ้าของยืนยันแล้วค่อย** merge เข้า `main` และ Manual Deploy ที่ rotfai-sa
-- **ฐานข้อมูลบัญชี:** ต้องตั้ง env `DATABASE_URL` (Postgres ฟรีที่ Neon) ให้ทั้งสอง service — ถ้ายังไม่ตั้ง บัญชีเก็บในไฟล์ชั่วคราว หายเมื่อเซิร์ฟเวอร์หลับ/deploy ใหม่
+- **ฐานข้อมูลบัญชี:** Neon (บัญชีเจ้าของล็อกอินด้วย GitHub) project `my-first-project` id `proud-night-23083005` region Singapore, ตาราง `players` (สร้างอัตโนมัติ)
+  - `rotfai-sa-test` ตั้ง env `DATABASE_URL` แล้ว ✅ (log: "accounts: using Postgres ... passSha=30631750")
+  - `rotfai-sa` (เว็บหลัก) **ยังไม่ได้ตั้ง** → ตอน merge ขึ้นเว็บหลักต้องให้เจ้าของวางค่าเดียวกันใน Environment ของ rotfai-sa ก่อน
+  - Claude ห้ามพิมพ์/วางรหัสผ่านลงช่องในเว็บเอง ต้องให้เจ้าของวาง · ระวัง: ถ้าคัดลอกจาก Neon ตอนยังไม่กด Show password จะได้ `****` (เช็คได้จาก passSha ใน log: ดอกจัน 16 ตัว = bdf8be32)
+  - ถ้าต่อฐานข้อมูลไม่ได้ เซิร์ฟเวอร์ไม่ล่ม แต่สลับไปเก็บไฟล์ชั่วคราว (`/api/status` จะมี `dbError`)
 - ลิงก์เกมบน claude.ai (บัญชีเดิม):
   - "รถไฟซ่า.io (ร่างทอง)" — เวอร์ชันล่าสุด
   - "รถไฟซ่า.io" ตัวเก่า — แชร์สาธารณะไปแล้ว แก้ไม่ได้
