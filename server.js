@@ -22,6 +22,8 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   if (p === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
+  // ย้ายเซิร์ฟเวอร์: ตั้ง env REDIRECT_TO=https://ที่อยู่ใหม่ แล้วลิงก์เก่าจะพาไปที่ใหม่เอง (เก็บ ?w=โค้ดโลก ไว้ด้วย)
+  if (process.env.REDIRECT_TO) { res.writeHead(301, { Location: process.env.REDIRECT_TO.replace(/\/$/, '') + (req.url || '/') }); return res.end(); }
   if (p.startsWith('/api/')) return handleApi(req, res, p);
   if (p === '/') p = '/index.html';
   const file = path.join(PUBLIC, path.normalize(p));
