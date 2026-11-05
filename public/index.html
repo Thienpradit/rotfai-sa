@@ -82,6 +82,8 @@ input:focus{border-color:#77ccff}
 #bomb.warn{border-color:#ff5e5e;background:rgba(255,60,60,.65)}
 #bomb{position:fixed;right:30px;bottom:calc(126px + env(safe-area-inset-bottom));width:72px;height:72px;border-radius:50%;border:3px solid #ffd23f;background:rgba(255,120,40,.55);color:#fff;font:inherit;font-size:24px;line-height:1.1;font-weight:600;z-index:5;touch-action:none;cursor:pointer;animation:pulse 1s infinite}
 #snd{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
+#fsGame{position:fixed;left:60px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
+.fsb{font-size:17px}
 @keyframes pulse{50%{transform:scale(1.08)}}
 #ann{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);z-index:8;background:rgba(15,19,48,.9);border:2px solid #ffd23f;padding:10px 16px;border-radius:14px;font-size:16px;text-align:center;max-width:84vw;pointer-events:none;opacity:0;transition:opacity .3s}
 #ann.show{opacity:1}
@@ -103,7 +105,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 
 <div id="menu" class="overlay">
   <div class="panel">
-    <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><button class="ibtn" id="sndMenu">🔊</button></div>
+    <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button></span></div>
     <h1>รถไฟซ่า.io</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
     <input id="name" maxlength="14" placeholder="ตั้งชื่อรถไฟของคุณ">
@@ -152,6 +154,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 <button id="boost" class="hidden">เร่ง!</button>
 <button id="bomb" class="hidden">💣</button>
 <button id="snd" class="ibtn hidden">🔊</button>
+<button id="fsGame" class="ibtn fsb hidden" title="เต็มจอ">⛶</button>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
 <div id="ann"></div>
 
@@ -578,6 +581,18 @@ bb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();inp
 addEventListener('keydown',e=>{if(document.activeElement&&document.activeElement.tagName==='INPUT')return;if(e.code==='Space'){input.keyB=true;e.preventDefault()}if(e.code==='KeyB')useBomb();if(e.code==='KeyM')setSnd(!SND.on);if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=true;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=true});
 addEventListener('keyup',e=>{if(e.code==='Space')input.keyB=false;if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=false;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=false});
 $('snd').onclick=$('sndMenu').onclick=()=>{audioInit();setSnd(!SND.on)};
+// ---------- เต็มหน้าจอ: ปุ่ม ⛶ + เข้าเต็มจออัตโนมัติเมื่อกดเริ่มเล่น ----------
+const FS_OK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
+const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+let fsAuto=true;try{fsAuto=localStorage.getItem('trainFS')!=='0'}catch(e){}
+function enterFS(){if(!FS_OK||isFS())return;const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+function exitFS(){try{const r=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+function toggleFS(){if(isFS()){exitFS();fsAuto=false}else{enterFS();fsAuto=true}try{localStorage.setItem('trainFS',fsAuto?'1':'0')}catch(e){}}
+function updFS(){const t=isFS()?'🗗':'⛶';$('fsMenu').textContent=$('fsGame').textContent=t}
+function autoFS(){if(fsAuto)enterFS()}
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{updFS();setTimeout(resize,60)}));
+$('fsMenu').onclick=$('fsGame').onclick=e=>{e.stopPropagation();toggleFS()};
+if(!FS_OK){$('fsMenu').classList.add('hidden');$('fsGame').remove()}   // iPhone Safari ยังไม่รองรับเต็มจอแบบนี้
 
 // =====================================================================
 //  items: bomb, buttons
@@ -936,6 +951,7 @@ function playerName(){return ACCT.mode==='acct'?ACCT.name:($('name').value.trim(
 function curSkin(){const s=allSkins()[selSkin];return s&&s.own?s.c:SKINS[0]}
 function resetItems(){goldItem=null;tgsItem=null;goldTimer=50;tgsTimer=30;booms=[];shrinkWarned=false;for(const s of stations)s.cd=0}
 function startGame(m){
+  autoFS();
   audioInit();
   if(NET)netLeave(true);
   WR=AR=3000;buildWorld(WR);
@@ -948,7 +964,7 @@ function startGame(m){
   do{[x,y]=randInWorld(800);ok=!worms.some(w=>w.alive&&Math.hypot(w.pts[0].x-x,w.pts[0].y-y)<500);tries++}while(!ok&&tries<40);
   player=new Worm(playerName(),curSkin(),x,y,true,{loco:prof.eq.loco,smoke:prof.eq.smoke});player.rk=myRank();input.angle=player.angle;worms.push(player);
   cam.x=x;cam.y=y;state='play';
-  $('menu').classList.add('hidden');$('over').classList.add('hidden');$('snd').classList.remove('hidden');
+  $('menu').classList.add('hidden');$('over').classList.add('hidden');$('snd').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');
   lastBtn='';updBtns();
 }
 function finish(timeUp,quit){
@@ -977,7 +993,7 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
 document.querySelectorAll('.dbtn').forEach(b=>b.onclick=()=>setDiff(b.dataset.d));
 function toMenu(){
   if(NET)netLeave(true);
-  state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');
+  state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
   renderSkins();showBest();
 }
@@ -1099,6 +1115,7 @@ function netSend(o){if(NET&&NET.ws&&NET.ws.readyState===1)NET.ws.send(JSON.strin
 $('playOnline').onclick=()=>{audioInit();openSheet('🌐 ออนไลน์ 2v2',renderOnlineJoin)};
 // ---------- เล่นแบบไม่จำกัด = โลกออนไลน์ free-for-all (ต่อเซิร์ฟเวอร์ไม่ได้ → เล่นออฟไลน์กับบอท) ----------
 function playEndless(room){
+  autoFS();
   audioInit();try{localStorage.setItem('wormName',playerName())}catch(e){}
   if(!/^https?:$/.test(location.protocol)){startGame('inf');return}
   $('playInf').disabled=true;$('playInf').textContent='กำลังเข้าโลกออนไลน์...';
@@ -1125,7 +1142,7 @@ function renderOnlineJoin(b){
    <div class="help" style="text-align:left;margin:6px 2px 4px">รหัสห้อง (ให้เพื่อนใส่รหัสเดียวกัน)</div><input id="roomIn" maxlength="8" value="${code}" style="text-transform:uppercase;letter-spacing:3px;font-weight:600">
    <div class="help" style="text-align:left;margin:8px 2px 4px">ที่อยู่เซิร์ฟเวอร์ (เว้นว่าง = เซิร์ฟเวอร์ที่เปิดหน้านี้)</div><input id="srvIn" placeholder="เช่น mygame.example.com" value="${srv}">
    <button class="btn team" id="joinBtn">เข้าห้อง</button><div class="status" id="netStatus"></div>`;
-  b.querySelector('#joinBtn').onclick=()=>{const room=b.querySelector('#roomIn').value.trim().toUpperCase()||'PUBLIC',s=b.querySelector('#srvIn').value.trim();try{localStorage.setItem('trainSrv',s)}catch(e){}netConnect(room,s)};
+  b.querySelector('#joinBtn').onclick=()=>{autoFS();const room=b.querySelector('#roomIn').value.trim().toUpperCase()||'PUBLIC',s=b.querySelector('#srvIn').value.trim();try{localStorage.setItem('trainSrv',s)}catch(e){}netConnect(room,s)};
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
@@ -1222,7 +1239,7 @@ function netSpawnMe(sp){
   let x,y,a;if(sp){[x,y,a]=sp}else{[x,y]=randInWorld(600);a=Math.random()*TAU}
   player=new Worm(playerName(),curSkin(),x,y,true,{loco:prof.eq.loco,smoke:prof.eq.smoke,a});player.team=NET.me?NET.me.team:null;player.netId=NET.id;player.rk=myRank();input.angle=a;
   worms=worms.filter(w=>!w.isP);worms.push(player);cam.x=x;cam.y=y;state='play';NET.respawnT=0;
-  $('snd').classList.remove('hidden');lastBtn='';updBtns();
+  $('snd').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');lastBtn='';updBtns();
 }
 // ---- การเคลื่อนไหวของรถไฟคนอื่นให้ลื่น: เก็บสถานะพร้อมเวลาของเครื่องผู้ส่ง แล้ววาดย้อนหลัง INTERP ms โดยเลื่อนระหว่างสองสถานะ ----
 const INTERP=130;
