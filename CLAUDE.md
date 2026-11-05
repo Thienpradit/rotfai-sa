@@ -148,7 +148,9 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
 - ก่อนรันเซิร์ฟเวอร์ทดสอบ ให้ปิดตัวเก่าด้วย `pkill -f '[n]ode server.js'` (มีวงเล็บ [n] กันฆ่าเชลล์ตัวเอง) ไม่งั้นพอร์ตชนแล้วเทสต์จะไปโดนโค้ดเก่า
 
 ## 9. สถานะการขึ้นคลาวด์ (เสร็จแล้ว — 5 พ.ย. 2026)
-- **เว็บเกมจริง:** https://rotfai-sa.onrender.com (Render แผนฟรี, เช็คแล้ว: หน้าเว็บ, `/health`, WebSocket `/ws` ใช้ได้)
+- **เว็บเกมจริง (ตั้งแต่ 5 พ.ย. 2026 21:10): https://rotfai-sa-sg.onrender.com** — service `rotfai-sa-sg` (id srv-dbm8njt6e07s73bg6bi0) **region Singapore** branch `main` แผนฟรี · ping จากเครื่องเจ้าของ ~72ms (Oregon เดิม ~243ms)
+  - **deploy ขึ้นเว็บจริง = Manual Deploy ที่ `rotfai-sa-sg`** (service นี้สร้างจาก Public Git Repo ไม่ใช่ Blueprint)
+- ลิงก์เก่า https://rotfai-sa.onrender.com (service `rotfai-sa`, Oregon, Blueprint) ตั้ง env `REDIRECT_TO=https://rotfai-sa-sg.onrender.com` → ส่งต่อทุกหน้า (รวม `?w=`) ไปเว็บสิงคโปร์ · ไม่ต้อง deploy ตัวนี้อีก
 - **GitHub:** https://github.com/Thienpradit/rotfai-sa (Public, branch `main`)
 - Render เชื่อมผ่าน Blueprint (`render.yaml`) แต่บัญชี Render ของเจ้าของล็อกอินด้วยอีเมล ไม่ได้เชื่อม GitHub
   → **push แล้ว Render ไม่ deploy เอง** ต้องเข้า dashboard.render.com → service `rotfai-sa` → Manual Deploy → Deploy latest commit (ทำผ่านเบราว์เซอร์ในแอปได้ เจ้าของล็อกอินค้างไว้แล้ว)
@@ -158,7 +160,7 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
   - ขั้นตอนทำงาน: แก้ → push `test` → Manual Deploy ที่ rotfai-sa-test → ให้เจ้าของลอง → **เจ้าของยืนยันแล้วค่อย** merge เข้า `main` และ Manual Deploy ที่ rotfai-sa
 - **ฐานข้อมูลบัญชี:** Neon (บัญชีเจ้าของล็อกอินด้วย GitHub) project `my-first-project` id `proud-night-23083005` region Singapore, ตาราง `players` (สร้างอัตโนมัติ)
   - `rotfai-sa-test` ตั้ง env `DATABASE_URL` แล้ว ✅ (log: "accounts: using Postgres ... passSha=30631750")
-  - `rotfai-sa` (เว็บหลัก) **ยังไม่ได้ตั้ง** → ตอน merge ขึ้นเว็บหลักต้องให้เจ้าของวางค่าเดียวกันใน Environment ของ rotfai-sa ก่อน
+  - `rotfai-sa-sg` (เว็บจริงตัวใหม่) ต้องตั้ง `DATABASE_URL` ค่าเดียวกัน (เจ้าของต้องวางเอง) · `rotfai-sa` ตัวเก่าตอนนี้แค่ redirect
   - Claude ห้ามพิมพ์/วางรหัสผ่านลงช่องในเว็บเอง ต้องให้เจ้าของวาง · ระวัง: ถ้าคัดลอกจาก Neon ตอนยังไม่กด Show password จะได้ `****` (เช็คได้จาก passSha ใน log: ดอกจัน 16 ตัว = bdf8be32)
   - ถ้าต่อฐานข้อมูลไม่ได้ เซิร์ฟเวอร์ไม่ล่ม แต่สลับไปเก็บไฟล์ชั่วคราว (`/api/status` จะมี `dbError`)
 - ลิงก์เกมบน claude.ai (บัญชีเดิม):
