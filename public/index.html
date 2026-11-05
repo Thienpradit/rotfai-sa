@@ -190,7 +190,7 @@ for(const c of[...FOOD_COLORS,'#ffffff']){
 }
 const GK=Object.keys(GEMS);
 const PU_TYPES={magnet:{icon:'🧲',col:'#ff5e5e',label:'แม่เหล็ก'},x3:{icon:'⭐',col:'#ffd23f',label:'โต x3'},speed:{icon:'⚡',col:'#77ccff',label:'ความเร็ว'},freeze:{icon:'❄️',col:'#9be7ff',label:'แช่แข็ง'}};
-const FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=480,FREEZE_R=650;
+const GROW=.7,FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=480,FREEZE_R=650;
 const ICON_HTML={G:'<svg viewBox="0 0 24 18" width="1.35em" height="1em" style="vertical-align:-.15em"><g fill="#ffd23f" stroke="#8a5a00" stroke-width="1.2"><path d="M1 17h10l-2-5H3z"/><path d="M13 17h10l-2-5h-6z"/><path d="M7 11h10l-2-5H9z"/></g></svg>',
   B:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" style="vertical-align:-.2em"><circle cx="10" cy="14" r="8" fill="#22252f" stroke="#7a82a8" stroke-width="1.2"/><circle cx="7" cy="11" r="2.2" fill="#fff" opacity=".55"/><rect x="13" y="4.5" width="4" height="4" fill="#8a6a3a" transform="rotate(35 15 6.5)"/><path d="M16.5 5q2.5-4 5.5-2" stroke="#c9a36a" fill="none" stroke-width="1.6"/><circle cx="22" cy="3" r="2" fill="#ffd23f"/></svg>'};
 const iconize=h=>h.replace(/\{([GB])\}/g,(_,k)=>ICON_HTML[k]);
@@ -645,7 +645,7 @@ function step(f,dt){
     let ate=false;
     for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){const a=fgrid.get(key(gx,gy));if(!a)continue;
       for(const fd of a){if(fd.dead)continue;const dx=fd.x-h.x,dy=fd.y-h.y,d2=dx*dx+dy*dy,er=r+fd.r+6;
-        if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult;ate=true;if(NET)NET.q.eat.push(fd.id)}
+        if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult*GROW;ate=true;if(NET)NET.q.eat.push(fd.id)}
         else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f}}}
     if(ate&&w.isP)sfx('eat');
     for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
