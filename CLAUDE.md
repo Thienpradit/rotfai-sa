@@ -151,6 +151,9 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
   → **push แล้ว Render ไม่ deploy เอง** ต้องเข้า dashboard.render.com → service `rotfai-sa` → Manual Deploy → Deploy latest commit (ทำผ่านเบราว์เซอร์ในแอปได้ เจ้าของล็อกอินค้างไว้แล้ว)
   - ถ้าอยากให้อัตโนมัติ: ให้เจ้าของกดเชื่อม GitHub ใน Render (Account settings) หรือทำ Deploy Hook + GitHub Action
 - ข้อจำกัด: ไม่มีคนใช้ 15 นาทีแล้วเซิร์ฟเวอร์จะหลับ ตื่นใช้เวลาประมาณ 1 นาที
+- **เว็บทดสอบ:** https://rotfai-sa-test.onrender.com (service `rotfai-sa-test`, Render แผนฟรี, deploy จาก branch `test` แบบ Manual Deploy เหมือนกัน)
+  - ขั้นตอนทำงาน: แก้ → push `test` → Manual Deploy ที่ rotfai-sa-test → ให้เจ้าของลอง → **เจ้าของยืนยันแล้วค่อย** merge เข้า `main` และ Manual Deploy ที่ rotfai-sa
+- **ฐานข้อมูลบัญชี:** ต้องตั้ง env `DATABASE_URL` (Postgres ฟรีที่ Neon) ให้ทั้งสอง service — ถ้ายังไม่ตั้ง บัญชีเก็บในไฟล์ชั่วคราว หายเมื่อเซิร์ฟเวอร์หลับ/deploy ใหม่
 - ลิงก์เกมบน claude.ai (บัญชีเดิม):
   - "รถไฟซ่า.io (ร่างทอง)" — เวอร์ชันล่าสุด
   - "รถไฟซ่า.io" ตัวเก่า — แชร์สาธารณะไปแล้ว แก้ไม่ได้
