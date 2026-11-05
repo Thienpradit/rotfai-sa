@@ -10,6 +10,7 @@ async def main():
             ctxb=await b.new_context(viewport={'width':400,'height':800},has_touch=True)
             pg=await ctxb.new_page();pg.on('pageerror',lambda e,i=i:errs.append((i,str(e))))
             await pg.goto(URL);await pg.wait_for_timeout(500)
+            await pg.evaluate("document.getElementById('sheet').classList.add('hidden')")
             await pg.fill('#name',f'P{i+1}')
             await pg.click('#playOnline');await pg.wait_for_timeout(150)
             await pg.fill('#roomIn','TEST');await pg.click('#joinBtn');await pg.wait_for_timeout(500)
