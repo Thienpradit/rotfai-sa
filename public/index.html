@@ -30,10 +30,13 @@ input:focus{border-color:#77ccff}
 .btn{display:block;width:100%;padding:12px;margin-top:9px;border:0;border-radius:14px;font:inherit;font-size:17px;font-weight:600;cursor:pointer;color:#1a1f3d;background:#ffd23f;box-shadow:0 4px 0 #b8901a}
 .btn.alt{background:#77ccff;box-shadow:0 4px 0 #3a86b8}
 .btn.team{background:linear-gradient(90deg,#ff6b6b,#4da3ff);color:#fff;box-shadow:0 4px 0 #3a3f80}
+.btn.coop{background:linear-gradient(90deg,#7cfc9a,#5ef2e0);color:#123;box-shadow:0 4px 0 #2a8a6a}
+#coopBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:6px}
+#coopBar button{border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font:inherit;font-size:13px;border-radius:12px;padding:6px 10px;cursor:pointer}
 .btn.gray{background:#3a4470;color:#cfd6ff;box-shadow:0 4px 0 #262d52}
 .btn:disabled{opacity:.45}
 .btn:active{transform:translateY(3px);box-shadow:none}
-.row4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.row4{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:12px}
 .mbtn{background:#0f1330;border:2px solid #3a4590;border-radius:12px;color:#fff;font:inherit;font-size:12px;padding:7px 2px;cursor:pointer;position:relative;line-height:1.35}
 .mbtn .dot{position:absolute;top:4px;right:6px;width:9px;height:9px;border-radius:50%;background:#ff5e5e}
 .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
@@ -70,6 +73,9 @@ input:focus{border-color:#77ccff}
 .tcol.A{background:rgba(255,94,94,.15);border:2px solid #ff5e5e}
 .tcol.B{background:rgba(77,163,255,.15);border:2px solid #4da3ff}
 .tcol div{padding:3px 0}
+.tpick{display:block;width:100%;margin-top:8px;padding:8px 4px;border-radius:10px;border:0;font:inherit;font-size:14px;font-weight:600;color:#fff;cursor:pointer}
+.tcol.A .tpick{background:#ff5e5e}.tcol.B .tpick{background:#4da3ff}
+.tcol div.tpick{background:rgba(255,255,255,.12);color:#fff;text-align:center}.tcol div.tpick.off{color:#8891c4}
 .status{font-size:13px;color:#ffb35e;margin-top:8px;min-height:18px}
 #boost{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:86px;height:86px;border-radius:50%;border:3px solid rgba(255,255,255,.5);background:rgba(255,210,63,.28);color:#fff;font:inherit;font-size:15px;font-weight:600;z-index:5;touch-action:none}
 #boost.on{background:rgba(255,210,63,.7)}
@@ -80,6 +86,10 @@ input:focus{border-color:#77ccff}
 #ann{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);z-index:8;background:rgba(15,19,48,.9);border:2px solid #ffd23f;padding:10px 16px;border-radius:14px;font-size:16px;text-align:center;max-width:84vw;pointer-events:none;opacity:0;transition:opacity .3s}
 #ann.show{opacity:1}
 #sheet{z-index:20}
+.rankbox{background:#0f1330;border-radius:12px;padding:8px 12px;margin:8px 0 2px;text-align:left;cursor:pointer}
+.rankbox .rk1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.rankbox b{font-size:16px}.rankbox span{font-size:12px;color:#aab3e6;white-space:nowrap}.rankbox i{font-style:normal}
+.rankbox small{display:block;font-size:11px;color:#8891c4;margin-top:3px}
 </style>
 </head>
 <body>
@@ -91,17 +101,18 @@ input:focus{border-color:#77ccff}
     <h1>รถไฟซ่า.io</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
     <input id="name" maxlength="14" placeholder="ตั้งชื่อรถไฟของคุณ">
+    <div id="rankMenu"></div>
     <div class="skins" id="skins"></div>
     <div class="diffs" id="diffs"><div class="dbtn" data-d="easy">😊 Easy</div><div class="dbtn" data-d="normal">🙂 Normal</div><div class="dbtn" data-d="hard">😈 Hard</div></div>
     <div class="dnote" id="dnote"></div>
     <button class="btn" id="playInf">เล่นแบบไม่จำกัด</button>
     <button class="btn alt" id="playTime">จับเวลา 5 นาที (วงแคบลง!)</button>
+    <button class="btn coop" id="playCoop">🤝 เล่นกับเพื่อน (เข้ามาจอยได้ตลอด)</button>
     <button class="btn team" id="playOnline">🌐 ออนไลน์ 2v2 กับเพื่อน</button>
     <div class="row4">
       <button class="mbtn" id="bShop">🛒<br>ร้านค้า</button>
       <button class="mbtn" id="bMis">📋<br>ภารกิจ<span class="dot hidden" id="misDot"></span></button>
       <button class="mbtn" id="bAch">🏅<br>เหรียญตรา</button>
-      <button class="mbtn" id="bCmp">🔢<br>เทียบคะแนน</button>
     </div>
     <div class="help" id="help"></div>
     <div class="help" id="best"></div>
@@ -118,8 +129,7 @@ input:focus{border-color:#77ccff}
       <div class="stat"><b id="sBest">0</b><span>สถิติดีสุด (<span id="sDiff"></span>)</span></div>
     </div>
     <div id="coinEarn"></div>
-    <div class="help" style="margin-top:8px">ส่งโค้ดนี้ให้เพื่อนเพื่อเทียบคะแนน</div>
-    <div class="codebox"><input id="codeOut" readonly><button id="copyCode">คัดลอก</button></div>
+    <div id="rankOver"></div>
     <button class="btn" id="again">เล่นอีกครั้ง</button>
     <button class="btn alt" id="toMenu">กลับหน้าแรก</button>
   </div>
@@ -135,6 +145,7 @@ input:focus{border-color:#77ccff}
 <button id="boost" class="hidden">เร่ง!</button>
 <button id="bomb" class="hidden">💣</button>
 <button id="snd" class="ibtn hidden">🔊</button>
+<div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
 <div id="ann"></div>
 
 <script>
@@ -179,9 +190,9 @@ const GOLD_SKIN=['#ffd23f','#ffb000','#fff1a8'],BOSS_SKIN=['#3a0d0d','#ff3b3b','
 //  profile: coins, shop, missions, achievements
 // =====================================================================
 const SHOP={
-  loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:200,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:400,ic:'🚄'}],
-  smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:200,ic:'✨'},{id:'rainbow',n:'ควันสีรุ้ง',p:300,ic:'🌈'}],
-  skin:[{id:'candy',n:'สีลูกกวาด',p:100,c:['#ff9ecb','#ffffff','#9ef0ff']},{id:'galaxy',n:'สีกาแล็กซี',p:150,c:['#2b1055','#7597de','#d6e0ff']},{id:'lava',n:'สีลาวา',p:150,c:['#ff4e00','#2b0a00','#ffb300']},{id:'neon',n:'สีนีออน',p:250,c:['#39ff14','#ff00e6','#00e5ff']}],
+  loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:15000,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:30000,ic:'🚄'}],
+  smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:10000,ic:'✨'},{id:'rainbow',n:'ควันสีรุ้ง',p:20000,ic:'🌈'}],
+  skin:[{id:'candy',n:'สีลูกกวาด',p:10000,c:['#ff9ecb','#ffffff','#9ef0ff']},{id:'galaxy',n:'สีกาแล็กซี',p:15000,c:['#2b1055','#7597de','#d6e0ff']},{id:'lava',n:'สีลาวา',p:15000,c:['#ff4e00','#2b0a00','#ffb300']},{id:'neon',n:'สีนีออน',p:25000,c:['#39ff14','#ff00e6','#00e5ff']}],
 };
 const MPOOL=[
   {id:'kills',ev:'kills',n:5,txt:'กำจัดขบวนศัตรู 5 ขบวน',r:40},
@@ -213,7 +224,7 @@ const ACH=[
 const PROF_KEY='trainProfile';
 let prof=(()=>{let p=null;try{p=JSON.parse(localStorage.getItem(PROF_KEY))}catch(e){}p=p||{};p.coins=p.coins||0;p.owned=p.owned||{};for(const k of['loco','smoke','skin'])p.owned[k]=p.owned[k]||[];
   if(!p.owned.loco.includes('classic'))p.owned.loco.push('classic');if(!p.owned.smoke.includes('normal'))p.owned.smoke.push('normal');
-  p.eq=p.eq||{loco:'classic',smoke:'normal'};p.st=p.st||{};p.ach=p.ach||{};return p})();
+  p.eq=p.eq||{loco:'classic',smoke:'normal'};p.st=p.st||{};p.ach=p.ach||{};p.rp=p.rp||0;return p})();
 let profDirty=false;const saveProf=()=>{try{localStorage.setItem(PROF_KEY,JSON.stringify(prof))}catch(e){}profDirty=false};
 const MP=Object.fromEntries(MPOOL.map(m=>[m.id,m]));
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
@@ -233,6 +244,35 @@ function checkAch(){for(const a of ACH){if(!prof.ach[a.id]&&a.f(prof.st)){prof.a
 let roundCoins=0;
 function addCoins(n,label){if(n<=0)return;prof.coins+=n;roundCoins+=n;prof.st.coinsEarned=(prof.st.coinsEarned||0)+n;profDirty=true;
   if(label&&player){const h=player.pts[0];texts.push({x:h.x,y:h.y-50,txt:label+'  +'+n+' 🪙',t:2,c:'#ffd23f'})}sfx('coin');checkAch()}
+// ---------- rank (แรงก์) ----------
+const RANKS=[
+  {n:'ทองแดง',ic:'🥉',col:'#d9935f',min:0},
+  {n:'เงิน',ic:'🥈',col:'#cfd6e6',min:300},
+  {n:'ทอง',ic:'🥇',col:'#ffd23f',min:1000},
+  {n:'แพลทินัม',ic:'💠',col:'#5ef2e0',min:2500},
+  {n:'เพชร',ic:'💎',col:'#77ccff',min:5000},
+  {n:'ราชันรางเหล็ก',ic:'👑',col:'#ff8c42',min:10000},
+  {n:'ตำนานรถไฟ',ic:'🔥',col:'#ff5e5e',min:20000}];
+const SUBS=['III','II','I'];
+function rankOf(rp){rp=Math.max(0,Math.floor(rp||0));let t=0;while(t<RANKS.length-1&&rp>=RANKS[t+1].min)t++;
+  const K=RANKS[t],last=t===RANKS.length-1;let sub=0,lo=K.min,hi=null;
+  if(!last){const step=(RANKS[t+1].min-K.min)/3;sub=Math.min(2,Math.floor((rp-K.min)/step));lo=K.min+step*sub;hi=lo+step}
+  return{t,sub,ic:K.ic,col:K.col,name:K.n+(last?'':' '+SUBS[sub]),code:t*3+sub,next:last?null:Math.ceil(hi),frac:last?1:(rp-lo)/(hi-lo)}}
+const rankName=c=>{c=Math.max(0,c|0);const t=Math.min(RANKS.length-1,Math.floor(c/3)),K=RANKS[t];return K.ic+' '+K.n+(t===RANKS.length-1?'':' '+SUBS[c%3])};
+const rankIcon=c=>RANKS[Math.min(RANKS.length-1,Math.max(0,Math.floor((c|0)/3)))].ic;
+const myRank=()=>rankOf(prof.rp).code;
+let roundRP=0;
+const DIFF_RP={easy:.6,normal:1,hard:1.5};
+function gameRP(score,kills,extra,mult){return Math.round((Math.floor(score/25)+kills*4+(extra||0))*(mult??(DIFF_RP[diff]||1)))}
+function addRP(n){if(!n)return;const b=rankOf(prof.rp);prof.rp=Math.max(0,prof.rp+n);roundRP+=n;profDirty=true;const a=rankOf(prof.rp);
+  if(player)player.rk=a.code;
+  if(a.code>b.code){announce('🎉 เลื่อนแรงก์เป็น '+a.ic+' '+a.name+'!');sfx('gold')}else if(a.code<b.code)announce('📉 แรงก์ตกเป็น '+a.ic+' '+a.name)}
+function rankHTML(earn){const r=rankOf(prof.rp);
+  return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
+  <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}</small></div>`}
+function renderRanks(b){const r=rankOf(prof.rp);
+  b.innerHTML=rankHTML()+`<div class="help" style="margin:4px 0 8px">ได้ RP จาก: ความยาวตอนจบ (ทุก 25 = 1) · กำจัดศัตรูตัวละ 4 · ติดอันดับ 1–3 โหมดจับเวลา · ชนะ 2v2 +30<br>Easy ×0.6 · Normal ×1 · Hard ×1.5 · ตั้งแต่แรงก์ทองขึ้นไป ตายเร็ว (ยาวไม่ถึง 100) −10 RP</div>`+
+  RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')}
 const allSkins=()=>[...SKINS.map((c,i)=>({id:'b'+i,c,own:true})),...SHOP.skin.map(s=>({id:s.id,c:s.c,own:prof.owned.skin.includes(s.id),p:s.p}))];
 
 // =====================================================================
@@ -380,11 +420,11 @@ class Worm{
     if(this.isRemote)return;
     const m=this.mass*.8,cnt=Math.max(6,Math.min(160,Math.floor(this.pts.length/2))),v=m/cnt,drop=[];
     for(let i=0;i<cnt;i++){const q=this.pts[Math.floor(i/cnt*this.pts.length)];drop.push([Math.round(q.x+rnd(-10,10)),Math.round(q.y+rnd(-10,10))])}
-    if(NET&&this.isP)netSend({t:'die',k:killer&&killer.netId||null,drop,v});else if(!NET)for(const[x,y]of drop)addFood(x,y,v);
-    if(killer&&!NET){killer.kills++;if(killer.isP){const h=killer.pts[0];texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+this.name+'!',t:1.6,c:'#ffd23f'});sfx('kill');track('kills');if(bombing)bombHits++}}
+    if(NET&&this.isP)netSend({t:'die',k:killer&&killer.netId||null,drop,v});else if(NET&&this.isBot)netSend({t:'bdie',id:this.netId,k:killer&&killer.netId||null,drop,v});else if(!NET)for(const[x,y]of drop)addFood(x,y,v);
+    if(killer&&(!NET||this.isBot&&killer.isP)){killer.kills++;if(killer.isP){const h=killer.pts[0];texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+this.name+'!',t:1.6,c:'#ffd23f'});sfx('kill');track('kills');if(bombing)bombHits++}}
     if(this.isBoss){bossActive=null;bossTimer=150;if(killer&&killer.isP){addCoins(60,'👑 ล้มบอสยักษ์!');track('boss')}announce(killer&&killer.isP?'👑 คุณล้มบอสรถไฟยักษ์ได้!':'👑 บอสรถไฟยักษ์ถูกทำลายแล้ว')}
     if(this.isP){sfx('die');bb.classList.add('hidden');$('bomb').classList.add('hidden');
-      if(NET){NET.respawnT=3}else{state='dead';deadT=1.3}}
+      if(NET){NET.respawnT=3;if(NET.coop)coopPay(true)}else{state='dead';deadT=1.3}}
   }
 }
 function cutSelf(w,idx,byGold){
@@ -392,7 +432,7 @@ function cutSelf(w,idx,byGold){
   w.mass=Math.max(10,(idx-14)/.45);p.length=Math.min(p.length,w.nPts());
   let lost=Math.max(0,old-w.mass);const cnt0=Math.max(3,Math.min(80,Math.floor(removed.length/3))),drop=[];const cnt=lost>0?cnt0:0;
   for(let i=0;i<cnt;i++){const q=removed[Math.floor(i/cnt*removed.length)];drop.push([Math.round(q.x+rnd(-8,8)),Math.round(q.y+rnd(-8,8))])}
-  if(NET){if(w.isP)netSend({t:'drop',drop,v:lost*.5/cnt})}else for(const[x,y]of drop)addFood(x,y,lost*.5/cnt);
+  if(NET){if(w.isP||w.isBot)netSend({t:'drop',drop,v:lost*.5/cnt})}else for(const[x,y]of drop)addFood(x,y,lost*.5/cnt);
   w.selfCD=.8;
   if(w.isP){sfx('cut');if(!byGold){const h=p[0];texts.push({x:h.x,y:h.y-30,txt:'ขบวนขาด! -'+Math.floor(lost),t:1.6,c:'#ff5e5e'})}}
 }
@@ -414,13 +454,15 @@ function bodyNear(x,y,rad,self){
 // =====================================================================
 //  AI
 // =====================================================================
+const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
 function aiThink(w,f){
   const h=w.pts[0],r=w.r(),ai=w.ai;ai.t-=f;
   if(ai.t<=0){
     ai.t=rnd(D().think[0],D().think[1]);ai.hunt=null;if(D().regen)w.energy=Math.min(MAX_EN,w.energy+D().regen*ai.t/60);
-    if(w.isBoss&&player&&player.alive&&player.safe<=0&&Math.hypot(player.pts[0].x-h.x,player.pts[0].y-h.y)<1500)ai.hunt=player;
+    let bh=null,bd0=1500;if(w.isBoss)for(const o of worms){if(!o.alive||!isHum(o)||o.safe>0)continue;const d=Math.hypot(o.pts[0].x-h.x,o.pts[0].y-h.y);if(d<bd0){bd0=d;bh=o}}
+    if(bh)ai.hunt=bh;
     else if(w.mass>22){let bd=1e9;for(const o of worms){if(o===w||!o.alive)continue;const oh=o.pts[0],d=Math.hypot(oh.x-h.x,oh.y-h.y);
-      if(!(o.isP&&o.safe>0)&&d<(o.isP?D().huntR:380)&&d<bd&&Math.random()<(o.isP?D().huntP:D().others)){bd=d;ai.hunt=o}}}
+      const hu=isHum(o);if(!(hu&&o.safe>0)&&d<(hu?D().huntR:380)&&d<bd&&Math.random()<(hu?D().huntP:D().others)){bd=d;ai.hunt=o}}}
     if(!ai.hunt){
       let bestF=null,bs=0;const cx=Math.floor(h.x/CS),cy=Math.floor(h.y/CS);
       for(let gx=cx-4;gx<=cx+4;gx++)for(let gy=cy-4;gy<=cy+4;gy++){const a=fgrid.get(key(gx,gy));if(!a)continue;for(const fd of a){if(fd.dead)continue;const s=fd.v/(Math.hypot(fd.x-h.x,fd.y-h.y)+40);if(s>bs){bs=s;bestF=fd}}}
@@ -454,13 +496,13 @@ function spawnAI(){
   do{[x,y]=randInWorld(400);tries++}while(player&&player.alive&&Math.hypot(x-player.pts[0].x,y-player.pts[0].y)<700&&tries<20);
   const w=new Worm(NAMES[(Math.random()*NAMES.length)|0],SKINS[(Math.random()*SKINS.length)|0],x,y,false,{loco:LOCOS[(Math.random()*4)|0]});
   w.mass=rnd(25,120);if(Math.random()<D().big)w.mass=rnd(150,450);w.maxMass=w.mass;
-  worms.push(w);
+  worms.push(w);if(NET)netBotReg(w);
 }
 function spawnBoss(){
   let x,y,tries=0;
   do{[x,y]=randInWorld(500);tries++}while(player&&Math.hypot(x-player.pts[0].x,y-player.pts[0].y)<1100&&tries<30);
   const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.mass=w.maxMass=D().bossM;w.energy=10;
-  worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss');
+  worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss');if(NET)netBotReg(w);
 }
 
 // =====================================================================
@@ -488,12 +530,16 @@ let bombing=false,bombHits=0;
 function useBomb(){
   if(!player||!player.alive||player.tgs<=0||state!=='play')return;
   player.tgs--;const h=player.pts[0];booms.push({x:h.x,y:h.y,t:0});shake=.5;sfx('bomb');
-  if(NET){netSend({t:'bomb',x:Math.round(h.x),y:Math.round(h.y)});texts.push({x:h.x,y:h.y-60,txt:'💥 TGS ระเบิด!',t:2,c:'#ffd23f'});updBtns();return}
+  if(NET){netSend({t:'bomb',x:Math.round(h.x),y:Math.round(h.y)});const n=NET.coop&&NET.host?bombBots(h.x,h.y,player):0;texts.push({x:h.x,y:h.y-60,txt:'💥 TGS ระเบิด!'+(n?' กำจัด '+n+' ขบวน':''),t:2,c:'#ffd23f'});updBtns();return}
   bombing=true;bombHits=0;
   for(const w of worms){if(w===player||!w.alive)continue;let hit=false;for(let i=0;i<w.pts.length;i+=3){const q=w.pts[i];if((q.x-h.x)**2+(q.y-h.y)**2<BOMB_R*BOMB_R){hit=true;break}}if(hit)w.die(player)}
   bombing=false;track('bombKills',bombHits);trackMax('bestBomb',bombHits);
   texts.push({x:h.x,y:h.y-60,txt:'💥 TGS ระเบิด! กำจัด '+bombHits+' ขบวน',t:2,c:'#ffd23f'});updBtns();
 }
+// co-op: หัวหน้าห้องคำนวณว่าระเบิดโดน AI ตัวไหน
+function bombBots(x,y,by){let n=0;bombing=!!(by&&by.isP);bombHits=0;
+  for(const w of worms){if(!w.isBot||w.isRemote||!w.alive)continue;if(w.pts.some((q,i)=>i%3===0&&(q.x-x)**2+(q.y-y)**2<BOMB_R*BOMB_R)){w.die(by);n++}}
+  if(bombing){track('bombKills',bombHits);trackMax('bestBomb',bombHits)}bombing=false;return n}
 let lastBtn='';
 function updBtns(){
   const e=player.energy,k=e.toFixed(1)+'|'+player.tgs+'|'+player.alive;if(k===lastBtn)return;lastBtn=k;
@@ -501,8 +547,9 @@ function updBtns(){
   if(IS_TOUCH)bb.classList.toggle('hidden',!player.alive);
   $('bomb').classList.toggle('hidden',!(player.tgs>0&&player.alive));$('bomb').innerHTML='💣<br><small>TGS ×'+player.tgs+'</small>';
 }
+const ally=(a,b)=>!!(NET&&a.team&&a.team===b.team);
 function freezeAround(src,x,y){
-  let n=0;for(const o of worms){if(o===src||!o.alive)continue;if(NET&&o.team===src.team)continue;const h=o.pts[0];if(Math.hypot(h.x-x,h.y-y)<FREEZE_R){o.slow=3;n++}}
+  let n=0;for(const o of worms){if(o===src||!o.alive)continue;if(ally(o,src))continue;const h=o.pts[0];if(Math.hypot(h.x-x,h.y-y)<FREEZE_R){o.slow=3;n++}}
   booms.push({x,y,t:0,ice:1});return n;
 }
 
@@ -522,17 +569,17 @@ function step(f,dt){
     if(!w.alive||w.safe>0||w.isRemote)continue;const h=w.pts[0],r=w.r(),cx=Math.floor(h.x/CS),cy=Math.floor(h.y/CS);
     let hit=null,hitIdx=0,cut=-1;
     for(let gx=cx-1;gx<=cx+1&&!hit;gx++)for(let gy=cy-1;gy<=cy+1&&!hit;gy++){const a=bgrid.get(key(gx,gy));if(!a)continue;
-      for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(NET&&o!==w&&o.team===w.team)continue;
+      for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(o!==w&&ally(o,w))continue;
         const q=o.pts[idx];if(!q)continue;const rr=r*.7+o.r()*.9,dx=q.x-h.x,dy=q.y-h.y;
         if(dx*dx+dy*dy<rr*rr){if(o===w){if(cut<0||idx<cut)cut=idx}else{hit=o;hitIdx=idx;break}}}}
     if(hit&&w.gold){w.gold=false;const lost0=Math.floor(hit.mass);w.safe=1;const h2=w.pts[0];booms.push({x:h2.x,y:h2.y,t:.6});
-      if(NET)netSend({t:'cut',v:hit.netId,x:Math.round(h2.x),y:Math.round(h2.y)});else cutSelf(hit,Math.max(hitIdx,8),true);
+      if(NET&&hit.isRemote)netSend({t:'cut',v:hit.netId,x:Math.round(h2.x),y:Math.round(h2.y)});else cutSelf(hit,Math.max(hitIdx,8),true);
       if(w.isP){sfx('cut');track('golds');texts.push({x:h2.x,y:h2.y-40,txt:'🌟 ชนขาด! '+hit.name+(NET?'':' สั้นลง '+(lost0-Math.floor(hit.mass))),t:2,c:'#ffd23f'})}}
     else if(hit)w.die(hit);else if(cut>0)cutSelf(w,cut);
   }
   // eating
   for(const w of worms){
-    if(!w.alive||w.isRemote||(NET&&!w.isP))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,reach=r+mr+14,mult=w.pu.x3>0?3:1;
+    if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,reach=r+mr+14,mult=w.pu.x3>0?3:1;
     const x0=Math.floor((h.x-reach)/CS),x1=Math.floor((h.x+reach)/CS),y0=Math.floor((h.y-reach)/CS),y1=Math.floor((h.y+reach)/CS);
     let ate=false;
     for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){const a=fgrid.get(key(gx,gy));if(!a)continue;
@@ -541,13 +588,13 @@ function step(f,dt){
         else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f}}}
     if(ate&&w.isP)sfx('eat');
     for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
-      if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites');if(NET)netSend({t:'white',id:wd.id})}}}
+      if(NET)netSend({t:'white',id:wd.id});if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites')}}}
     if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'🌟 ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
     if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'✨ ได้ไอเทม TGS! กด 💣 เพื่อระเบิด',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
-    for(const p of pups){if(p.dead)continue;if(Math.hypot(p.x-h.x,p.y-h.y)<r+20){p.dead=true;
+    if(!(NET&&w.isBot))for(const p of pups){if(p.dead)continue;if(Math.hypot(p.x-h.x,p.y-h.y)<r+20){p.dead=true;
       if(NET&&w.isP)netSend({t:'pu',id:p.id});
-      if(p.type==='freeze'){const n=NET?0:freezeAround(w,h.x,h.y);if(NET){netSend({t:'frz',x:Math.round(h.x),y:Math.round(h.y)});booms.push({x:h.x,y:h.y,t:0,ice:1})}
-        if(w.isP){sfx('freeze');track('freezes');texts.push({x:h.x,y:h.y-30,txt:'❄️ แช่แข็ง!'+(NET?'':' ศัตรูช้าลง '+n+' ขบวน'),t:1.6,c:'#9be7ff'})}}
+      if(p.type==='freeze'){const n=!NET||NET.coop&&NET.host?freezeAround(w,h.x,h.y):0;if(NET){netSend({t:'frz',x:Math.round(h.x),y:Math.round(h.y)});booms.push({x:h.x,y:h.y,t:0,ice:1})}
+        if(w.isP){sfx('freeze');track('freezes');texts.push({x:h.x,y:h.y-30,txt:'❄️ แช่แข็ง!'+(n?' ศัตรูช้าลง '+n+' ขบวน':''),t:1.6,c:'#9be7ff'})}}
       else{w.pu[p.type]=10;if(w.isP){sfx('item');texts.push({x:h.x,y:h.y-30,txt:PU_TYPES[p.type].icon+' '+PU_TYPES[p.type].label+'!',t:1.4,c:PU_TYPES[p.type].col})}}}}
   }
   foods=foods.filter(x=>!x.dead);pups=pups.filter(x=>!x.dead);whites=whites.filter(x=>!x.dead);
@@ -564,6 +611,10 @@ function step(f,dt){
     const ai=worms.filter(w=>!w.isP&&!w.isBoss).length;if(ai<D().ai&&Math.random()<.03)spawnAI();
   }else{
     worms=worms.filter(w=>w.alive||w.isP);
+    if(NET.coop&&NET.host&&state==='play'){
+      const n=worms.filter(w=>w.isBot&&!w.isRemote&&!w.isBoss).length,want=Math.min(D().ai,20);
+      if(n<want&&(n<want*.6||Math.random()<.03))spawnAI();
+      if(!bossActive||!bossActive.alive){bossActive=null;bossTimer-=dt;if(bossTimer<=0)spawnBoss()}}
     netTick(dt);
   }
   for(const e of booms)e.t+=dt;booms=booms.filter(e=>e.t<1.1);if(shake>0)shake-=dt;
@@ -582,7 +633,7 @@ function glowAlong(w,col,mul,vx0,vy0,vx1,vy1,M){const p=w.pts,r=w.r();ctx.fillSt
 function drawWorm(w,vx0,vy0,vx1,vy1){
   const r=w.r(),p=w.pts,n=p.length,sk=w.gold?GOLD_SKIN:w.skin,W=r*1.75,M=3*r;
   const vis=c=>!(c.x<vx0-M||c.x>vx1+M||c.y<vy0-M||c.y>vy1+M);
-  if(w.team)glowAlong(w,w.team==='A'?'rgba(255,94,94,.16)':'rgba(77,163,255,.16)',1.45,vx0,vy0,vx1,vy1,M);
+  if(w.team)glowAlong(w,NET&&NET.coop?'rgba(124,252,154,.16)':w.team==='A'?'rgba(255,94,94,.16)':'rgba(77,163,255,.16)',1.45,vx0,vy0,vx1,vy1,M);
   if(w.gold){const pl=.5+.5*Math.sin(frame*.15);glowAlong(w,`rgba(255,210,63,${.18+.17*pl})`,1.9,vx0,vy0,vx1,vy1,M);
     if(frame%4===0)smoke.push({x:p[(Math.random()*n)|0].x+rnd(-r,r),y:p[(Math.random()*n)|0].y+rnd(-r,r),r:3,t:.6,k:'gold'})}
   if(w.isBoss)glowAlong(w,`rgba(255,40,40,${.12+.08*Math.sin(frame*.1)})`,1.7,vx0,vy0,vx1,vy1,M);
@@ -646,8 +697,8 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.pu.magnet>0){ctx.strokeStyle='rgba(255,94,94,.35)';ctx.lineWidth=3;ctx.setLineDash([10,10]);ctx.beginPath();ctx.arc(h.x,h.y,r+210,0,TAU);ctx.stroke();ctx.setLineDash([])}
   ctx.globalAlpha=1;
   ctx.font=`600 ${Math.max(13,r*.75)}px Mitr,sans-serif`;ctx.textAlign='center';
-  ctx.fillStyle=w.team?TEAM_COL[w.team]:w.isBoss?'#ff5e5e':w.isP?'#ffd23f':'rgba(255,255,255,.8)';
-  ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,c.x,c.y-W-12);
+  ctx.fillStyle=NET&&NET.coop?(w.isP?'#ffd23f':w.team?'#7cfc9a':w.isBoss?'#ff5e5e':'rgba(255,255,255,.8)'):w.team?TEAM_COL[w.team]:w.isBoss?'#ff5e5e':w.isP?'#ffd23f':'rgba(255,255,255,.8)';
+  ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+(NET&&NET.coop&&w.isRemote&&!w.isBot?'🤝 ':'')+(w.rk!==undefined?rankIcon(w.rk)+' ':'')+w.name,c.x,c.y-W-12);
 }
 function drawSmoke(){for(const s of smoke){s.t-=.018;s.r+=.35;const a=Math.max(0,s.t);
   if(s.k==='rainbow'){ctx.fillStyle=`hsla(${(s.h+(1-s.t)*200)%360},90%,65%,${.55*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}
@@ -740,7 +791,7 @@ function drawHUD(){
   ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),pad+12,pad+27);
   ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,pad+152,pad+26);ctx.textAlign='left';
   const rank=alive.indexOf(player)+1;
-  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText((NET?'🌐 ออนไลน์':rank?'อันดับ #'+rank+'/'+alive.length:'—')+'  ·  💀 '+player.kills,pad+12,pad+50);
+  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText((NET&&NET.coop?'🤝 ห้อง '+NET.room+' · '+NET.players.size+' คน':NET?'🌐 ออนไลน์':rank?'อันดับ #'+rank+'/'+alive.length:'—')+'  ·  💀 '+player.kills,pad+12,pad+50);
   let py=pad+74;
   const chip=(txt,col,frac)=>{ctx.fillStyle='rgba(15,19,48,.7)';roundRect(pad,py,160,26,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(pad,py,160*Math.min(1,frac),26,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
     ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';ctx.fillText(txt,pad+8,py+18);py+=30};
@@ -755,8 +806,8 @@ function drawHUD(){
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
   for(const p of portals){ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(mx+p.x*S,my+p.y*S,2.5,0,TAU);ctx.fill()}
   ctx.strokeStyle=AR<WR?'#ffd23f':'rgba(255,77,109,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mx,my,AR*S,0,TAU);ctx.stroke();
-  for(const w of alive){if(w===player)continue;if(!NET&&!w.isBoss&&alive.indexOf(w)>10)continue;const h=w.pts[0];
-    ctx.fillStyle=w.isBoss?'#ff3b3b':w.team?TEAM_COL[w.team]:'rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,w.isBoss?4:w.team?3:2,0,TAU);ctx.fill()}
+  for(const w of alive){if(w===player)continue;if((!NET||w.isBot)&&!w.isBoss&&alive.indexOf(w)>10)continue;const h=w.pts[0];
+    ctx.fillStyle=w.isBoss?'#ff3b3b':w.team?(NET&&NET.coop?'#7cfc9a':TEAM_COL[w.team]):'rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,w.isBoss?4:w.team?3:2,0,TAU);ctx.fill()}
   if(goldItem){const gx=mx+goldItem.x*S,gy=my+goldItem.y*S,pl=1+.15*Math.sin(frame*.2);
     ctx.fillStyle='rgba(255,210,63,.35)';ctx.beginPath();ctx.arc(gx,gy,9*pl,0,TAU);ctx.fill();
     const mb=(bx,by)=>{ctx.beginPath();ctx.moveTo(bx-5,by+2);ctx.lineTo(bx+5,by+2);ctx.lineTo(bx+3,by-2);ctx.lineTo(bx-3,by-2);ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle='#8a5a00';ctx.lineWidth=1;ctx.stroke()};
@@ -766,7 +817,7 @@ function drawHUD(){
   if(player.alive){const h=player.pts[0];ctx.fillStyle='#ffd23f';ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,3.5,0,TAU);ctx.fill();ctx.stroke()}
   // right panel
   const lw=Math.min(180,VW*.42),lx=VW-lw-pad;
-  if(NET){
+  if(NET&&!NET.coop){
     const sc=NET.score||{A:{k:0,l:0},B:{k:0,l:0}};
     ctx.fillStyle='rgba(15,19,48,.75)';roundRect(lx,pad,lw,100,12);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='600 14px Mitr,sans-serif';ctx.fillText('⚔️ คะแนนทีม',lx+10,pad+22);
@@ -777,10 +828,10 @@ function drawHUD(){
     const top=alive.slice(0,8);
     ctx.fillStyle='rgba(15,19,48,.7)';roundRect(lx,pad,lw,34+top.length*21+(rank>8?22:0),12);ctx.fill();
     ctx.fillStyle='#fff';ctx.font='600 15px Mitr,sans-serif';ctx.fillText('🏆 อันดับ',lx+10,pad+22);ctx.font='13px Mitr,sans-serif';
-    const row=(w,i,y)=>{ctx.fillStyle=w===player?'#ffd23f':w.isBoss?'#ff7b7b':'#cfd6ff';ctx.textAlign='left';ctx.fillText((i+1)+'. '+clip(w.name,lw-70),lx+10,y);ctx.textAlign='right';ctx.fillText(Math.floor(w.mass),lx+lw-10,y)};
+    const row=(w,i,y)=>{ctx.fillStyle=w===player?'#ffd23f':w.isBoss?'#ff7b7b':NET&&w.team?'#7cfc9a':'#cfd6ff';ctx.textAlign='left';ctx.fillText((i+1)+'. '+clip(w.name,lw-70),lx+10,y);ctx.textAlign='right';ctx.fillText(Math.floor(w.mass),lx+lw-10,y)};
     top.forEach((w,i)=>row(w,i,pad+44+i*21));if(rank>8)row(player,rank-1,pad+44+top.length*21+2);ctx.textAlign='left';
   }
-  if(mode==='time'||NET){const tl=NET?NET.timeLeft:timeLeft,s=Math.max(0,Math.ceil(tl)),txt=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
+  if(mode==='time'||NET&&!NET.coop){const tl=NET?NET.timeLeft:timeLeft,s=Math.max(0,Math.ceil(tl)),txt=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
     ctx.textAlign='center';ctx.font='600 26px Mitr,sans-serif';ctx.fillStyle=tl<30?'#ff5e5e':'#fff';ctx.fillText('⏱ '+txt,VW/2,VW<560?VH-40:pad+28);ctx.textAlign='left'}
   if(NET&&!player.alive&&NET.respawnT>0){ctx.textAlign='center';ctx.font='600 28px Mitr,sans-serif';ctx.fillStyle='#fff';ctx.fillText('เกิดใหม่ใน '+Math.ceil(NET.respawnT)+'...',VW/2,VH/2);ctx.textAlign='left'}
   if(input.joy){const j=input.joy;ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(j.ox,j.oy,65,0,TAU);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.stroke();
@@ -802,11 +853,11 @@ function startGame(m){
   if(!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let i=0;i<FOOD_N;i++)addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_N;i++)addWhite()}
   worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBoss);bossActive=null;bossTimer=D().boss;
   {let ais=worms.filter(w=>w.alive);while(ais.length>D().ai){const k=(Math.random()*ais.length)|0;ais[k].alive=false;ais.splice(k,1)}worms=worms.filter(w=>w.alive);while(ais.length<D().ai){spawnAI();ais.push(1)}}
-  mode=m;timeLeft=300;resetItems();roundCoins=0;
+  mode=m;timeLeft=300;resetItems();roundCoins=0;roundRP=0;
   try{localStorage.setItem('wormName',playerName())}catch(e){}
   let x,y,ok,tries=0;
   do{[x,y]=randInWorld(800);ok=!worms.some(w=>w.alive&&Math.hypot(w.pts[0].x-x,w.pts[0].y-y)<500);tries++}while(!ok&&tries<40);
-  player=new Worm(playerName(),curSkin(),x,y,true,{loco:prof.eq.loco,smoke:prof.eq.smoke});input.angle=player.angle;worms.push(player);
+  player=new Worm(playerName(),curSkin(),x,y,true,{loco:prof.eq.loco,smoke:prof.eq.smoke});player.rk=myRank();input.angle=player.angle;worms.push(player);
   cam.x=x;cam.y=y;state='play';
   $('menu').classList.add('hidden');$('over').classList.add('hidden');$('snd').classList.remove('hidden');
   lastBtn='';updBtns();
@@ -819,17 +870,17 @@ function finish(timeUp){
   if(score>best){best=score;try{localStorage.setItem(bestKey(),best)}catch(e){}}
   track('games');trackMax('maxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
   addCoins(Math.floor(score/10)+player.kills*5);
+  {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?20:rk<=3?10:0):0);if(!timeUp&&score<100&&rankOf(prof.rp).t>=2)rp-=10;addRP(rp)}
   saveProf();
   $('overTitle').textContent=timeUp?'หมดเวลา! ⏱':'โดนชนซะแล้ว! 💥';
   $('sLen').textContent=score;$('sKill').textContent=player.kills;
   $('sRank').textContent=timeUp&&rk?'#'+rk:'-';
-  $('sBest').textContent=best;$('sDiff').textContent=D().label;
+  $('sBest').textContent=best;$('sDiff').textContent=D().label;$('rankOver').innerHTML=rankHTML(roundRP);
   $('coinEarn').textContent='รอบนี้ได้ +'+roundCoins+' 🪙  (รวม '+prof.coins+' 🪙)';
-  $('codeOut').value=encCode({n:player.name,s:score,k:player.kills,d:D().label,m:mode==='time'?'จับเวลา':'ไม่จำกัด',t:todayKey()});
   $('over').classList.remove('hidden');
   if(timeUp)player.alive=false;
 }
-function showBest(){$('best').textContent=best?'🏆 สถิติดีสุด ('+D().label+'): '+best:'';$('coinTop').textContent='🪙 '+prof.coins;
+function showBest(){$('rankMenu').innerHTML=rankHTML();$('rankOpen').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks);$('best').textContent=best?'🏆 สถิติดีสุด ('+D().label+'): '+best:'';$('coinTop').textContent='🪙 '+prof.coins;
   $('misDot').classList.toggle('hidden',!prof.daily.m.some(m=>m.p>=MP[m.id].n&&!m.c))}
 const DNOTE={easy:'คู่แข่งน้อย ไม่ค่อยไล่ ชนกันเองบ่อย เหมาะกับมือใหม่',normal:'คู่แข่งไล่ดักหน้าเป็นประจำ เล่นสนุกกำลังดี',hard:'คู่แข่งเยอะ ไล่ทุกทิศ หลบเก่ง บอสโผล่เร็ว!'};
 function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}loadBest();showBest();
@@ -837,7 +888,7 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
 document.querySelectorAll('.dbtn').forEach(b=>b.onclick=()=>setDiff(b.dataset.d));
 function toMenu(){
   if(NET)netLeave(true);
-  state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote);player=null;$('snd').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');
+  state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
   renderSkins();showBest();
 }
@@ -845,8 +896,6 @@ $('playInf').onclick=()=>startGame('inf');
 $('playTime').onclick=()=>startGame('time');
 $('again').onclick=()=>startGame(mode);
 $('toMenu').onclick=toMenu;
-$('copyCode').onclick=()=>{const v=$('codeOut').value;const ok=()=>{$('copyCode').textContent='คัดลอกแล้ว ✓';setTimeout(()=>$('copyCode').textContent='คัดลอก',1500)};
-  try{navigator.clipboard.writeText(v).then(ok,()=>{$('codeOut').select();$('copyCode').textContent='กดค้างเพื่อคัดลอก'})}catch(e){$('codeOut').select()}};
 $('help').innerHTML=(IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกค้าง/Space เร่ง · B ระเบิด · M ปิดเสียง')+
   '<br>💎 เพชรขาว = เร่ง 5 วิ · 🛤️ ราง = เร็วฟรี · 🚇 อุโมงค์ = วาร์ป<br>🚉 สถานี = แลกตู้เป็นเหรียญ · ❄️ แช่แข็งศัตรู · 🌟 ร่างทอง · 💣 TGS<br>👑 บอสยักษ์โผล่เป็นระยะ · ชนขบวนตัวเอง = ขบวนขาด';
 function renderSkins(){const sk=$('skins');sk.innerHTML='';const list=allSkins();if(!list[selSkin]||!list[selSkin].own)selSkin=0;
@@ -855,6 +904,7 @@ function renderSkins(){const sk=$('skins');sk.innerHTML='';const list=allSkins()
     d.onclick=()=>{if(!s.own){openShop('skin');return}selSkin=i;try{localStorage.setItem('trainSkin',s.id)}catch(e){}renderSkins()};sk.appendChild(d)})}
 try{const sid=localStorage.getItem('trainSkin');const i=allSkins().findIndex(s=>s.id===sid);if(i>=0)selSkin=i}catch(e){}
 try{$('name').value=localStorage.getItem('wormName')||''}catch(e){}
+$('name').addEventListener('input',()=>{try{localStorage.setItem('wormName',$('name').value.trim())}catch(e){}});
 
 // =====================================================================
 //  sheets: shop, missions, achievements, compare, online
@@ -873,9 +923,9 @@ function renderShop(b){
     const own=prof.owned[shopTab].includes(it.id),eq=shopTab==='skin'?allSkins()[selSkin]?.id===it.id:prof.eq[shopTab]===it.id;
     const d=document.createElement('div');d.className='item';
     const icon=it.c?`<div class="ic" style="background:conic-gradient(${it.c.join(',')},${it.c[0]})"></div>`:`<div class="ic" style="background:#1f2650">${it.ic}</div>`;
-    d.innerHTML=`${icon}<div class="tx">${it.n}<small>${own?(eq?'กำลังใช้อยู่':'มีแล้ว'):'ราคา '+it.p+' 🪙'}</small></div>`;
+    d.innerHTML=`${icon}<div class="tx">${it.n}<small>${own?(eq?'กำลังใช้อยู่':'มีแล้ว'):'ราคา '+it.p.toLocaleString()+' 🪙'}</small></div>`;
     const btn=document.createElement('button');btn.className='sbtn';
-    if(!own){btn.textContent='ซื้อ '+it.p+'🪙';btn.disabled=prof.coins<it.p;btn.onclick=()=>{prof.coins-=it.p;prof.owned[shopTab].push(it.id);equip(it);saveProf();sfx('coin');renderShop(b)}}
+    if(!own){btn.textContent='ซื้อ '+it.p.toLocaleString()+'🪙';btn.disabled=prof.coins<it.p;btn.onclick=()=>{prof.coins-=it.p;prof.owned[shopTab].push(it.id);equip(it);saveProf();sfx('coin');renderShop(b)}}
     else{btn.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';btn.disabled=eq;btn.onclick=()=>{equip(it);saveProf();renderShop(b)}}
     d.appendChild(btn);L.appendChild(d)}
   if(shopTab==='loco')L.insertAdjacentHTML('beforeend','<div class="help">หัวรถจักรแต่ละแบบหน้าตาต่างกัน ความเร็วเท่ากัน</div>');
@@ -894,23 +944,29 @@ $('bAch').onclick=()=>openSheet('🏅 เหรียญตรา',b=>{
   const n=ACH.filter(a=>prof.ach[a.id]).length;
   b.innerHTML=`<div class="help" style="margin:0 0 8px">ปลดล็อกแล้ว ${n}/${ACH.length} · ได้ 50 🪙 ต่อเหรียญ</div><div class="ach">${ACH.map(a=>`<div class="${prof.ach[a.id]?'on':''}"><b>${a.ic}</b>${a.n}</div>`).join('')}</div>
   <div class="help">สถิติรวม: กำจัด ${prof.st.kills||0} · ยาวสุด ${Math.floor(prof.st.maxLen||0)} · เพชรขาว ${prof.st.whites||0} · สถานี ${prof.st.stations||0} · เล่น ${prof.st.games||0} รอบ</div>`});
-$('bCmp').onclick=()=>openSheet('🔢 เทียบคะแนนกับเพื่อน',b=>{
-  b.innerHTML=`<div class="help" style="margin:0 0 8px">วางโค้ดคะแนนที่เพื่อนส่งมา (ได้จากหน้าจบเกม)</div><input id="cmpIn" placeholder="RS-..."><button class="btn alt" id="cmpGo">เทียบคะแนน</button><div id="cmpOut" style="margin-top:12px"></div>`;
-  b.querySelector('#cmpGo').onclick=()=>{const o=decCode(b.querySelector('#cmpIn').value),out=b.querySelector('#cmpOut');
-    if(!o){out.innerHTML='<span style="color:#ff7b7b">โค้ดไม่ถูกต้อง ลองคัดลอกใหม่อีกครั้ง</span>';return}
-    const myBest=(()=>{const k=Object.keys(DIFF).find(k=>DIFF[k].label===o.d)||'normal';try{return+localStorage.getItem(k==='normal'?'wormBest':'wormBest_'+k)||0}catch(e){return 0}})();
-    const win=myBest>o.s?'😎 คุณชนะ!':myBest===o.s?'🤝 เสมอกัน!':'😤 เพื่อนนำอยู่! ไปเล่นแก้มือ';
-    out.innerHTML=`<div class="stats"><div class="stat"><b>${o.s}</b><span>👤 ${String(o.n).replace(/[<>&]/g,'')}<br>💀 ${o.k} · ${o.d} · ${o.m}</span></div><div class="stat"><b>${myBest}</b><span>🙋 สถิติคุณ<br>(${o.d})</span></div></div><div style="font-size:18px;font-weight:600">${win}</div>`}});
-function encCode(o){const b=btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/=+$/,'');let h=0;for(const ch of b)h=(h*31+ch.charCodeAt(0))%1296;return'RS-'+b+'-'+h.toString(36).padStart(2,'0')}
-function decCode(c){try{const m=c.trim().match(/^RS-([A-Za-z0-9+/]+)-([0-9a-z]{2})$/);if(!m)return null;let h=0;for(const ch of m[1])h=(h*31+ch.charCodeAt(0))%1296;if(h.toString(36).padStart(2,'0')!==m[2])return null;
-  let s=m[1];while(s.length%4)s+='=';const o=JSON.parse(decodeURIComponent(escape(atob(s))));return typeof o.s==='number'?o:null}catch(e){return null}}
-
 // =====================================================================
 //  ONLINE 2v2
 // =====================================================================
 let NET=null;
 function netSend(o){if(NET&&NET.ws&&NET.ws.readyState===1)NET.ws.send(JSON.stringify(o))}
 $('playOnline').onclick=()=>{audioInit();openSheet('🌐 ออนไลน์ 2v2',renderOnlineJoin)};
+$('playCoop').onclick=()=>{audioInit();openSheet('🤝 เล่นกับเพื่อน',b=>renderCoopJoin(b))};
+function renderCoopJoin(b,pre){
+  const code=pre||(Math.random().toString(36).slice(2,6)).toUpperCase();
+  b.innerHTML=`<div class="help" style="margin:0 0 8px">เล่นแบบไม่จำกัดกับรถไฟ AI เหมือนเล่นคนเดียว แต่<b>เพื่อนเข้ามาจอยได้ทุกเมื่อ</b> (สูงสุด 8 คน)<br>🤝 ไม่ต้องแข่งกันเอง: เพื่อนชนกันไม่ตาย ระเบิด/แช่แข็งไม่โดนเพื่อน · ตายแล้วเกิดใหม่ใน 3 วิ</div>
+   <div class="help" style="text-align:left;margin:6px 2px 4px">${pre?'เพื่อนชวนเข้าห้องนี้':'รหัสห้อง (ให้เพื่อนใส่รหัสเดียวกัน หรือกด 📤 ชวนเพื่อน ในเกม)'}</div><input id="roomIn" maxlength="8" value="${code}" style="text-transform:uppercase;letter-spacing:3px;font-weight:600">
+   <button class="btn coop" id="joinBtn">${pre?'เข้าไปเล่นด้วย':'เริ่มเล่น'}</button><div class="status" id="netStatus"></div>`;
+  b.querySelector('#joinBtn').onclick=()=>{audioInit();let srv='';try{srv=localStorage.getItem('trainSrv')||''}catch(e){}netConnect(b.querySelector('#roomIn').value.trim().toUpperCase()||'PUBLIC',srv,true)};
+}
+function coopPay(died){if(!player)return;const k=player.kills-(player.kPaid||0),len=Math.floor(player.maxMass);player.kPaid=player.kills;
+  const c0=roundCoins,r0=roundRP,rk0=myRank();addCoins(Math.floor(len/10)+k*5);addRP(gameRP(len,k,0,1));track('games');trackMax('maxLen',len);saveProf();
+  if(died&&myRank()===rk0)announce('ได้ +'+(roundCoins-c0)+' 🪙  '+((roundRP-r0)>=0?'+':'')+(roundRP-r0)+' RP · กำลังเกิดใหม่...')}
+function netBotReg(w){w.isBot=true;w.netId=-(NET.id*10000+(++NET.bseq%10000));netSend({t:'binfo',b:[{id:w.netId,name:w.name,skin:w.skin,loco:w.loco,boss:!!w.isBoss}]})}
+$('coopInv').onclick=()=>{if(!NET)return;const url=location.origin+location.pathname+'?coop='+encodeURIComponent(NET.room),txt='มาเล่นรถไฟซ่า.io ด้วยกัน! ห้อง '+NET.room;
+  const copied=()=>announce('📋 คัดลอกลิงก์ชวนเพื่อนแล้ว — ห้อง '+NET.room);
+  if(navigator.share)navigator.share({title:'รถไฟซ่า.io',text:txt,url}).catch(()=>{});
+  else try{navigator.clipboard.writeText(txt+' '+url).then(copied,()=>announce('ห้อง '+NET.room+' · '+url))}catch(e){announce('ห้อง '+NET.room+' · '+url)}};
+$('coopExit').onclick=()=>{if(NET&&NET.coop&&player&&player.alive)coopPay(false);netLeave()};
 function renderOnlineJoin(b){
   let srv='';try{srv=localStorage.getItem('trainSrv')||''}catch(e){}
   const code=(Math.random().toString(36).slice(2,6)).toUpperCase();
@@ -922,40 +978,50 @@ function renderOnlineJoin(b){
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
-function netConnect(room,srv){
+function netConnect(room,srv,coop){
   if(NET)netLeave(true);
   let ws;netStatus('กำลังเชื่อมต่อ...');
   const fail=()=>{netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — โหมดออนไลน์ต้องเปิดเกมจากเซิร์ฟเวอร์ของคุณ (ลิงก์ใน Claude เชื่อมต่อภายนอกไม่ได้)');NET=null};
   try{ws=new WebSocket(netURL(srv))}catch(e){fail();return}
-  NET={ws,id:null,room,players:new Map(),phase:'connecting',timeLeft:300,q:{eat:[]},sendT:0,respawnT:0,score:null,host:false,opened:false};
+  NET={ws,id:null,room,coop:!!coop,bots:new Map(),bseq:0,botT:0,players:new Map(),phase:'connecting',timeLeft:300,q:{eat:[]},sendT:0,respawnT:0,score:null,host:false,opened:false};
   const me=NET;
-  ws.onopen=()=>{me.opened=true;netSend({t:'join',room,name:playerName(),skin:curSkin(),loco:prof.eq.loco,smoke:prof.eq.smoke})};
+  try{localStorage.setItem('wormName',playerName())}catch(e){}
+  ws.onopen=()=>{me.opened=true;netSend({t:'join',room,mode:coop?'coop':'vs',name:playerName(),skin:curSkin(),loco:prof.eq.loco,smoke:prof.eq.smoke,rk:myRank()})};
   ws.onerror=()=>{if(!me.opened)fail()};
   ws.onclose=()=>{if(NET!==me)return;if(!me.opened){fail();return}NET=null;announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
   ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
 }
-function netLeave(silent){if(!NET)return;const n=NET;NET=null;try{n.ws.close()}catch(e){}worms=worms.filter(w=>!w.isRemote&&!w.isP);if(!silent)toMenu()}
+function netLeave(silent){if(!NET)return;const n=NET;NET=null;try{n.ws.close()}catch(e){}worms=worms.filter(w=>!w.isRemote&&!w.isP&&!w.isBot);bossActive=null;$('coopBar').classList.add('hidden');if(!silent)toMenu()}
 function setFoods(list){foods=list.map(a=>mkFood(a[1],a[2],a[3],a[0],a[4]))}
 function netMsg(m){
   switch(m.t){
     case'err':netStatus('❌ '+m.msg);break;
     case'welcome':{
-      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);mode='online';
+      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.coop=!!m.coop;mode=NET.coop?'coop':'online';
+      NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;
       setFoods(m.foods);whites=m.whites.map(a=>({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false}));pups=m.pups.map(a=>({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false}));
       setItems(m.items);NET.timeLeft=m.timeLeft;netPlayers(m.players);worms=[];player=null;
-      if(m.phase==='play')netSpawnMe();else{state='lobby';openSheet('🌐 ห้อง '+NET.room,renderLobby)}
+      if(m.phase==='play'){netSpawnMe();if(NET.coop){$('sheet').classList.add('hidden');$('coopBar').classList.remove('hidden');
+        announce(NET.players.size>1?'🤝 เข้าห้อง '+NET.room+' แล้ว เล่นด้วยกันเลย!':'🤝 ห้อง '+NET.room+' พร้อมแล้ว · กด 📤 ชวนเพื่อนเข้ามาเล่นด้วย')}}
+      else{state='lobby';openSheet('🌐 ห้อง '+NET.room,renderLobby)}
       $('menu').classList.add('hidden');break}
-    case'lobby':netPlayers(m.players);NET.phase=m.phase;refreshSheet();break;
+    case'lobby':{const old=NET.players;netPlayers(m.players);NET.phase=m.phase;refreshSheet();
+      if(NET.coop&&state==='play'){for(const p of NET.players.values())if(!old.has(p.id)&&p.id!==NET.id)announce('🤝 '+p.name+' เข้ามาเล่นด้วยแล้ว!');
+        for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกจากห้องแล้ว')}break}
+    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss')}}break;
+    case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
     case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
-    case's':{NET.timeLeft=m.tl;NET.score=m.sc;
-      for(const a of m.p){const[id,x,y,an,ms,fl]=a;if(id===NET.id)continue;const info=NET.players.get(id);if(!info)continue;
+    case's':{NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
+      for(const a of m.p){const[id,x,y,an,ms,fl]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;if(id<0&&Math.floor(-id/10000)===NET.id)continue;
+        const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
-        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,a:an});w.isRemote=true;w.netId=id;w.team=info.team;w.mass=ms;w.nx=x;w.ny=y;w.vx=0;w.vy=0;w.lt=performance.now();worms.push(w)}
+        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.boss){w.isBoss=true;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;w.nx=x;w.ny=y;w.vx=0;w.vy=0;w.lt=performance.now();worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
         const now=performance.now(),dtm=Math.max(.03,(now-w.lt)/1000);
         if(Math.hypot(x-w.nx,y-w.ny)<300){w.vx=(x-w.nx)/dtm;w.vy=(y-w.ny)/dtm}else{w.vx=w.vy=0}
         w.nx=x;w.ny=y;w.na=an;w.nm=ms;w.lt=now;w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0}
+      for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4]));break;
     case'fr':{const s=new Set(m.f);for(const fd of foods)if(s.has(fd.id))fd.dead=true;break}
@@ -964,37 +1030,46 @@ function netMsg(m){
     case'pa':for(const a of m.p)pups.push({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false});break;
     case'pr':for(const p of pups)if(p.id===m.id)p.dead=true;break;
     case'it':{const hadG=!!goldItem,hadT=!!tgsItem;setItems(m.items);if(!hadG&&goldItem)announce('🌟 ทองคำแท่งปรากฏแล้ว!');if(!hadT&&tgsItem)announce('✨ ไอเทม TGS ปรากฏแล้ว!');break}
-    case'kill':{const w=worms.find(o=>o.netId===m.v);if(w)w.alive=false;
-      if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');const h=player.pts[0];texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+(NET.players.get(m.v)?.name||'')+'!',t:1.6,c:'#ffd23f'})}break}
+    case'kill':{const w=worms.find(o=>o.netId===m.v);if(w)w.alive=false;const bi=NET.bots.get(m.v);NET.bots.delete(m.v);
+      if(bi&&bi.boss){bossActive=null;announce(m.k===NET.id?'👑 คุณล้มบอสรถไฟยักษ์ได้!':'👑 บอสรถไฟยักษ์ถูกทำลายแล้ว')}
+      if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');const h=player.pts[0];texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+((bi||NET.players.get(m.v))?.name||'')+'!',t:1.6,c:'#ffd23f'});
+        if(bi&&bi.boss){addCoins(60,'👑 ล้มบอสยักษ์!');track('boss')}}break}
     case'bomb':{booms.push({x:m.x,y:m.y,t:0});sfx('bomb');const by=NET.players.get(m.by);
-      if(player&&player.alive&&by&&by.team!==player.team&&player.safe<=0&&player.pts.some(q=>(q.x-m.x)**2+(q.y-m.y)**2<BOMB_R*BOMB_R))player.die({netId:m.by});break}
-    case'cut':if(m.v===NET.id&&player&&player.alive){let bi=8,bd=1e9;player.pts.forEach((q,i)=>{const d=(q.x-m.x)**2+(q.y-m.y)**2;if(d<bd){bd=d;bi=i}});cutSelf(player,Math.max(bi,8),true);texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:'💥 โดนร่างทองชนขาด!',t:2,c:'#ff5e5e'})}break;
-    case'frz':{booms.push({x:m.x,y:m.y,t:0,ice:1});const by=NET.players.get(m.by);if(player&&player.alive&&by&&by.team!==player.team&&Math.hypot(player.pts[0].x-m.x,player.pts[0].y-m.y)<FREEZE_R){player.slow=3;sfx('freeze')}break}
+      if(player&&player.alive&&by&&by.team!==player.team&&player.safe<=0&&player.pts.some(q=>(q.x-m.x)**2+(q.y-m.y)**2<BOMB_R*BOMB_R))player.die({netId:m.by});
+      if(NET.coop&&NET.host)bombBots(m.x,m.y,{netId:m.by});break}
+    case'cut':{const bw=NET.host&&m.v<0&&worms.find(o=>o.netId===m.v&&!o.isRemote&&o.alive);if(bw){let bi=8,bd=1e9;bw.pts.forEach((q,i)=>{const d=(q.x-m.x)**2+(q.y-m.y)**2;if(d<bd){bd=d;bi=i}});cutSelf(bw,Math.max(bi,8),true);break}}
+      if(m.v===NET.id&&player&&player.alive){let bi=8,bd=1e9;player.pts.forEach((q,i)=>{const d=(q.x-m.x)**2+(q.y-m.y)**2;if(d<bd){bd=d;bi=i}});cutSelf(player,Math.max(bi,8),true);texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:'💥 โดนร่างทองชนขาด!',t:2,c:'#ff5e5e'})}break;
+    case'frz':{booms.push({x:m.x,y:m.y,t:0,ice:1});const by=NET.players.get(m.by);if(player&&player.alive&&by&&by.team!==player.team&&Math.hypot(player.pts[0].x-m.x,player.pts[0].y-m.y)<FREEZE_R){player.slow=3;sfx('freeze')}
+      if(NET.coop&&NET.host)for(const w of worms)if(w.isBot&&!w.isRemote&&w.alive&&Math.hypot(w.pts[0].x-m.x,w.pts[0].y-m.y)<FREEZE_R)w.slow=3;break}
     case'left':{worms=worms.filter(o=>o.netId!==m.id);NET.players.delete(m.id);refreshSheet();break}
     case'end':netEnd(m);break;
   }
 }
 function setItems(it){goldItem=it.gold?{x:it.gold[0],y:it.gold[1]}:null;tgsItem=it.tgs?{x:it.tgs[0],y:it.tgs[1]}:null}
 function netPlayers(list){NET.players=new Map(list.map(p=>[p.id,p]));NET.me=NET.players.get(NET.id);NET.host=!!(NET.me&&NET.me.host);
-  for(const w of worms)if(w.isRemote){const p=NET.players.get(w.netId);if(p)w.team=p.team}if(player&&NET.me)player.team=NET.me.team}
+  for(const w of worms)if(w.isRemote){const p=NET.players.get(w.netId);if(p)w.team=p.team}if(player&&NET.me)player.team=NET.me.team;
+  if(NET.coop&&!NET.host&&worms.some(w=>w.isBot&&!w.isRemote)){worms=worms.filter(w=>!(w.isBot&&!w.isRemote));if(bossActive&&!bossActive.isRemote)bossActive=null}}
 function renderLobby(b){
   if(!NET)return;const ps=[...NET.players.values()];
-  const col=t=>ps.filter(p=>p.team===t).map(p=>`<div>${p.id===NET.id?'⭐ ':''}${String(p.name).replace(/[<>&]/g,'')}${p.host?' 👑':''}</div>`).join('')||'<div style="color:#8891c4">ว่าง</div>';
+  const myT=NET.me?NET.me.team:'A';
+  const col=t=>{const l=ps.filter(p=>p.team===t);return l.map(p=>`<div>${p.id===NET.id?'⭐ ':''}${p.rk!==undefined?rankIcon(p.rk)+' ':''}${String(p.name).replace(/[<>&]/g,'')}${p.host?' 👑':''}</div>`).join('')+
+    (l.length<2?'<div style="color:#8891c4">ว่าง</div>':'')+
+    (t===myT?'<div class="tpick on">✓ คุณอยู่ทีมนี้</div>':l.length>=2?'<div class="tpick off">ทีมเต็ม</div>':`<button class="tpick" data-t="${t}">เข้าทีมนี้</button>`)};
   const nA=ps.filter(p=>p.team==='A').length,nB=ps.filter(p=>p.team==='B').length,canStart=NET.host&&nA>=1&&nB>=1;
   b.innerHTML=`<div class="help" style="margin:0">รหัสห้อง</div><div style="font-size:30px;font-weight:600;letter-spacing:6px;color:#ffd23f">${NET.room}</div>
    <div class="help" style="margin:2px 0 6px">ส่งรหัสนี้ให้เพื่อน แล้วให้เพื่อนเปิดเว็บเกมเดียวกันและใส่รหัสห้องนี้</div>
+   <div class="help" style="margin:0">เลือกทีมที่จะอยู่ (ทีมละไม่เกิน 2 คน)</div>
    <div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b>${col('A')}</div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b>${col('B')}</div></div>
-   <button class="btn gray" id="swapBtn">🔄 ย้ายทีม</button>
    ${NET.host?`<button class="btn team" id="startBtn" ${canStart?'':'disabled'}>⚔️ เริ่มเกม (5 นาที)</button>`:'<div class="status">รอหัวหน้าห้อง 👑 กดเริ่มเกม...</div>'}
    ${NET.host&&!canStart?'<div class="status">ต้องมีผู้เล่นทั้งสองทีมก่อนเริ่ม</div>':''}
    <button class="btn alt" id="leaveBtn">ออกจากห้อง</button>`;
-  b.querySelector('#swapBtn').onclick=()=>netSend({t:'team'});
+  b.querySelectorAll('button.tpick').forEach(x=>x.onclick=()=>netSend({t:'team',k:x.dataset.t}));
   const sb=b.querySelector('#startBtn');if(sb)sb.onclick=()=>netSend({t:'start'});
   b.querySelector('#leaveBtn').onclick=()=>netLeave();
 }
 function netSpawnMe(sp){
   let x,y,a;if(sp){[x,y,a]=sp}else{[x,y]=randInWorld(600);a=Math.random()*TAU}
-  player=new Worm(playerName(),curSkin(),x,y,true,{loco:prof.eq.loco,smoke:prof.eq.smoke,a});player.team=NET.me?NET.me.team:'A';input.angle=a;
+  player=new Worm(playerName(),curSkin(),x,y,true,{loco:prof.eq.loco,smoke:prof.eq.smoke,a});player.team=NET.me?NET.me.team:'A';player.netId=NET.id;player.rk=myRank();input.angle=a;
   worms=worms.filter(w=>!w.isP);worms.push(player);cam.x=x;cam.y=y;state='play';NET.respawnT=0;
   $('snd').classList.remove('hidden');lastBtn='';updBtns();
 }
@@ -1007,20 +1082,23 @@ function netUpdate(w,dt){
 function netTick(dt){
   if(!NET)return;
   NET.timeLeft=Math.max(0,NET.timeLeft-dt);
-  if(player&&!player.alive&&NET.respawnT>0){NET.respawnT-=dt;if(NET.respawnT<=0&&NET.phase==='play'){const sc=player.kills;netSpawnMe();player.kills=sc;player.safe=2.5}}
+  if(player&&!player.alive&&NET.respawnT>0){NET.respawnT-=dt;if(NET.respawnT<=0&&NET.phase==='play'){const sc=player.kills,kp=player.kPaid;netSpawnMe();player.kills=sc;player.kPaid=kp;player.safe=2.5}}
   NET.sendT-=dt;if(NET.sendT<=0&&player){NET.sendT=.05;
     const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0);
     const o={t:'st',x:Math.round(h.x),y:Math.round(h.y),a:+player.angle.toFixed(3),m:+player.mass.toFixed(1),f:fl};
     if(NET.q.eat.length){o.eat=NET.q.eat;NET.q.eat=[]}netSend(o)}
+  if(NET.coop&&NET.host){NET.botT-=dt;if(NET.botT<=0){NET.botT=.066;const b=[];
+    for(const w of worms){if(!w.isBot||w.isRemote||!w.alive)continue;const h=w.pts[0];b.push([w.netId,Math.round(h.x),Math.round(h.y),+w.angle.toFixed(2),+w.mass.toFixed(1),(w.boost&&w.energy>0?1:0)|4|(w.slow>0?8:0)|(w.safe>0?16:0)])}
+    if(b.length)netSend({t:'bs',b})}}
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
-  if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));track('games');trackMax('maxLen',player.maxMass);if(win)track('teamWin');saveProf()}
+  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(player.maxMass,player.kills,win?30:0,1));track('games');trackMax('maxLen',player.maxMass);if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');
   openSheet(m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้',b=>{
     b.innerHTML=`<div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
     ${m.players.map(p=>`<div class="item"><div class="ic" style="background:${TEAM_COL[p.team]}33">${p.id===m.mvp?'🏅':'🚂'}</div><div class="tx">${String(p.name).replace(/[<>&]/g,'')}<small>💀 ${p.kills} · ยาวสุด ${Math.floor(p.maxLen)}</small></div></div>`).join('')}
-    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div>
+    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div>${rankHTML(roundRP)}
     <button class="btn team" id="toLobby">กลับห้องรอ</button><button class="btn alt" id="leave2">ออกจากห้อง</button>`;
     b.querySelector('#toLobby').onclick=()=>openSheet('🌐 ห้อง '+NET.room,renderLobby);
     b.querySelector('#leave2').onclick=()=>netLeave()});
@@ -1043,6 +1121,7 @@ function loop(t){
   profT+=dt;if(profT>4){profT=0;if(profDirty)saveProf()}
 }
 requestAnimationFrame(loop);
+{const q=new URLSearchParams(location.search).get('coop');if(q){const code=q.replace(/[^0-9a-z]/gi,'').slice(0,8).toUpperCase();if(code){history.replaceState(null,'',location.pathname);openSheet('🤝 เพื่อนชวนมาเล่น',b=>renderCoopJoin(b,code))}}}
 addEventListener('pagehide',()=>{if(profDirty)saveProf()});
 </script>
 </body>
