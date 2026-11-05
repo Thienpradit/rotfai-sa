@@ -133,7 +133,9 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
 ## 9. สถานะการขึ้นคลาวด์ (เสร็จแล้ว — 5 พ.ย. 2026)
 - **เว็บเกมจริง:** https://rotfai-sa.onrender.com (Render แผนฟรี, เช็คแล้ว: หน้าเว็บ, `/health`, WebSocket `/ws` ใช้ได้)
 - **GitHub:** https://github.com/Thienpradit/rotfai-sa (Public, branch `main`)
-- Render เชื่อมผ่าน Blueprint (`render.yaml`) → **push ขึ้น `main` แล้ว Render deploy ใหม่ให้อัตโนมัติ**
+- Render เชื่อมผ่าน Blueprint (`render.yaml`) แต่บัญชี Render ของเจ้าของล็อกอินด้วยอีเมล ไม่ได้เชื่อม GitHub
+  → **push แล้ว Render ไม่ deploy เอง** ต้องเข้า dashboard.render.com → service `rotfai-sa` → Manual Deploy → Deploy latest commit (ทำผ่านเบราว์เซอร์ในแอปได้ เจ้าของล็อกอินค้างไว้แล้ว)
+  - ถ้าอยากให้อัตโนมัติ: ให้เจ้าของกดเชื่อม GitHub ใน Render (Account settings) หรือทำ Deploy Hook + GitHub Action
 - ข้อจำกัด: ไม่มีคนใช้ 15 นาทีแล้วเซิร์ฟเวอร์จะหลับ ตื่นใช้เวลาประมาณ 1 นาที
 - ลิงก์เกมบน claude.ai (บัญชีเดิม):
   - "รถไฟซ่า.io (ร่างทอง)" — เวอร์ชันล่าสุด
