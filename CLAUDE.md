@@ -156,10 +156,9 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
   → **push แล้ว Render ไม่ deploy เอง** ต้องเข้า dashboard.render.com → service `rotfai-sa` → Manual Deploy → Deploy latest commit (ทำผ่านเบราว์เซอร์ในแอปได้ เจ้าของล็อกอินค้างไว้แล้ว)
   - ถ้าอยากให้อัตโนมัติ: ให้เจ้าของกดเชื่อม GitHub ใน Render (Account settings) หรือทำ Deploy Hook + GitHub Action
 - ข้อจำกัด: ไม่มีคนใช้ 15 นาทีแล้วเซิร์ฟเวอร์จะหลับ ตื่นใช้เวลาประมาณ 1 นาที
-- **เว็บทดสอบ:** https://rotfai-sa-test.onrender.com (service `rotfai-sa-test`, Render แผนฟรี, deploy จาก branch `test` แบบ Manual Deploy เหมือนกัน)
-  - ขั้นตอนทำงาน: แก้ → push `test` → Manual Deploy ที่ rotfai-sa-test → ให้เจ้าของลอง → **เจ้าของยืนยันแล้วค่อย** merge เข้า `main` และ Manual Deploy ที่ rotfai-sa
+- เว็บทดสอบ (`rotfai-sa-test`) และ branch `test` **ถูกลบแล้ว** ตามที่เจ้าของบอกว่าไม่ใช้ (5 พ.ย. 2026) → ขั้นตอนตอนนี้: แก้ → ทดสอบในเครื่อง → push `main` → Manual Deploy ที่ `rotfai-sa-sg` → เปิดเว็บจริงเช็ค
 - **ฐานข้อมูลบัญชี:** Neon (บัญชีเจ้าของล็อกอินด้วย GitHub) project `my-first-project` id `proud-night-23083005` region Singapore, ตาราง `players` (สร้างอัตโนมัติ)
-  - `rotfai-sa-test` ตั้ง env `DATABASE_URL` แล้ว ✅ (log: "accounts: using Postgres ... passSha=30631750")
+  - ลายนิ้วมือรหัสที่ถูกต้องใน log: `passSha=30631750` (ถ้า Neon reset password ค่านี้จะเปลี่ยน)
   - `rotfai-sa-sg` (เว็บจริงตัวใหม่) ต้องตั้ง `DATABASE_URL` ค่าเดียวกัน (เจ้าของต้องวางเอง) · `rotfai-sa` ตัวเก่าตอนนี้แค่ redirect
   - Claude ห้ามพิมพ์/วางรหัสผ่านลงช่องในเว็บเอง ต้องให้เจ้าของวาง · ระวัง: ถ้าคัดลอกจาก Neon ตอนยังไม่กด Show password จะได้ `****` (เช็คได้จาก passSha ใน log: ดอกจัน 16 ตัว = bdf8be32)
   - ถ้าต่อฐานข้อมูลไม่ได้ เซิร์ฟเวอร์ไม่ล่ม แต่สลับไปเก็บไฟล์ชั่วคราว (`/api/status` จะมี `dbError`)
