@@ -2,7 +2,15 @@
 <html lang="th">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="รถไฟซ่า">
+<meta name="theme-color" content="#0d1020">
 <title>รถไฟซ่า.io</title>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;600&display=swap" rel="stylesheet">
 <style>
@@ -76,13 +84,13 @@ input:focus{border-color:#77ccff}
 .tcol.A .tpick{background:#ff5e5e}.tcol.B .tpick{background:#4da3ff}
 .tcol div.tpick{background:rgba(255,255,255,.12);color:#fff;text-align:center}.tcol div.tpick.off{color:#8891c4}
 .status{font-size:13px;color:#ffb35e;margin-top:8px;min-height:18px}
-#boost{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:86px;height:86px;border-radius:50%;border:3px solid rgba(255,255,255,.5);background:rgba(255,210,63,.28);color:#fff;font:inherit;font-size:15px;font-weight:600;z-index:5;touch-action:none}
+#boost{position:fixed;right:calc(22px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));width:86px;height:86px;border-radius:50%;border:3px solid rgba(255,255,255,.5);background:rgba(255,210,63,.28);color:#fff;font:inherit;font-size:15px;font-weight:600;z-index:5;touch-action:none}
 #boost.on{background:rgba(255,210,63,.7)}
 #boost small,#bomb small{font-size:12px;font-weight:400}
 #bomb.warn{border-color:#ff5e5e;background:rgba(255,60,60,.65)}
-#bomb{position:fixed;right:30px;bottom:calc(126px + env(safe-area-inset-bottom));width:72px;height:72px;border-radius:50%;border:3px solid #ffd23f;background:rgba(255,120,40,.55);color:#fff;font:inherit;font-size:24px;line-height:1.1;font-weight:600;z-index:5;touch-action:none;cursor:pointer;animation:pulse 1s infinite}
-#snd{position:fixed;left:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
-#fsGame{position:fixed;left:60px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
+#bomb{position:fixed;right:calc(30px + env(safe-area-inset-right));bottom:calc(126px + env(safe-area-inset-bottom));width:72px;height:72px;border-radius:50%;border:3px solid #ffd23f;background:rgba(255,120,40,.55);color:#fff;font:inherit;font-size:24px;line-height:1.1;font-weight:600;z-index:5;touch-action:none;cursor:pointer;animation:pulse 1s infinite}
+#snd{position:fixed;left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
+#fsGame{position:fixed;left:calc(60px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
 .fsb{font-size:17px}
 @keyframes pulse{50%{transform:scale(1.08)}}
 #ann{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);z-index:8;background:rgba(15,19,48,.9);border:2px solid #ffd23f;padding:10px 16px;border-radius:14px;font-size:16px;text-align:center;max-width:84vw;pointer-events:none;opacity:0;transition:opacity .3s}
@@ -157,6 +165,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 <button id="fsGame" class="ibtn fsb hidden" title="เต็มจอ">⛶</button>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
 <div id="ann"></div>
+<div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
 <script>
 // =====================================================================
@@ -165,8 +174,13 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 {const A=CanvasRenderingContext2D.prototype.arc;ctx.arc=function(x,y,r,a,b,c){A.call(this,x,y,r>0?r:0,a,b,c)}}
 let VW,VH,DPR;
-function resize(){DPR=Math.min(window.devicePixelRatio||1,2);VW=innerWidth;VH=innerHeight;cv.width=VW*DPR;cv.height=VH*DPR}
+const SAFE={t:0,r:0,b:0,l:0};
+function readSafe(){const e=document.getElementById('safeProbe');if(!e)return;const c=getComputedStyle(e);SAFE.t=parseFloat(c.paddingTop)||0;SAFE.r=parseFloat(c.paddingRight)||0;SAFE.b=parseFloat(c.paddingBottom)||0;SAFE.l=parseFloat(c.paddingLeft)||0}
+function resize(){DPR=Math.min(window.devicePixelRatio||1,2);const vv=window.visualViewport;VW=Math.round(Math.max(innerWidth,vv?vv.width:0));VH=Math.round(Math.max(innerHeight,vv?vv.height:0));cv.width=VW*DPR;cv.height=VH*DPR;readSafe()}
 addEventListener('resize',resize);resize();
+// หมุนจอ (ตั้ง↔นอน): มือถือบางรุ่นบอกขนาดจอใหม่ช้า เลยวัดซ้ำหลายครั้ง
+addEventListener('orientationchange',()=>{for(const t of[50,250,600,1000])setTimeout(resize,t)});
+if(window.visualViewport)visualViewport.addEventListener('resize',()=>setTimeout(resize,30));
 const $=id=>document.getElementById(id);
 const IS_TOUCH=('ontouchstart' in window)||navigator.maxTouchPoints>0;
 const SELF_IDX=20,FOOD_N=1700,PU_N=18,CS=100,TAU=Math.PI*2;
@@ -587,12 +601,21 @@ const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
 let fsAuto=true;try{fsAuto=localStorage.getItem('trainFS')!=='0'}catch(e){}
 function enterFS(){if(!FS_OK||isFS())return;const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 function exitFS(){try{const r=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
-function toggleFS(){if(isFS()){exitFS();fsAuto=false}else{enterFS();fsAuto=true}try{localStorage.setItem('trainFS',fsAuto?'1':'0')}catch(e){}}
+const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const IN_APP=/Line\/|FBAN|FBAV|Instagram|TikTok|Messenger/i.test(navigator.userAgent);
+const IS_STANDALONE=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+function toggleFS(){if(!FS_OK){fsGuide();return}if(isFS()){exitFS();fsAuto=false}else{enterFS();fsAuto=true}try{localStorage.setItem('trainFS',fsAuto?'1':'0')}catch(e){}}
+function fsGuide(){   // มือถือที่เว็บสั่งเต็มจอเองไม่ได้ (iPhone / แอป LINE, Facebook) → ติดตั้งเกมลงหน้าจอหลัก จะเปิดเต็มจอทุกแนว
+  openSheet('⛶ เล่นเต็มจอบนมือถือ',b=>{b.innerHTML=IN_APP?
+    `<div class="help" style="margin:0;text-align:left;font-size:14px;line-height:1.8">ตอนนี้เปิดอยู่ในแอป (เช่น LINE / Facebook) ซึ่งไม่ให้เต็มจอ<br><b>1.</b> กดปุ่ม <b>⋯</b> หรือ <b>⋮</b> มุมจอ<br><b>2.</b> เลือก <b>เปิดใน ${IS_IOS?'Safari':'Chrome'}</b> (Open in browser)<br><b>3.</b> แล้วกด ⛶ อีกครั้ง</div>`:
+    `<div class="help" style="margin:0;text-align:left;font-size:14px;line-height:1.8">iPhone ให้เล่นเต็มจอได้เมื่อ <b>ติดตั้งเกมลงหน้าจอหลัก</b> (ทำครั้งเดียว)<br><b>1.</b> กดปุ่ม <b>แชร์</b> <svg viewBox="0 0 24 24" width="1.2em" height="1.2em" style="vertical-align:-.25em" fill="none" stroke="#77ccff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-2"/><path d="M12 15V2"/><path d="M8 6l4-4 4 4"/></svg> (สี่เหลี่ยมมีลูกศรชี้ขึ้น) ด้านล่างของ Safari<br><b>2.</b> เลื่อนหา <b>เพิ่มไปยังหน้าจอหลัก</b> (Add to Home Screen)<br><b>3.</b> กด <b>เพิ่ม</b> แล้วเปิดเกมจาก <b>ไอคอนรถไฟ 🚂</b> บนหน้าจอ<br>✅ จะเต็มจอทั้งแนวตั้งและแนวนอน ไม่มีแถบเบราว์เซอร์ และบัญชีที่ล็อกอินจะต้องล็อกอินใหม่ครั้งแรกครั้งเดียว</div>`+
+    `<button class="btn" id="fsOk" style="margin-top:12px">เข้าใจแล้ว</button>`;
+    b.querySelector('#fsOk').onclick=()=>$('sheet').classList.add('hidden')})}
 function updFS(){const t=isFS()?'🗗':'⛶';$('fsMenu').textContent=$('fsGame').textContent=t}
 function autoFS(){if(fsAuto)enterFS()}
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{updFS();setTimeout(resize,60)}));
 $('fsMenu').onclick=$('fsGame').onclick=e=>{e.stopPropagation();toggleFS()};
-if(!FS_OK){$('fsMenu').classList.add('hidden');$('fsGame').remove()}   // iPhone Safari ยังไม่รองรับเต็มจอแบบนี้
+if(IS_STANDALONE()){$('fsMenu').classList.add('hidden');$('fsGame').remove()}   // เปิดจากไอคอนบนหน้าจอหลักอยู่แล้ว = เต็มจอแล้ว
 
 // =====================================================================
 //  items: bomb, buttons
@@ -870,6 +893,9 @@ function render(){
   if(player&&(state==='play'||state==='dead'||state==='over'))drawHUD();
 }
 function drawHUD(){
+  const W0=VW,H0=VH;VW-=SAFE.l+SAFE.r;VH-=SAFE.t+SAFE.b;ctx.save();ctx.translate(SAFE.l,SAFE.t);try{drawHUD2()}finally{ctx.restore();VW=W0;VH=H0}
+}
+function drawHUD2(){
   const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(pad,pad,160,64,12);ctx.fill();
   ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),pad+12,pad+27);
@@ -922,7 +948,7 @@ function drawHUD(){
   if(NET&&!player.alive&&NET.respawnT>0){ctx.textAlign='center';ctx.font='600 28px Mitr,sans-serif';ctx.fillStyle='#fff';ctx.fillText('เกิดใหม่ใน '+Math.ceil(NET.respawnT)+'...',VW/2,VH/2);ctx.textAlign='left'}
   if(bossActive&&bossActive.alive&&bossActive.maxHp){const bw=Math.min(190,VW*.46),bx=VW/2-bw/2,by=VH-74-(NET&&NET.ffa?0:-20);
     ctx.textAlign='center';ctx.font='600 13px Mitr,sans-serif';ctx.fillStyle='#ff9b9b';ctx.fillText('👑 บอสยักษ์ '+Math.ceil(bossActive.hp)+'/'+bossActive.maxHp+'  ล้มได้ '+BOSS_COINS+' 🪙',VW/2,by-6);ctx.textAlign='left';hpBar(bx,by,bw,10,bossActive.hp/bossActive.maxHp)}
-  if(input.joy){const j=input.joy;ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(j.ox,j.oy,65,0,TAU);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.stroke();
+  if(input.joy){const j={...input.joy,ox:input.joy.ox-SAFE.l,oy:input.joy.oy-SAFE.t,x:input.joy.x-SAFE.l,y:input.joy.y-SAFE.t};ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(j.ox,j.oy,65,0,TAU);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.stroke();
     ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(j.x,j.y,26,0,TAU);ctx.fill()}
 }
 function drawGoldIcon(x,y,s){const lw=Math.max(1,s*.08),b=(bx,by)=>{ctx.beginPath();ctx.moveTo(bx-s*.5,by+s*.2);ctx.lineTo(bx+s*.5,by+s*.2);ctx.lineTo(bx+s*.3,by-s*.2);ctx.lineTo(bx-s*.3,by-s*.2);ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle='#8a5a00';ctx.lineWidth=lw;ctx.stroke()};
