@@ -119,6 +119,8 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 @media (max-width:380px){#menu .row4.four{gap:4px}#menu .row4.four .mbtn{font-size:10.5px;letter-spacing:-.3px}}
 @media (max-width:340px){#menu .row4.four .mbtn{font-size:9px}}#sheetBody .rankbox{cursor:default}
 /* หน้าแรก: จัดกลุ่มให้อ่านง่าย */
+.fstip{display:flex;align-items:center;gap:8px;background:#22305e;border:1px solid #3a4f9a;border-radius:12px;padding:7px 8px 7px 10px;margin:4px 0 6px;font-size:12px;text-align:left;line-height:1.4}
+.fstip span{flex:1}.fstip .sbtn{padding:6px 10px;font-size:12px}.fsx{background:none;border:0;color:#8891c4;font-size:15px;cursor:pointer;padding:2px 4px}
 .card{background:#151a36;border:1px solid #2a3264;border-radius:16px;padding:12px 12px 6px;margin-top:4px}
 .card .gnote{margin:8px 0 0}
 .lbl{font-size:12px;color:#8891c4;text-align:left;margin:10px 2px 0;font-weight:600;letter-spacing:.3px}
@@ -154,6 +156,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 <div id="menu" class="overlay">
   <div class="panel">
     <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button></span></div>
+    <div class="fstip hidden" id="fsTip"><span id="fsTipTx"></span><button class="sbtn" id="fsTipGo">ดูวิธี</button><button class="fsx" id="fsTipX">✕</button></div>
     <h1>รถไฟซ่า.io</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
     <div class="card">
@@ -717,13 +720,13 @@ $('snd').onclick=$('sndMenu').onclick=()=>{audioInit();setSnd(!SND.on)};
 // ---------- เต็มหน้าจอ: ปุ่ม ⛶ + เข้าเต็มจออัตโนมัติเมื่อกดเริ่มเล่น ----------
 const FS_OK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
-let fsAuto=true;try{fsAuto=localStorage.getItem('trainFS')!=='0'}catch(e){}
+let fsAuto=true;try{fsAuto=localStorage.getItem('trainFS2')!=='0'}catch(e){}   // key ใหม่: ค่า "ปิด" เก่าที่เคยกดไว้ไม่มีผลแล้ว
 function enterFS(){if(!FS_OK||isFS())return;const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 function exitFS(){try{const r=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IN_APP=/Line\/|FBAN|FBAV|Instagram|TikTok|Messenger/i.test(navigator.userAgent);
 const IS_STANDALONE=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
-function toggleFS(){if(!FS_OK){fsGuide();return}if(isFS()){exitFS();fsAuto=false}else{enterFS();fsAuto=true}try{localStorage.setItem('trainFS',fsAuto?'1':'0')}catch(e){}}
+function toggleFS(){if(!FS_OK){fsGuide();return}if(isFS()){exitFS();fsAuto=false}else{enterFS();fsAuto=true}try{localStorage.setItem('trainFS2',fsAuto?'1':'0')}catch(e){}}
 function fsGuide(){   // มือถือที่เว็บสั่งเต็มจอเองไม่ได้ (iPhone / แอป LINE, Facebook) → ติดตั้งเกมลงหน้าจอหลัก จะเปิดเต็มจอทุกแนว
   openSheet('⛶ เล่นเต็มจอบนมือถือ',b=>{b.innerHTML=IN_APP?
     `<div class="help" style="margin:0;text-align:left;font-size:14px;line-height:1.8">ตอนนี้เปิดอยู่ในแอป (เช่น LINE / Facebook) ซึ่งไม่ให้เต็มจอ<br><b>1.</b> กดปุ่ม <b>⋯</b> หรือ <b>⋮</b> มุมจอ<br><b>2.</b> เลือก <b>เปิดใน ${IS_IOS?'Safari':'Chrome'}</b> (Open in browser)<br><b>3.</b> แล้วกด ⛶ อีกครั้ง</div>`:
@@ -732,9 +735,18 @@ function fsGuide(){   // มือถือที่เว็บสั่งเ�
     b.querySelector('#fsOk').onclick=()=>$('sheet').classList.add('hidden')})}
 function updFS(){const t=isFS()?'🗗':'⛶';$('fsMenu').textContent=$('fsGame').textContent=t}
 function autoFS(){if(fsAuto)enterFS()}
+// มือถือ: แตะตรงไหนก็ได้ (เมนู/ในเกม) แล้วยังไม่เต็มจอ → เข้าเต็มจอทันที · หลุดเต็มจอ (ปัดกลับ/สลับแอป) แตะครั้งถัดไปก็กลับมาเต็มจอ
+// (เบราว์เซอร์ยอมให้เต็มจอเฉพาะตอนผู้ใช้แตะ · ปิดได้ด้วยปุ่ม ⛶)
+if(IS_TOUCH&&FS_OK&&!IS_STANDALONE()){const go=e=>{if(fsAuto&&!isFS()&&!(e.target&&e.target.closest&&e.target.closest('.fsb')))enterFS()};
+  document.addEventListener('touchend',go,{passive:true});document.addEventListener('click',go)}
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{updFS();setTimeout(resize,60)}));
 $('fsMenu').onclick=$('fsGame').onclick=e=>{e.stopPropagation();toggleFS()};
-if(IS_STANDALONE()){$('fsMenu').classList.add('hidden');$('fsGame').remove()}   // เปิดจากไอคอนบนหน้าจอหลักอยู่แล้ว = เต็มจอแล้ว
+if(IS_STANDALONE()){$('fsMenu').classList.add('hidden');$('fsGame').remove()}
+// iPhone (Safari ไม่ยอมให้เว็บเต็มจอ) / เปิดในแอป LINE, Facebook → แถบแนะนำวิธีเล่นเต็มจอ (ปิดได้ จำไว้ 3 วัน)
+{let hid=0;try{hid=+localStorage.getItem('fsTipHide')||0}catch(e){}
+  if(IS_TOUCH&&!IS_STANDALONE()&&(!FS_OK||IN_APP)&&Date.now()-hid>3*864e5){$('fsTip').classList.remove('hidden');
+    $('fsTipTx').textContent=IN_APP?'📱 เปิดในแอปอยู่ เล่นเต็มจอไม่ได้ — เปิดในเบราว์เซอร์แทน':'📱 อยากเล่นเต็มจอ? ติดตั้งเกมลงหน้าจอหลัก (ฟรี ทำครั้งเดียว)';
+    $('fsTipGo').onclick=()=>fsGuide();$('fsTipX').onclick=()=>{$('fsTip').classList.add('hidden');try{localStorage.setItem('fsTipHide',Date.now())}catch(e){}}}}   // เปิดจากไอคอนบนหน้าจอหลักอยู่แล้ว = เต็มจอแล้ว
 
 // =====================================================================
 //  items: bomb, buttons
@@ -1227,7 +1239,7 @@ function renderBotSheet(b){
   b.querySelector('#botInf').onclick=()=>{$('sheet').classList.add('hidden');startGame('inf')};
   b.querySelector('#botTime').onclick=()=>{$('sheet').classList.add('hidden');startGame('time')};
 }
-$('again').onclick=()=>{if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
+$('again').onclick=()=>{autoFS();if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
