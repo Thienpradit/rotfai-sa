@@ -84,11 +84,11 @@ input:focus{border-color:#77ccff}
 .tcol.A .tpick{background:#ff5e5e}.tcol.B .tpick{background:#4da3ff}
 .tcol div.tpick{background:rgba(255,255,255,.12);color:#fff;text-align:center}.tcol div.tpick.off{color:#8891c4}
 .status{font-size:13px;color:#ffb35e;margin-top:8px;min-height:18px}
-#boost{position:fixed;right:calc(22px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));width:86px;height:86px;border-radius:50%;border:3px solid rgba(255,255,255,.5);background:rgba(255,210,63,.28);color:#fff;font:inherit;font-size:15px;font-weight:600;z-index:5;touch-action:none}
+#boost{position:fixed;right:calc(22px + env(safe-area-inset-right));bottom:calc(26px + env(safe-area-inset-bottom));width:104px;height:104px;border-radius:50%;border:3px solid rgba(255,255,255,.5);background:rgba(255,210,63,.28);color:#fff;font:inherit;font-size:15px;font-weight:600;z-index:5;touch-action:none}
 #boost.on{background:rgba(255,210,63,.7)}
 #boost small,#bomb small{font-size:12px;font-weight:400}
 #bomb.warn{border-color:#ff5e5e;background:rgba(255,60,60,.65)}
-#bomb{position:fixed;right:calc(30px + env(safe-area-inset-right));bottom:calc(126px + env(safe-area-inset-bottom));width:72px;height:72px;border-radius:50%;border:3px solid #ffd23f;background:rgba(255,120,40,.55);color:#fff;font:inherit;font-size:24px;line-height:1.1;font-weight:600;z-index:5;touch-action:none;cursor:pointer;animation:pulse 1s infinite}
+#bomb{position:fixed;right:calc(38px + env(safe-area-inset-right));bottom:calc(142px + env(safe-area-inset-bottom));width:72px;height:72px;border-radius:50%;border:3px solid #ffd23f;background:rgba(255,120,40,.55);color:#fff;font:inherit;font-size:24px;line-height:1.1;font-weight:600;z-index:5;touch-action:none;cursor:pointer;animation:pulse 1s infinite}
 #snd{position:fixed;left:calc(12px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
 #fsGame{position:fixed;left:calc(60px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8}
 .fsb{font-size:17px}
@@ -160,14 +160,14 @@ canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14p
 .tag{display:inline-block;font-size:10px;font-weight:600;border-radius:6px;padding:1px 6px;margin-left:4px;background:#ff5e5e;color:#fff;vertical-align:1px}
 .rcode{font-size:24px;font-weight:600;letter-spacing:3px;color:#ffd23f;background:#0f1330;border-radius:12px;padding:10px;margin:8px 0;user-select:text;-webkit-user-select:text}
 .link{color:#77ccff;cursor:pointer;text-decoration:underline;font-size:13px}
-#horn{position:fixed;right:calc(122px + env(safe-area-inset-right));bottom:calc(36px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(119,204,255,.3);color:#fff;font-size:24px;z-index:5;touch-action:none;cursor:pointer}
+#horn{position:fixed;right:calc(140px + env(safe-area-inset-right));bottom:calc(49px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(119,204,255,.3);color:#fff;font-size:24px;z-index:5;touch-action:none;cursor:pointer}
 #horn.cd{opacity:.4}
 #setGame{position:fixed;left:calc(108px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8;font-size:17px}
 #setGame.nofs{left:calc(60px + env(safe-area-inset-left))}
-/* ตั้งค่า: ปุ่มควบคุมอยู่ซ้าย (body.sideL) → เร่ง/ระเบิด/หวูด ไปซ้าย, ปุ่มเสียง/เต็มจอ/ตั้งค่า ไปขวา */
+/* ตั้งค่า: ปุ่มควบคุมอยู่ซ้าย (body.sideL) → สลับเฉพาะปุ่มด้านล่าง (ข้อมูลด้านบน/มินิแมป/อันดับ อยู่ที่เดิม) · เร่ง/ระเบิด/หวูด ไปซ้าย, ปุ่มเสียง/เต็มจอ/ตั้งค่า ไปขวา */
 body.sideL #boost{right:auto;left:calc(22px + env(safe-area-inset-left))}
-body.sideL #bomb{right:auto;left:calc(30px + env(safe-area-inset-left))}
-body.sideL #horn{right:auto;left:calc(122px + env(safe-area-inset-left))}
+body.sideL #bomb{right:auto;left:calc(38px + env(safe-area-inset-left))}
+body.sideL #horn{right:auto;left:calc(140px + env(safe-area-inset-left))}
 body.sideL #snd{left:auto;right:calc(108px + env(safe-area-inset-right))}
 body.sideL #fsGame{left:auto;right:calc(60px + env(safe-area-inset-right))}
 body.sideL #setGame{left:auto;right:calc(12px + env(safe-area-inset-right))}
@@ -175,11 +175,12 @@ body.sideL #setGame.nofs{right:calc(12px + env(safe-area-inset-right))}
 body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 /* มือถือแนวนอน (จอเตี้ย): ปุ่มเล็กลง ไม่ทับมินิแมป/ตารางอันดับ */
 @media (max-height:500px){
-  #boost{width:70px;height:70px;bottom:calc(16px + env(safe-area-inset-bottom));font-size:13px}
-  #bomb{width:56px;height:56px;bottom:calc(96px + env(safe-area-inset-bottom));right:calc(29px + env(safe-area-inset-right));font-size:19px}
-  body.sideL #bomb{left:calc(29px + env(safe-area-inset-left))}
-  #horn{width:48px;height:48px;bottom:calc(27px + env(safe-area-inset-bottom));right:calc(102px + env(safe-area-inset-right));font-size:20px}
-  body.sideL #horn{left:calc(102px + env(safe-area-inset-left))}
+  #boost{width:86px;height:86px;bottom:calc(16px + env(safe-area-inset-bottom));font-size:14px}
+  #bomb{width:56px;height:56px;bottom:calc(112px + env(safe-area-inset-bottom));right:calc(37px + env(safe-area-inset-right));font-size:19px}
+  #horn{width:48px;height:48px;bottom:calc(35px + env(safe-area-inset-bottom));right:calc(120px + env(safe-area-inset-right));font-size:20px}
+  /* ปุ่มอยู่ซ้าย + จอแนวนอน: เรียงแถวเดียวด้านล่าง ไม่ขึ้นไปทับมินิแมปมุมซ้าย */
+  body.sideL #bomb{left:calc(120px + env(safe-area-inset-left));bottom:calc(31px + env(safe-area-inset-bottom))}
+  body.sideL #horn{left:calc(186px + env(safe-area-inset-left));bottom:calc(35px + env(safe-area-inset-bottom))}
   #boost small,#bomb small{font-size:10px}
 }
 .topbar>span{white-space:nowrap}
@@ -800,7 +801,7 @@ function setSide(v){SIDE=v==='L'?'L':'R';document.body.classList.toggle('sideL',
 setSide(SIDE);
 function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
   b.innerHTML=`<div class="lbl">🎮 ปุ่มเร่ง / ระเบิด / หวูด อยู่ด้าน</div>
-  <div class="seg" id="segSide"><div data-v="L" class="${SIDE==='L'?'on':''}">⬅️ ซ้าย<small>ถนัดซ้าย · ตารางอันดับย้ายไปซ้าย</small></div><div data-v="R" class="${SIDE==='R'?'on':''}">ขวา ➡️<small>ถนัดขวา (ค่าเดิม)</small></div></div>
+  <div class="seg" id="segSide"><div data-v="L" class="${SIDE==='L'?'on':''}">⬅️ ซ้าย<small>ถนัดซ้าย</small></div><div data-v="R" class="${SIDE==='R'?'on':''}">ขวา ➡️<small>ถนัดขวา (ค่าเดิม)</small></div></div>
   <div class="lbl">✨ กราฟิก</div>
   <div class="seg" id="segGfx"><div data-v="hi" class="${GFX==='hi'?'on':''}">💎 สวยสุด<small>ภาพคม เพชรวิบวับ</small></div><div data-v="auto" class="${GFX==='auto'?'on':''}">⚡ อัตโนมัติ<small>ลดเองถ้าเครื่องกระตุก</small></div><div data-v="lo" class="${GFX==='lo'?'on':''}">🔋 ประหยัด<small>เครื่องช้า/ประหยัดแบต</small></div></div>
   <div class="lbl">🔊 เสียง</div>
@@ -1171,16 +1172,18 @@ function drawHUD(){
   const W0=VW,H0=VH;VW-=SAFE.l+SAFE.r;VH-=SAFE.t+SAFE.b;ctx.save();ctx.translate(SAFE.l,SAFE.t);try{drawHUD2()}finally{ctx.restore();VW=W0;VH=H0}
 }
 function drawHUD2(){
-  const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass),SL=SIDE==='L',PH=Math.min(VW,VH)<520;   // PH = มือถือ → ตารางอันดับเล็กลง
-  const bx0=SL?VW-pad-160:pad;   // กล่องสถานะ/ชิป/มินิแมป: ปกติอยู่ซ้าย · ตั้งปุ่มไว้ซ้าย → ย้ายไปขวา
+  const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass),PH=Math.min(VW,VH)<520,LS=VH<500;   // LS = มือถือแนวนอน → ชิป/มินิแมปเล็กลง ไม่ลงไปทับปุ่มด้านล่าง
+     // PH = มือถือ → ตารางอันดับเล็กลง
+  const bx0=pad;
   ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(bx0,pad,160,64,12);ctx.fill();
   ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),bx0+12,pad+27);
   ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+152,pad+26);ctx.textAlign='left';
   const rank=alive.indexOf(player)+1;
   ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText((NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,bx0+12,pad+50);
   let py=pad+74;
-  const chip=(txt,col,frac)=>{ctx.font='13px Mitr,sans-serif';const cw=Math.max(160,textW(txt)+18),cx=SL?VW-pad-cw:pad;ctx.fillStyle='rgba(15,19,48,.7)';roundRect(cx,py,cw,26,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(cx,py,cw*Math.min(1,frac),26,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
-    ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';fillTextIcons(txt,cx+8,py+18);py+=30};
+  const CH=LS?22:26,CF=LS?'12px Mitr,sans-serif':'13px Mitr,sans-serif';
+  const chip=(txt,col,frac)=>{ctx.font=CF;const cw=Math.max(160,textW(txt)+18),cx=pad;ctx.fillStyle='rgba(15,19,48,.7)';roundRect(cx,py,cw,CH,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(cx,py,cw*Math.min(1,frac),CH,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
+    ctx.fillStyle='#fff';ctx.font=CF;fillTextIcons(txt,cx+8,py+CH-(LS?6:8));py+=CH+(LS?3:4)};
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/maxEn(player));
   if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/goldLife(player));
   if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/bombLife(player));
@@ -1188,7 +1191,7 @@ function drawHUD2(){
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
   // minimap
-  const mr=Math.min(64,VW*.15),mx=SL?VW-pad-mr:pad+mr,my=py+mr+6,S=mr/WR;MINI_R=mr;
+  const mr=Math.max(24,Math.min(LS?38:64,VW*.15,LS?(VH-118-py)/2:1e9)),mx=pad+mr,my=py+mr+6,S=mr/WR;MINI_R=mr;
   ctx.fillStyle='rgba(15,19,48,.75)';ctx.beginPath();ctx.arc(mx,my,mr,0,TAU);ctx.fill();
   ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
@@ -1206,7 +1209,7 @@ function drawHUD2(){
   // right panel
   // มือถือ: ตารางอันดับเล็ก (ตัวหนังสือ 11px, 5 อันดับ, กว้าง ~130px) · คอม/แท็บเล็ต: ขนาดเดิม 8 อันดับ
   const Z=PH?{w:Math.min(132,VW*.34),n:5,rh:15,h:26,t:'600 12px Mitr,sans-serif',f:'11px Mitr,sans-serif',p:7,r:9,sub:'9.5px Mitr,sans-serif'}:{w:Math.min(180,VW*.42),n:8,rh:21,h:34,t:'600 15px Mitr,sans-serif',f:'13px Mitr,sans-serif',p:10,r:12,sub:'11px Mitr,sans-serif'};
-  const lw=Z.w,lx=SL?pad:VW-lw-pad;
+  const lw=Z.w,lx=VW-lw-pad;
   if(NET&&!NET.ffa){
     const sc=NET.score||{A:{k:0,l:0},B:{k:0,l:0}},th=PH?72:100;
     ctx.fillStyle='rgba(15,19,48,.75)';roundRect(lx,pad,lw,th,Z.r);ctx.fill();
