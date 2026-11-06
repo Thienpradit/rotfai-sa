@@ -71,20 +71,22 @@ function getRoom(code, ffa) {
   }
   return r;
 }
-const pubPlayers = room => [...room.players.values()].map(p => ({ id: p.id, name: p.name, team: p.team, host: p.host, skin: p.skin, loco: p.loco, smoke: p.smoke, rk: p.rk }));
+const pubPlayers = room => [...room.players.values()].map(p => ({ id: p.id, name: p.name, team: p.team, host: p.host, skin: p.skin, loco: p.loco, smoke: p.smoke, wag: p.wag, kfx: p.kfx, title: p.title, rk: p.rk }));
 const pubBots = room => [...room.bots.values()].map(b => b.info);
 // free-for-all: รถไฟ AI ทั้งหมดรันอยู่ในเครื่องหัวหน้าห้อง ถ้าหัวหน้าเปลี่ยน ต้องล้าง AI ชุดเก่าทิ้ง
-function clearBots(room) { if (!room.bots.size) return; room.bots.clear(); bcast(room, { t: 'bclr' }); }
+function clearBots(room) { room.deadBots = 0; if (!room.bots.size) return; room.bots.clear(); bcast(room, { t: 'bclr' }); }
 function setHost(room, p) { for (const q of room.players.values()) q.host = q === p; clearBots(room); lobby(room); }
 const lobby = room => bcast(room, { t: 'lobby', players: pubPlayers(room), phase: room.phase });
 function teamScore(room) {
   const sc = { A: { k: 0, l: 0 }, B: { k: 0, l: 0 } };
   for (const p of room.players.values()) { if (!sc[p.team]) continue; sc[p.team].k += p.kills; if (p.st && p.st.f & 4) sc[p.team].l += p.st.m; }
+  if (!room.ffa) for (const b of room.bots.values()) { const t = sc[b.info.team]; if (!t) continue; t.k += b.kills || 0; if (b.st && b.st[5] & 4) t.l += b.st[4]; }   // 2v2: บอทที่เติมให้ทีมนับคะแนนด้วย
   return sc;
 }
 
 // ---------- match flow ----------
 function startMatch(room) {
+  clearBots(room);
   room.phase = 'play'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.timers = { tgs: 30, gold: 50 };
   const spawns = {}; const per = { A: 0, B: 0 };
   for (const p of room.players.values()) {
@@ -100,8 +102,11 @@ function endMatch(room) {
   const A = sc.A.k * 100 + Math.floor(sc.A.l), B = sc.B.k * 100 + Math.floor(sc.B.l);
   const ps = [...room.players.values()];
   let mvp = null, mv = -1; for (const p of ps) { const v = p.kills * 100 + p.maxLen; if (v > mv) { mv = v; mvp = p.id; } }
+  const bots = [...room.bots.values()].filter(b => !b.dead || b.kills).map(b => ({ id: b.info.id, name: b.info.name, team: b.info.team, kills: b.kills || 0, maxLen: b.maxLen || 20, bot: true }));
+  for (const b of bots) { const v = b.kills * 100 + b.maxLen; if (v > mv) { mv = v; mvp = b.id; } }
   bcast(room, { t: 'end', winner: A > B ? 'A' : B > A ? 'B' : 'draw', A, B, mvp,
-    players: ps.map(p => ({ id: p.id, name: p.name, team: p.team, kills: p.kills, maxLen: p.maxLen })) });
+    players: ps.map(p => ({ id: p.id, name: p.name, team: p.team, kills: p.kills, maxLen: p.maxLen })).concat(bots) });
+  clearBots(room);
   room.phase = 'lobby'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null };
   lobby(room);
 }
@@ -128,7 +133,7 @@ wss.on('connection', ws => {
       const nA = [...room.players.values()].filter(p => p.team === 'A').length;
       me = { id: nextId++, ws, name: clean(m.name, 14) || 'ผู้เล่น', team: ffa ? null : nA <= room.players.size - nA ? 'A' : 'B',
         host: room.players.size === 0, skin: Array.isArray(m.skin) ? m.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffd23f', '#ff8c42'],
-        loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
+        loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
       room.players.set(me.id, me);
       send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room) });
@@ -144,7 +149,7 @@ wss.on('connection', ws => {
       case 'start':
         if (!room.ffa && me.host && room.phase === 'lobby') {
           const ps = [...room.players.values()];
-          if (ps.some(p => p.team === 'A') && ps.some(p => p.team === 'B')) startMatch(room);
+          if (ps.length) startMatch(room);   // คนไม่ครบ → เครื่องหัวหน้าห้องเติมบอทให้ทีมที่ขาด
         }
         break;
       case 'st':
@@ -167,9 +172,10 @@ wss.on('connection', ws => {
         break;
       case 'die': {
         if (me.st) me.st.f &= ~4;
-        const killer = room.players.get(m.k);
+        const killer = room.players.get(m.k), kb = !killer && room.bots.get(m.k);
         if (killer && (room.ffa || killer.team !== me.team)) killer.kills++;
-        bcast(room, { t: 'kill', v: me.id, k: killer ? killer.id : null }, ws);
+        if (kb && kb.info.team !== me.team) kb.kills = (kb.kills || 0) + 1;
+        bcast(room, { t: 'kill', v: me.id, k: killer ? killer.id : kb ? kb.info.id : null }, ws);
         dropFoods(room, m.drop, m.v, DROP_TTL);
         break;
       }
@@ -177,23 +183,25 @@ wss.on('connection', ws => {
       case 'bomb': bcast(room, { t: 'bomb', by: me.id, x: +m.x || 0, y: +m.y || 0 }, ws); break;
       case 'cut': bcast(room, { t: 'cut', by: me.id, v: m.v, x: +m.x || 0, y: +m.y || 0 }, ws); break;
       case 'frz': bcast(room, { t: 'frz', by: me.id, x: +m.x || 0, y: +m.y || 0 }, ws); break;
+      case 'horn': { const now = Date.now(); if (now - (me.hornT || 0) > 2000) { me.hornT = now; bcast(room, { t: 'horn', by: me.id, k: clean(m.k, 10) }, ws); } break; }
       // ---- free-for-all: หัวหน้าห้องส่งข้อมูลรถไฟ AI ----
       case 'binfo':
-        if (!room.ffa || !me.host || !Array.isArray(m.b)) break;
+        if (!(room.ffa || room.phase === 'play') || !me.host || !Array.isArray(m.b)) break;
         { const add = [];
           for (const b of m.b.slice(0, 40)) {
-            const id = Math.round(+b.id); if (!(id < 0) || room.bots.size >= 60) continue;
+            const id = Math.round(+b.id); if (!(id < 0) || room.bots.size - (room.deadBots || 0) >= 60) continue;
             const info = { id, name: clean(b.name, 20), skin: Array.isArray(b.skin) ? b.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffffff', '#888888'],
               loco: clean(b.loco, 10), boss: !!b.boss, mhp: Math.max(0, Math.min(5000, b.mhp | 0)) };
+            if (!room.ffa) info.team = b.team === 'B' ? 'B' : 'A';
             room.bots.set(id, { info, st: null }); add.push(info);
           }
           if (add.length) bcast(room, { t: 'binfo', b: add }, ws); }
         break;
       case 'bs':
-        if (!room.ffa || !me.host || !Array.isArray(m.b)) break;
+        if (!(room.ffa || room.phase === 'play') || !me.host || !Array.isArray(m.b)) break;
         me.lastT = Date.now();
         { const ts = +m.ts || Date.now();
-          for (const a of m.b.slice(0, 60)) { if (!Array.isArray(a)) continue; const b = room.bots.get(a[0]); if (b) { b.st = [a[0], +a[1] || 0, +a[2] || 0, +a[3] || 0, Math.min(5000, +a[4] || 0), a[5] | 0, ts]; if (b.info.boss && a.length > 6) b.st.push(Math.max(0, +a[6] || 0)); } } }
+          for (const a of m.b.slice(0, 60)) { if (!Array.isArray(a)) continue; const b = room.bots.get(a[0]); if (b) { b.st = [a[0], +a[1] || 0, +a[2] || 0, +a[3] || 0, Math.min(5000, +a[4] || 0), a[5] | 0, ts]; if (b.st[4] > (b.maxLen || 0)) b.maxLen = b.st[4]; if (b.info.boss && a.length > 6) b.st.push(Math.max(0, +a[6] || 0)); } } }
         break;
       case 'bhit': {   // ผู้เล่นชนบอส → ส่งให้เครื่องหัวหน้าห้องที่คุมบอสอยู่คำนวณ
         if (!room.ffa) break;
@@ -202,10 +210,13 @@ wss.on('connection', ws => {
         break;
       }
       case 'bdie': {
-        if (!room.ffa || !me.host || !room.bots.delete(m.id)) break;
-        const killer = room.players.get(m.k);
-        if (killer) killer.kills++;
-        bcast(room, { t: 'kill', v: m.id, k: killer ? killer.id : null }, ws);
+        const dead = room.bots.get(m.id);
+        if (!me.host || !dead) break;
+        if (room.ffa) room.bots.delete(m.id); else if (!dead.dead) { dead.st = null; dead.dead = true; room.deadBots = (room.deadBots || 0) + 1; }   // 2v2: เก็บบอทไว้นับแต้มตอนจบ แต่ไม่ส่งตำแหน่งแล้ว
+        const killer = room.players.get(m.k), kb = !killer && room.bots.get(m.k);
+        if (killer && (room.ffa || killer.team !== dead.info.team)) killer.kills++;
+        if (kb && kb !== dead && kb.info.team !== dead.info.team) kb.kills = (kb.kills || 0) + 1;
+        bcast(room, { t: 'kill', v: m.id, k: killer ? killer.id : kb ? kb.info.id : null }, ws);
         dropFoods(room, m.drop, m.v, DROP_TTL);
         break;
       }

@@ -7,6 +7,7 @@ const path = require('path');
 const DB_URL = process.env.DATABASE_URL || '';
 const SECRET = process.env.TOKEN_SECRET || crypto.createHash('sha256').update('rotfai:' + (DB_URL || 'dev-secret')).digest('hex');
 const MAX_DATA = 40 * 1024;
+const AC = require('./anticheat');
 
 // ---------- storage ----------
 let store;
@@ -20,7 +21,9 @@ function fileStore(note) {
     async get(l) { return db[l] || null; },
     async create(u) { if (db[u.lname]) return false; db[u.lname] = u; flush(); return true; },
     async save(l, data, rp) { if (db[l]) { db[l].data = data; db[l].rp = rp; db[l].updated = Date.now(); flush(); } },
-    async top(n) { return Object.values(db).sort((a, b) => b.rp - a.rp).slice(0, n).map(u => ({ name: u.name, rp: u.rp })); },
+    async setAuth(l, salt, hash) { if (db[l]) { db[l].salt = salt; db[l].hash = hash; flush(); } },
+    async setRecovery(l, rhash) { if (db[l]) { db[l].rhash = rhash; flush(); } },
+    async top(n, season) { return Object.values(db).filter(u => (u.data || {}).season === season).sort((a, b) => b.rp - a.rp).slice(0, n).map(u => ({ name: u.name, rp: u.rp, tid: ((u.data || {}).eq || {}).title || '' })); },
   };
 }
 // บอกลักษณะของ DATABASE_URL แบบไม่เปิดเผยรหัสผ่าน (ไว้เช็คว่าค่าที่ใส่ใน Render ตรงกับของ Neon ไหม)
@@ -40,6 +43,7 @@ if (DB_URL) {
       data JSONB NOT NULL DEFAULT '{}', rp INTEGER NOT NULL DEFAULT 0,
       created TIMESTAMPTZ NOT NULL DEFAULT now(), updated TIMESTAMPTZ NOT NULL DEFAULT now())`)
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS players_rp ON players (rp DESC)'))
+    .then(() => pool.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS rhash TEXT'))
     .then(() => { console.log('accounts: using Postgres (' + describeUrl(url) + ')'); })
     .catch(e => {   // ต่อฐานข้อมูลไม่ได้ → ไม่ให้เซิร์ฟเวอร์ล่ม ใช้ไฟล์ชั่วคราวแทน
       console.error('accounts: database error ' + e.message + ' | ' + describeUrl(url));
@@ -50,12 +54,19 @@ if (DB_URL) {
     async get(l) { await ready; if (store !== dbStore) return store.get(l); const r = await pool.query('SELECT * FROM players WHERE lname=$1', [l]); return r.rows[0] || null; },
     async create(u) { await ready; if (store !== dbStore) return store.create(u); const r = await pool.query('INSERT INTO players (lname,name,salt,hash,data,rp) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING RETURNING lname', [u.lname, u.name, u.salt, u.hash, u.data, u.rp]); return r.rowCount === 1; },
     async save(l, data, rp) { await ready; if (store !== dbStore) return store.save(l, data, rp); await pool.query('UPDATE players SET data=$2, rp=$3, updated=now() WHERE lname=$1', [l, data, rp]); },
-    async top(n) { await ready; if (store !== dbStore) return store.top(n); const r = await pool.query('SELECT name, rp FROM players ORDER BY rp DESC, updated ASC LIMIT $1', [n]); return r.rows; },
+    async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
+    async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
+    async top(n, season) { await ready; if (store !== dbStore) return store.top(n, season);
+      const r = await pool.query("SELECT name, rp, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE data->>'season'=$2 ORDER BY rp DESC, updated ASC LIMIT $1", [n, season]); return r.rows; },
   };
   store = dbStore;
 } else {
   store = fileStore('no DATABASE_URL → using local file (test only, data is lost when the server restarts on Render)');
 }
+
+// บน Render (มีตัวแปร RENDER) ถ้าไม่ได้ต่อฐานข้อมูล → ปิดลงทะเบียน/เข้าสู่ระบบ ไม่ให้บัญชีไปอยู่ในไฟล์ชั่วคราวแล้วหายตอนเซิร์ฟเวอร์รีสตาร์ท
+const LIVE = !!process.env.RENDER && !process.env.ALLOW_FILE_STORE;
+const accountsDown = () => LIVE && store.kind === 'file';
 
 // ---------- helpers ----------
 const b64u = s => Buffer.from(s, 'utf8').toString('base64url');
@@ -71,6 +82,11 @@ function cleanData(d) {
   return JSON.parse(s);
 }
 const rpOf = d => Math.max(0, Math.min(1e7, Math.floor(+d.rp || 0)));
+// รหัสกู้คืน: เก็บแค่ค่า hash (มี salt ของตัวเอง แยกจากรหัสผ่าน)
+function makeRecovery() { const code = AC.newRecovery(), rs = crypto.randomBytes(8).toString('hex'); return { code, rhash: rs + '$' + AC.hashRecovery(code, rs) }; }
+function checkRecovery(rhash, code) { const [rs, h] = String(rhash || '').split('$'); if (!rs || !h) return false;
+  const a = Buffer.from(h), b = Buffer.from(AC.hashRecovery(code, rs)); return a.length === b.length && crypto.timingSafeEqual(a, b); }
+const passOk = p => p.length >= 4 && p.length <= 64;
 async function authUser(req) {
   const h = req.headers.authorization || ''; const tok = h.startsWith('Bearer ') ? h.slice(7) : '';
   const [a, sig] = tok.split('.'); if (!a || !sig) return null;
@@ -92,8 +108,9 @@ function limited(req) {
 async function handleApi(req, res, p) {
   const out = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
   try {
-    if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { accounts: true, store: store.kind, dbError: store.dbError || undefined }); }
-    if (p === '/api/top' && req.method === 'GET') return out(200, { top: await store.top(30) });
+    if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { accounts: true, store: store.kind, dbError: store.dbError || undefined, down: accountsDown() || undefined, season: AC.seasonKey() }); }
+    if (p === '/api/top' && req.method === 'GET') return out(200, { season: AC.seasonKey(), top: await store.top(30, AC.seasonKey()) });
+    if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดปรับปรุงชั่วคราว (ยังไม่ได้ต่อฐานข้อมูล) เล่นแบบ Guest ไปก่อนได้' });
     if (req.method === 'GET' && p === '/api/me') {
       const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
       return out(200, { name: u.name, data: u.data });
@@ -104,24 +121,44 @@ async function handleApi(req, res, p) {
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
       const name = cleanName(body.name), pass = String(body.pass || '');
       if ([...name].length < 2 || [...name].length > 14) return out(400, { err: 'ชื่อต้องยาว 2–14 ตัวอักษร' });
-      if (pass.length < 4 || pass.length > 64) return out(400, { err: 'รหัสผ่านต้องยาว 4 ตัวขึ้นไป' });
+      if (!passOk(pass)) return out(400, { err: 'รหัสผ่านต้องยาว 4 ตัวขึ้นไป' });
       const l = lower(name);
       if (p === '/api/register') {
-        const data = cleanData(body.data); if (data === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
+        const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
+        const data = AC.validate(null, raw).data, rc = makeRecovery();
         const salt = crypto.randomBytes(16).toString('hex'), u = { lname: l, name, salt, hash: await hashPass(pass, salt), data, rp: rpOf(data) };
         if (!(await store.create(u))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
-        return out(200, { token: makeToken(u), name, data });
+        await store.setRecovery(l, rc.rhash);
+        return out(200, { token: makeToken(u), name, data, code: rc.code });
       }
       const u = await store.get(l);
       if (!u || (await hashPass(pass, u.salt)) !== u.hash) return out(401, { err: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
       return out(200, { token: makeToken(u), name: u.name, data: u.data });
     }
-    if (p === '/api/save') {
-      const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
-      const data = cleanData(body.data); if (data === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
-      await store.save(u.lname, data, rpOf(data));
-      return out(200, { ok: true });
+    if (p === '/api/reset') {   // ลืมรหัสผ่าน: ชื่อ + รหัสกู้คืน → ตั้งรหัสผ่านใหม่ (ได้รหัสกู้คืนชุดใหม่ด้วย)
+      if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
+      const pass = String(body.pass || ''); if (!passOk(pass)) return out(400, { err: 'รหัสผ่านใหม่ต้องยาว 4 ตัวขึ้นไป' });
+      const u = await store.get(lower(cleanName(body.name)));
+      if (!u || !checkRecovery(u.rhash, body.code)) return out(401, { err: 'ชื่อหรือรหัสกู้คืนไม่ถูกต้อง' });
+      const salt = crypto.randomBytes(16).toString('hex'), rc = makeRecovery();
+      await store.setAuth(u.lname, salt, await hashPass(pass, salt)); await store.setRecovery(u.lname, rc.rhash);
+      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: u.data, code: rc.code });
     }
+    const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
+    if (p === '/api/save') {
+      const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
+      const { data, fixed } = AC.validate(u.data || {}, raw);
+      await store.save(u.lname, data, rpOf(data));
+      return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, owned: data.owned } } : { ok: true });
+    }
+    if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
+      if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
+      if ((await hashPass(String(body.old || ''), u.salt)) !== u.hash) return out(401, { err: 'รหัสผ่านเดิมไม่ถูกต้อง' });
+      const pass = String(body.pass || ''); if (!passOk(pass)) return out(400, { err: 'รหัสผ่านใหม่ต้องยาว 4 ตัวขึ้นไป' });
+      const salt = crypto.randomBytes(16).toString('hex'); await store.setAuth(u.lname, salt, await hashPass(pass, salt));
+      return out(200, { token: makeToken({ lname: u.lname, salt }) });
+    }
+    if (p === '/api/recovery') { const rc = makeRecovery(); await store.setRecovery(u.lname, rc.rhash); return out(200, { code: rc.code }); }
     return out(404, { err: 'not found' });
   } catch (e) {
     console.error('api error', e.message);
