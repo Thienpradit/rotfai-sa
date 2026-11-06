@@ -443,10 +443,13 @@ function onRail(h,ang){
     if((h.x-px)**2+(h.y-py)**2<26*26&&Math.abs(ca*s.ux+sa*s.uy)>.75)return true}
   return false;
 }
-const TUNNEL_SAFE=2;
+const TUNNEL_SAFE=2,PORTAL_EDGE=260;
+// อุโมงค์ที่ปลายทางอยู่ใกล้/นอกวงสนาม (วงหดแล้ว) = ปิด ไม่วาร์ป ไม่งั้นออกไปโผล่ในพื้นที่แดงแล้วตาย
+const portalOpen=p=>{const q=portals[p.pair];return Math.hypot(q.x,q.y)<AR-PORTAL_EDGE&&Math.hypot(p.x,p.y)<AR-60};
 function checkTunnel(w){
   const h=w.pts[0];
   for(const p of portals){if((h.x-p.x)**2+(h.y-p.y)**2<38*38){
+    if(!portalOpen(p)){if(w.isP&&!w.closedMsg){w.closedMsg=1;texts.push({x:p.x,y:p.y-50,txt:'🚫 อุโมงค์ปิด (ปลายทางอยู่นอกวง)',t:1.4,c:'#ff9b9b'});setTimeout(()=>w.closedMsg=0,1500)}return}
     const q=portals[p.pair],dx=q.x+Math.cos(w.angle)*75-h.x,dy=q.y+Math.sin(w.angle)*75-h.y;
     for(const pt of w.pts){pt.x+=dx;pt.y+=dy}w.tunCD=1.5;w.safe=Math.max(w.safe,TUNNEL_SAFE);   // ออกจากอุโมงค์แล้วอมตะ 2 วิ
     if(w.isP){sfx('tunnel');track('tunnels');texts.push({x:q.x,y:q.y-50,txt:'🚇 ลอดอุโมงค์! 🛡️ อมตะ 2 วิ',t:1.6,c:p.col})}
@@ -497,7 +500,7 @@ class Worm{
     this.name=name;this.skin=skin;this.isP=isP;this.mass=isP?20:rnd(12,70);this.loco=o.loco||'classic';this.smokeT=o.smoke||'normal';this.wag=o.wag||'gem';this.kfx=o.kfx||'none';this.title=o.title||'';
     this.angle=o.a??Math.random()*TAU;this.target=this.angle;this.boost=false;this.alive=true;this.kills=0;
     this.pu={magnet:0,x3:0,speed:0};this.ai={t:0,tx:x,ty:y,boostT:0};this.safe=isP?D().safe:1;this.maxMass=this.mass;
-    this.seed=(Math.random()*8)|0;this.energy=5;this.tgs=0;this.bombT=[];this.selfCD=0;this.tunCD=0;this.slow=0;this.gold=false;
+    this.seed=(Math.random()*8)|0;this.ghost=0;this.energy=5;this.tgs=0;this.bombT=[];this.selfCD=0;this.tunCD=0;this.slow=0;this.gold=false;
     this.pts=[];const n=this.nPts(),s=this.r()*.42;
     for(let i=0;i<n;i++)this.pts.push({x:x-Math.cos(this.angle)*i*s,y:y-Math.sin(this.angle)*i*s});
   }
@@ -522,7 +525,7 @@ class Worm{
     const h=this.pts[0];h.x+=Math.cos(this.angle)*sp*f;h.y+=Math.sin(this.angle)*sp*f;
     this.follow();
     for(const k in this.pu)if(this.pu[k]>0)this.pu[k]-=dt;
-    if(this.safe>0)this.safe-=dt;if(this.selfCD>0)this.selfCD-=dt;
+    if(this.safe>0)this.safe-=dt;if(this.ghost>0)this.ghost-=dt;if(this.selfCD>0)this.selfCD-=dt;
     if(this.tunCD>0)this.tunCD-=dt;else checkTunnel(this);
     if(this.mass>this.maxMass)this.maxMass=this.mass;
     if(this.isBoss&&this.energy<MAX_EN)this.energy+=dt*.5;
@@ -616,17 +619,22 @@ function rammedBoss(w,b,idx){   // ผู้เล่นพุ่งชนบอ
   const keep=Math.max(16,Math.floor(w.pts.length*.9));if(keep<w.pts.length-2)cutSelf(w,keep,true);
   const h=w.pts[0];booms.push({x:h.x,y:h.y,t:.5});
   if(w.isP){track('bossHits');shake=.35;sfx('cut');texts.push({x:h.x,y:h.y-40,txt:head?'💥 ชนหัวบอส! -'+dmg:'💥 ชนลำตัวบอส -'+dmg,t:1.6,c:'#ffd23f'})}}
+// ที่เกิดใหม่: สุ่มหลายจุด เลือกจุดที่ไกลจากขบวนทุกคัน (หัว+ตัว) มากที่สุด ไม่ให้เกิดมาทับหน้าใคร
+function farSpot(margin,minD,side){let best=null,bd=-1;const ts=worms.filter(w=>w.alive);
+  for(let i=0;i<36;i++){let x,y;if(side!==undefined&&i<24){const a=side+rnd(-.8,.8),rr=Math.sqrt(Math.random())*Math.max(100,AR-margin);x=Math.cos(a)*rr;y=Math.sin(a)*rr}else[x,y]=randInWorld(margin);
+    let d=1e9;for(const w of ts){const p=w.pts;for(let k=0;k<p.length;k+=8){const dd=Math.hypot(p[k].x-x,p[k].y-y)-(k?0:350);if(dd<d)d=dd}}
+    if(d>=minD)return[x,y];if(d>bd){bd=d;best=[x,y]}}
+  return best}
+const SPAWN_GHOST=2.5;   // เกิดใหม่ 2.5 วิแรก: ขบวนจาง ชนทะลุได้ ใครชนก็ไม่ตาย (ตัวมันเองก็อมตะ)
 function spawnAI(){
-  let x,y,tries=0;
-  do{[x,y]=randInWorld(400);tries++}while(player&&player.alive&&Math.hypot(x-player.pts[0].x,y-player.pts[0].y)<700&&tries<20);
+  const[x,y]=farSpot(400,650);
   const w=new Worm(NAMES[(Math.random()*NAMES.length)|0],SKINS[(Math.random()*SKINS.length)|0],x,y,false,{loco:LOCOS[(Math.random()*4)|0]});
-  w.mass=rnd(25,120);if(Math.random()<D().big)w.mass=rnd(150,450);w.maxMass=w.mass;
+  w.mass=rnd(25,120);if(Math.random()<D().big)w.mass=rnd(150,450);w.maxMass=w.mass;w.ghost=SPAWN_GHOST;w.safe=Math.max(w.safe,SPAWN_GHOST);
   worms.push(w);if(NET)netBotReg(w);
 }
 function spawnBoss(){
-  let x,y,tries=0;
-  do{[x,y]=randInWorld(500);tries++}while(player&&Math.hypot(x-player.pts[0].x,y-player.pts[0].y)<1100&&tries<30);
-  const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=D().bossHp;
+  const[x,y]=farSpot(500,1100);
+  const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.ghost=w.safe=SPAWN_GHOST;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=D().bossHp;
   worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss');if(NET)netBotReg(w);
 }
 
@@ -721,7 +729,7 @@ function step(f,dt){
     if(!w.alive||w.safe>0||w.isRemote)continue;const h=w.pts[0],r=w.r(),cx=Math.floor(h.x/CS),cy=Math.floor(h.y/CS);
     let hit=null,hitIdx=0,cut=-1;
     for(let gx=cx-1;gx<=cx+1&&!hit;gx++)for(let gy=cy-1;gy<=cy+1&&!hit;gy++){const a=bgrid.get(key(gx,gy));if(!a)continue;
-      for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(o!==w&&ally(o,w))continue;
+      for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(o!==w&&(ally(o,w)||o.ghost>0))continue;
         const q=o.pts[idx];if(!q)continue;const rr=r*.7+o.r()*.9,dx=q.x-h.x,dy=q.y-h.y;
         if(dx*dx+dy*dy<rr*rr){if(o===w){if(cut<0||idx<cut)cut=idx}else{hit=o;hitIdx=idx;break}}}}
     if(hit&&w.isBoss){   // บอสพุ่งชนใคร → ขบวนนั้นขาดตรงจุดชน (บอสไม่ตาย)
@@ -817,7 +825,9 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.gold){const pl=.5+.5*Math.sin(frame*.15);glowAlong(w,`rgba(255,210,63,${.18+.17*pl})`,1.9,vx0,vy0,vx1,vy1,M);
     if(frame%4===0)smoke.push({x:p[(Math.random()*n)|0].x+rnd(-r,r),y:p[(Math.random()*n)|0].y+rnd(-r,r),r:3,t:.6,k:'gold'})}
   if(w.isBoss)glowAlong(w,`rgba(255,40,40,${.12+.08*Math.sin(frame*.1)})`,1.7,vx0,vy0,vx1,vy1,M);
-  if(w.safe>0&&Math.floor(frame/6)%2)ctx.globalAlpha=.45;
+  if(w.ghost>0){const h0=p[0],pl=.5+.5*Math.sin(frame*.25);ctx.strokeStyle=`rgba(155,231,255,${.5+.4*pl})`;ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.beginPath();ctx.arc(h0.x,h0.y,r*2.6+8*pl,0,TAU);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#9be7ff';ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('✨ เกิดใหม่',h0.x,h0.y+r*2.6+24)}
+  if(w.ghost>0)ctx.globalAlpha=.4;else if(w.safe>0&&Math.floor(frame/6)%2)ctx.globalAlpha=.45;
   const loc=carPose(p,0,Math.min(7,n-1)),cars=[];
   for(let j=0;;j++){const f=8+j*6,b=f+5;if(b>=n)break;cars.push([j,carPose(p,f,b)])}
   ctx.strokeStyle='#4a4f66';ctx.lineWidth=r*.28;ctx.lineCap='round';ctx.beginPath();
@@ -943,6 +953,9 @@ function drawStations(vx0,vy0,vx1,vy1){
 }
 function drawPortals(vx0,vy0,vx1,vy1){
   for(const p of portals){if(p.x<vx0-80||p.x>vx1+80||p.y<vy0-80||p.y>vy1+80)continue;
+    if(!portalOpen(p)){ctx.fillStyle='#262a3d';ctx.beginPath();ctx.arc(p.x,p.y,46,0,TAU);ctx.fill();ctx.strokeStyle='#5a6080';ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,46,0,TAU);ctx.stroke();
+      ctx.strokeStyle='#ff5e5e';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(p.x-24,p.y-24);ctx.lineTo(p.x+24,p.y+24);ctx.stroke();
+      ctx.fillStyle='#ff9b9b';ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('🚫 อุโมงค์ปิด',p.x,p.y-60);continue}
     const g=ctx.createRadialGradient(p.x,p.y,4,p.x,p.y,46);g.addColorStop(0,'#000');g.addColorStop(.7,'#141833');g.addColorStop(1,p.col);
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,46,0,TAU);ctx.fill();
     ctx.strokeStyle=p.col;ctx.lineWidth=4;ctx.setLineDash([12,9]);ctx.lineDashOffset=-frame*.8;ctx.beginPath();ctx.arc(p.x,p.y,52,0,TAU);ctx.stroke();ctx.setLineDash([]);
@@ -1024,7 +1037,7 @@ function drawHUD2(){
   ctx.fillStyle='rgba(15,19,48,.75)';ctx.beginPath();ctx.arc(mx,my,mr,0,TAU);ctx.fill();
   ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
-  for(const p of portals){ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(mx+p.x*S,my+p.y*S,2.5,0,TAU);ctx.fill()}
+  for(const p of portals){ctx.fillStyle=portalOpen(p)?p.col:'#5a6080';ctx.beginPath();ctx.arc(mx+p.x*S,my+p.y*S,2.5,0,TAU);ctx.fill()}
   ctx.strokeStyle=AR<WR?'#ffd23f':'rgba(255,77,109,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mx,my,AR*S,0,TAU);ctx.stroke();
   for(const w of alive){if(w===player)continue;if((!NET||w.isBot)&&!w.isBoss&&alive.indexOf(w)>10)continue;const h=w.pts[0];
     const hu=NET&&NET.ffa&&w.rk!==undefined;ctx.fillStyle=w.isBoss?'#ff3b3b':w.team?TEAM_COL[w.team]:hu?'#9be7ff':'rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,w.isBoss?4:w.team||hu?3:2,0,TAU);ctx.fill()}
@@ -1322,9 +1335,9 @@ function renderInvite(b,code){
 }
 function netBotReg(w){w.isBot=true;w.netId=-(NET.id*10000+(++NET.bseq%10000));netSend({t:'binfo',b:[{id:w.netId,name:w.name,skin:w.skin,loco:w.loco,boss:!!w.isBoss,mhp:w.maxHp||0,team:w.team}]})}
 // 2v2: คนไม่ครบทีมละ 2 → หัวหน้าห้องเติมบอท (Normal) ให้ทีมที่ขาด · บอทตายเกิดใหม่ใน 3 วิ
-function spawnTeamBot(t){const side=t==='A'?Math.PI:0,a=side+rnd(-.7,.7),rr=WR*rnd(.35,.7),x=Math.cos(a)*rr,y=Math.sin(a)*rr;
+function spawnTeamBot(t){const side=t==='A'?Math.PI:0,[x,y]=farSpot(300,600,side);
   const w=new Worm('🤖 '+NAMES[(Math.random()*NAMES.length)|0],SKINS[(Math.random()*SKINS.length)|0],x,y,false,{loco:LOCOS[(Math.random()*4)|0],a:side+Math.PI+rnd(-.5,.5)});
-  w.mass=w.maxMass=rnd(20,45);w.team=t;w.safe=2;worms.push(w);netBotReg(w)}
+  w.mass=w.maxMass=rnd(20,45);w.team=t;w.safe=w.ghost=SPAWN_GHOST;worms.push(w);netBotReg(w)}
 function vsBots(dt){const hum={A:0,B:0};for(const p of NET.players.values())if(hum[p.team]!==undefined)hum[p.team]++;
   const T=NET.vsT||(NET.vsT={A:0,B:0});
   for(const t of['A','B']){const mine=worms.filter(w=>w.isBot&&!w.isRemote&&w.alive&&w.team===t),want=Math.max(0,2-hum[t]);let n=mine.length;
@@ -1387,7 +1400,7 @@ function netMsg(m){
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
         if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||100;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
-        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;if(hp!==undefined)w.hp=hp}
+        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;if(hp!==undefined)w.hp=hp}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;
@@ -1440,8 +1453,8 @@ function renderLobby(b){
   b.querySelector('#leaveBtn').onclick=()=>netLeave();
 }
 function netSpawnMe(sp){
-  let x,y,a;if(sp){[x,y,a]=sp}else{[x,y]=randInWorld(600);a=Math.random()*TAU}
-  player=new Worm(playerName(),curSkin(),x,y,true,{...myLook(),a});player.team=NET.me?NET.me.team:null;player.netId=NET.id;player.rk=myRank();input.angle=a;
+  let x,y,a;if(sp){[x,y,a]=sp}else{const t=NET.me&&NET.me.team;[x,y]=farSpot(600,700,t?(t==='A'?Math.PI:0):undefined);a=Math.atan2(-y,-x)+rnd(-.6,.6)}   // เกิดใหม่: ห่างจากทุกคัน หันเข้ากลางสนาม
+  player=new Worm(playerName(),curSkin(),x,y,true,{...myLook(),a});player.team=NET.me?NET.me.team:null;player.netId=NET.id;player.rk=myRank();player.ghost=SPAWN_GHOST;input.angle=a;
   worms=worms.filter(w=>!w.isP);worms.push(player);cam.x=x;cam.y=y;state='play';NET.respawnT=0;
   $('snd').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');lastBtn='';updBtns();
 }
@@ -1469,11 +1482,11 @@ function netTick(dt){
   NET.timeLeft=Math.max(0,NET.timeLeft-dt);
   if(player&&!player.alive&&NET.respawnT>0){NET.respawnT-=dt;if(NET.respawnT<=0&&NET.phase==='play'){const sc=player.kills,kp=player.kPaid;netSpawnMe();player.kills=sc;player.kPaid=kp;player.safe=2.5}}
   NET.sendT-=dt;if(NET.sendT<=0&&player){NET.sendT=.05;
-    const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0);
+    const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0)|(player.ghost>0?32:0);
     const o={t:'st',x:Math.round(h.x),y:Math.round(h.y),a:+player.angle.toFixed(3),m:+player.mass.toFixed(1),f:fl,ts:Date.now()};
     if(NET.q.eat.length){o.eat=NET.q.eat;NET.q.eat=[]}netSend(o)}
   if(NET.host&&(NET.ffa||NET.phase==='play')){NET.botT-=dt;if(NET.botT<=0){NET.botT=.05;const b=[];
-    for(const w of worms){if(!w.isBot||w.isRemote||!w.alive)continue;const h=w.pts[0];const row=[w.netId,Math.round(h.x),Math.round(h.y),+w.angle.toFixed(2),+w.mass.toFixed(1),(w.boost&&w.energy>0?1:0)|4|(w.slow>0?8:0)|(w.safe>0?16:0)];if(w.isBoss)row.push(Math.ceil(w.hp));b.push(row)}
+    for(const w of worms){if(!w.isBot||w.isRemote||!w.alive)continue;const h=w.pts[0];const row=[w.netId,Math.round(h.x),Math.round(h.y),+w.angle.toFixed(2),+w.mass.toFixed(1),(w.boost&&w.energy>0?1:0)|4|(w.slow>0?8:0)|(w.safe>0?16:0)|(w.ghost>0?32:0)];if(w.isBoss)row.push(Math.ceil(w.hp));b.push(row)}
     if(b.length)netSend({t:'bs',b,ts:Date.now()})}}
 }
 function netEnd(m){
