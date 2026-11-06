@@ -554,6 +554,11 @@ function sfx(k){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime;try{swit
   case'tunnel':noise(t,.6,.3,2200);break;
   case'freeze':[1568,1318,1046,1760].forEach((f,i)=>tone(f,t+i*.05,.28,'sine',.08));break;
   case'boss':tone(110,t,1.1,'sawtooth',.16,85);tone(147,t+.3,1,'sawtooth',.12,110);break;
+  case'siren':{const c=SND.ctx,g=c.createGain(),f=c.createBiquadFilter(),T=.95,N=3;f.type='lowpass';f.frequency.value=2600;f.connect(g);g.connect(SND.master);   // บอสโผล่: ไซเรนหวอ 3 ครั้งแล้วเงียบ
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.08);g.gain.setValueAtTime(.09,t+T*N-.15);g.gain.linearRampToValueAtTime(0,t+T*N);
+    for(const[type,v]of[['sine',1],['square',.2]]){const o=c.createOscillator(),og=c.createGain();o.type=type;og.gain.value=v;o.frequency.setValueAtTime(650,t);
+      for(let k=0;k<N;k++){o.frequency.linearRampToValueAtTime(1250,t+k*T+T*.5);o.frequency.linearRampToValueAtTime(650,t+(k+1)*T)}
+      o.connect(og);og.connect(f);o.start(t);o.stop(t+T*N+.05)}break}
   case'coin':tone(1318,t,.08,'square',.05);tone(1760,t+.07,.16,'square',.05);break;
 }}catch(e){}}
 // หวูดรถไฟ (ร้านค้า หมวดหวูด) — กด 📯 หรือ H
@@ -930,7 +935,7 @@ function spawnAI(){
 function spawnBoss(){
   const[x,y]=farSpot(500,1100);
   const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.ghost=w.safe=SPAWN_GHOST;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=BOSS_HEARTS;
-  worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');   // ไม่มีเสียงตอนบอสมาแล้ว (เจ้าของสั่ง 6 พ.ย. 22:21)
+  worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('siren');   // บอสมา: ไซเรน 3 ครั้งแล้วเงียบ (เจ้าของสั่ง 6 พ.ย. 22:22)
 }
 
 // =====================================================================
@@ -1809,7 +1814,7 @@ function netMsg(m){
     case'lobby':{const old=NET.players;netPlayers(m.players);NET.phase=m.phase;refreshSheet();
       if(NET.ffa&&state==='play'){for(const p of NET.players.values())if(!old.has(p.id)&&p.id!==NET.id)announce('🚂 '+p.name+' เข้ามาในโลกนี้แล้ว!');
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
-    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss)announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี')}break;
+    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
     case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
