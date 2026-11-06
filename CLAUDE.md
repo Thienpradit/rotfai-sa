@@ -45,7 +45,7 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
 |---|---|
 | basics | canvas, `resize`, ค่าคงที่, `SKINS`, `NAMES`, `FOOD_COLORS`, `TEAM_COL`, สไปรต์พลอย `GEMS` (วาดเหลี่ยมเพชรลง canvas ไว้ล่วงหน้า), `PU_TYPES` |
 | profile | `SHOP`, `MPOOL` (ภารกิจรายวัน), `ACH` (เหรียญตรา), `prof` (localStorage `trainProfile`), `track()`, `trackMax()`, `checkAch()`, `addCoins()`, แรงก์: `RANKS`, `rankOf()`, `gameRP()`, `addRP()`, `rankHTML()`, `renderRanks()`, `allSkins()` |
-| sound | WebAudio สังเคราะห์เสียงเอง `sfx(name)` · เพลงแต่งเอง `THEMES.calm` (F major 96 BPM 16 ห้อง ฉึกฉักแบบรถไฟ) / `THEMES.boss` (D minor 150 BPM ตอนบอสอยู่ในสนาม `musWant()`) สลับตรงต้นห้อง, `MUS.bus`, เปิด/ปิดแยกใน ⚙️ (`setMus`, localStorage `trainMus`) |
+| sound | WebAudio สังเคราะห์เสียงเอง `sfx(name)` · เพลงแต่งเอง `THEMES` แต่ละเพลงมี `play()` เอง: เพลงปกติเลือกใน ⚙️ (`TRACKS`, `setMus`, localStorage `trainMus2`): **main 🚂 ค่าเริ่มต้น** (D minor 150 — เดิมเป็นเพลงบอส เจ้าของชอบ), country 🤠, chip 👾, electro 🌃, calm 🌿, off · `boss` ใหม่ E minor 172 BPM ระทึก เล่นเองตอนบอสอยู่ (`musWant()`) · ตัวช่วย `mNote/mPerc/mKick/mWhistle/mToot/mBell/chugga` |
 | world features | `buildWorld(R)` สร้างราง (`rails`) สถานี (`stations`) อุโมงค์ (`portals`) ตำแหน่งตายตัว ฟังก์ชัน `onRail()`, `checkTunnel()`, `checkStations()` |
 | game state | ตัวแปรหลัก, `DIFF` (ระดับความยาก), `randInWorld`, `mkFood`/`addFood`/`addPu`/`addWhite`, `calcAR()` (วงสนามหด) |
 | train class | `class Worm`: `r()`, `nPts()`, `follow()` (ตัวขบวนตามหัวแบบ chain), `update()`, `die()` และฟังก์ชัน `cutSelf()` |

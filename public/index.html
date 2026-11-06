@@ -191,6 +191,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 @media (max-width:370px){.topbar .ibtn{width:32px;height:32px;font-size:15px;padding:0}.topbar .coin{padding:3px 7px;font-size:13px}.topbar .acct{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .seg{display:flex;gap:6px;margin:6px 0 2px}
 .seg div{flex:1;padding:9px 4px;border-radius:12px;background:#0f1330;border:2px solid #3a4590;cursor:pointer;color:#aab3e6;font-size:14px;line-height:1.35}
+.seg.wrap{flex-wrap:wrap}.seg.wrap div{flex:1 1 30%;min-width:0}
 .seg div.on{border-color:#ffd23f;color:#ffd23f;background:rgba(255,210,63,.1);font-weight:600}
 .seg small{display:block;font-size:11px;font-weight:400;color:#8891c4}
 /* หน้าจบเกมบนมือถือ: กะทัดรัด */
@@ -566,25 +567,103 @@ function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornC
   const h=player.pts[0];texts.push({x:h.x,y:h.y-55,txt:'📯 ปู๊น ๆ!',t:1.2,c:'#9be7ff'});if(NET)netSend({t:'horn',k:prof.eq.horn})}
 // =====================================================================
 //  เพลงประกอบ — แต่งเองทั้งหมด สังเคราะห์ด้วย WebAudio (ไม่มีไฟล์เพลง)
-//  'calm' = เดินทางสบาย ๆ F major 96 BPM 16 ห้องวนลูป มีจังหวะ "ฉึกฉัก" แบบล้อรถไฟ
-//  'boss' = D minor 150 BPM เบสวิ่ง กลองแน่น ตื่นเต้น — เล่นตอนบอส 👑 อยู่ในสนาม แล้วกลับเป็นเพลงสบายเมื่อบอสตาย
-//  เปลี่ยนเพลงตรงต้นห้อง · หน้าเมนูเบาลง · เปิด/ปิดเพลงแยกได้ใน ⚙️ ตั้งค่า (localStorage trainMus)
+//  เพลงปกติเลือกได้ใน ⚙️ (`TRACKS`, localStorage trainMus2): main 🚂 (ค่าเริ่มต้น D minor 150) / country 🤠 / chip 👾 / electro 🌃 / calm 🌿 / off
+//  'boss' = E minor 172 BPM ระทึก — เล่นอัตโนมัติตอนบอส 👑 อยู่ในสนาม แล้วกลับเพลงเดิมเมื่อบอสตาย
+//  เปลี่ยนเพลงตรงต้นห้อง · หน้าเมนูเบาลง · แต่ละเพลงมี play() ของตัวเอง
 // =====================================================================
 const mtof=m=>440*Math.pow(2,(m-69)/12);
-const MUS={on:true,bus:null,nb:null,mood:'calm',bar:0,step:0,t:0,timer:null};
-try{MUS.on=localStorage.getItem('trainMus')!=='0'}catch(e){}
-const CH={F:[53,57,60],Dm:[50,53,57],Bb:[46,50,53],C:[48,52,55],Am:[45,48,52],A:[45,49,52]};
+const MUS={on:true,bus:null,nb:null,mood:'main',bar:0,step:0,t:0,timer:null};
+const CH={F:[53,57,60],Dm:[50,53,57],Bb:[46,50,53],C:[48,52,55],Am:[45,48,52],A:[45,49,52],G:[43,47,50],D:[50,54,57],Em:[52,55,59],F2:[41,45,48],B:[47,51,54]};
+// หวูดรถไฟในเพลง (ปู๊น ปู๊น) / กระดิ่งสถานี (ติ๊ง)
+function mToot(t,len,vol){for(const m of[74,78,81]){mNote(m,t,len,'square',vol*.5,.02,1800);mNote(m,t,len,'sine',vol*.4,.03)}}
+function mBell(t,vol){mNote(96,t,.9,'sine',vol,.002);mNote(100,t,.6,'sine',vol*.5,.002)}
+function mWhistle(m,t,dur,vol){const c=SND.ctx,o=c.createOscillator(),g=c.createGain(),l=c.createOscillator(),lg=c.createGain(),f=mtof(m);
+  o.type='sine';o.frequency.setValueAtTime(f*.94,t);o.frequency.exponentialRampToValueAtTime(f,t+.05);l.frequency.value=6;lg.gain.value=f*.012;l.connect(lg);lg.connect(o.frequency);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.02);g.gain.setValueAtTime(vol*.85,t+Math.max(.03,dur-.06));g.gain.exponentialRampToValueAtTime(.0008,t+dur);
+  o.connect(g);g.connect(MUS.bus);o.start(t);o.stop(t+dur+.05);l.start(t);l.stop(t+dur+.05)}
+const melAt=(T,bar,st,fn)=>{for(const[s0,m,l]of T.mel[bar])if(s0===st)fn(m,l)};
+// จังหวะล้อรถไฟ "ฉึก-กะ-ฉึก-กะ": สแนร์แปรง 16 ส่วน เน้นตัวแรก
+const chugga=(t,e,v)=>{for(let k=0;k<2;k++)mPerc(t+k*e/2,.05,(k?.45:1)*v,1300,'lowpass')};
 const THEMES={
-  calm:{e:60/96/2,chords:['F','Dm','Bb','C','F','Am','Bb','C','F','Dm','Bb','C','F','Am','Bb','C'],
+  // 🤠 ด่วนพิเศษ: คันทรีรถไฟ G major 140 BPM · บูม-ชิก + แบนโจ + หวูดเป็นทำนอง + ปู๊น ๆ ท้ายเพลง
+  country:{name:'🤠 ด่วนพิเศษ',sub:'คันทรีรถไฟ สนุก ๆ',e:60/140/2,chords:['G','G','C','G','G','G','D','D','G','G','C','C','G','D','G','G'],
+    mel:[[[0,67,1],[1,71,1],[2,74,2],[4,74,1],[5,76,1],[6,74,2]],[[0,71,2],[2,67,2],[4,69,2],[6,71,2]],[[0,72,1],[1,76,1],[2,79,2],[4,76,2],[6,72,2]],[[0,74,3],[4,71,1],[5,69,1],[6,67,2]],
+      [[0,67,1],[1,71,1],[2,74,2],[4,74,1],[5,76,1],[6,74,2]],[[0,71,2],[2,74,2],[4,79,2],[6,76,2]],[[0,74,1],[1,72,1],[2,71,1],[3,69,1],[4,66,2],[6,69,2]],[[0,74,4]],
+      [[0,79,2],[2,76,1],[3,74,1],[4,71,2],[6,74,2]],[[0,76,1],[1,74,1],[2,71,2],[4,67,4]],[[0,72,2],[2,72,1],[3,74,1],[4,76,2],[6,79,2]],[[0,81,3],[3,79,1],[4,76,4]],
+      [[0,74,1],[1,76,1],[2,74,1],[3,71,1],[4,67,2],[6,71,2]],[[0,69,2],[2,74,2],[4,78,2],[6,81,2]],[[0,79,4],[4,74,2],[6,71,2]],[[0,67,3]]],
+    play(T,st,t,e,ch,bar){const r=ch[0];
+      if(st===0||st===4)mNote((st?ch[2]:r)-12,t,e*1.6,'triangle',.11,.005);                       // บูม (เบสสลับราก-ห้า)
+      if(st===2||st===6)for(const n of ch)mNote(n+12,t,e*.5,'sawtooth',.012,.003,1800);           // ชิก (คอร์ดสั้น)
+      mNote(ch[[0,1,2,1,2,1,0,2][st]]+24,t,e*1.3,'triangle',.022,.002);                            // แบนโจกรีด
+      if(st===0||st===4)mKick(t,.11);if(st===2||st===6)mPerc(t,.09,.05,2200);chugga(t,e,.035);
+      melAt(T,bar,st,(m,l)=>mWhistle(m,t,e*l*.95,.06));
+      if(bar===7&&st===4||bar===15&&(st===3||st===5))mToot(t,e*(bar===7?2.6:1.1),.05);
+      if(bar===0&&st===0)mBell(t,.04)}},
+  // 👾 รถไฟ 8 บิต: ชิปทูน C major 150 BPM สนุกแบบเกมตู้
+  chip:{name:'👾 รถไฟ 8 บิต',sub:'แนวเกมตู้ เร็ว มันส์',e:60/150/2,chords:['C','Am','F2','G','C','Am','F2','G','F2','G','Em','Am','F2','G','C','C'],
+    mel:[[[0,76,1],[1,79,1],[2,84,2],[4,79,1],[5,76,1],[6,79,2]],[[0,81,2],[2,79,1],[3,76,1],[4,72,2],[6,76,2]],[[0,77,1],[1,81,1],[2,84,1],[3,81,1],[4,77,2],[6,81,2]],[[0,79,3],[3,77,1],[4,76,1],[5,74,1],[6,71,2]],
+      [[0,76,1],[1,79,1],[2,84,2],[4,79,1],[5,76,1],[6,79,2]],[[0,81,2],[2,84,2],[4,88,2],[6,84,2]],[[0,86,1],[1,84,1],[2,81,1],[3,77,1],[4,79,2],[6,77,2]],[[0,79,4],[4,74,1],[5,76,1],[6,77,1],[7,79,1]],
+      [[0,81,2],[2,77,2],[4,72,2],[6,77,2]],[[0,79,2],[2,74,2],[4,71,2],[6,74,2]],[[0,76,1],[1,79,1],[2,83,2],[4,79,2],[6,76,2]],[[0,81,4],[4,76,2],[6,79,2]],
+      [[0,77,1],[1,77,1],[2,81,1],[3,84,1],[4,86,2],[6,84,2]],[[0,83,2],[2,79,2],[4,86,2],[6,83,2]],[[0,84,4],[4,79,2],[6,76,2]],[[0,72,2],[4,79,1],[5,76,1],[6,72,2]]],
+    play(T,st,t,e,ch,bar){const r=ch[0];
+      mNote(r-12+(st%2?12:0),t,e*.8,'triangle',.1,.003);                                            // เบสกระโดดอ็อกเทฟ
+      for(let k=0;k<2;k++)mNote(ch[(st*2+k)%3]+24,t+k*e/2,e*.45,'square',.008,.002);                // อาร์เปจโจ 16 ส่วน
+      if(st%2===0)mKick(t,.13);if(st===2||st===6)mPerc(t,.1,.07,3000);mPerc(t,.025,.012,9000);chugga(t,e,.022);
+      melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.9,'square',.026,.003,5000);mNote(m+12,t,e*l*.5,'square',.006,.003)});
+      if(bar===15&&(st===4||st===6))mToot(t,e*1.2,.045)}},
+  // 🌃 ด่วนกลางคืน: อิเล็กทรอนิกส์ A minor 124 BPM กลองสี่จังหวะ เบสออฟบีต ล้อรถไฟวิ่งตลอด
+  electro:{name:'🌃 ด่วนกลางคืน',sub:'อิเล็กโทร มีกรู๊ฟ',e:60/124/2,chords:['Am','F2','C','G','Am','F2','C','G'],
+    mel:[[[0,76,1],[1,76,1],[2,72,1],[3,76,1],[4,79,2],[6,76,1],[7,74,1]],[[0,72,2],[2,69,2],[4,72,1],[5,74,1],[6,72,2]],[[0,76,1],[1,76,1],[2,72,1],[3,76,1],[4,79,2],[6,81,1],[7,79,1]],[[0,79,2],[2,76,2],[4,74,4]],
+      [[0,76,1],[1,76,1],[2,72,1],[3,76,1],[4,79,2],[6,76,1],[7,74,1]],[[0,72,2],[2,69,2],[4,72,1],[5,74,1],[6,72,2]],[[0,76,1],[1,76,1],[2,72,1],[3,76,1],[4,79,2],[6,81,1],[7,79,1]],[[0,74,1],[1,76,1],[2,79,1],[3,81,1],[4,83,4]]],
+    play(T,st,t,e,ch,bar){const r=ch[0];
+      if(st%2===0)mKick(t,.15);else{mNote(r-12,t,e*.8,'sawtooth',.06,.004,500);mPerc(t,.12,.025,6000)}   // สี่จังหวะ + เบส/ไฮแฮทเปิดออฟบีต
+      if(st===2||st===6)mPerc(t,.12,.05,1800);chugga(t,e,.03);
+      if(st===0||st===3||st===6)for(const n of ch)mNote(n+12,t,e*.9,'sawtooth',.009,.004,1500);
+      if(bar>=0)melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.9,'sawtooth',.02,.006,2600);mNote(m+.08,t,e*l*.9,'square',.012,.006,2600)});
+      if(bar===0&&st===0)mBell(t,.035);if(bar===7&&st===6)mToot(t,e*1.5,.04)}},
+  // 🌿 สบาย ๆ (เพลงชุดแรก)
+  calm:{name:'🌿 สบาย ๆ',sub:'ช้า ฟังสบาย',e:60/96/2,chords:['F','Dm','Bb','C','F','Am','Bb','C','F','Dm','Bb','C','F','Am','Bb','C'],
     mel:[[[0,72,2],[2,69,1],[3,72,1],[4,74,2],[6,72,2]],[[0,69,3],[3,67,1],[4,65,2],[6,69,2]],[[0,70,2],[2,74,2],[4,77,3],[7,76,1]],[[0,74,2],[2,72,2],[4,67,4]],
       [[0,72,1],[1,74,1],[2,72,1],[3,69,1],[4,65,2],[6,69,2]],[[0,72,3],[3,76,1],[4,74,2],[6,72,2]],[[0,74,2],[2,70,2],[4,72,2],[6,74,2]],[[0,76,3],[3,74,1],[4,72,4]],
       [[0,77,4],[4,76,2],[6,74,2]],[[0,74,3],[3,72,1],[4,69,4]],[[0,70,2],[2,72,2],[4,74,4]],[[0,76,2],[2,74,2],[4,72,2],[6,67,2]],
-      [[0,69,2],[2,72,2],[4,77,3],[7,76,1]],[[0,76,2],[2,72,2],[4,69,4]],[[0,70,1],[1,72,1],[2,74,2],[4,72,2],[6,70,2]],[[0,67,2],[2,72,2],[4,65,4]]]},
-  boss:{e:60/150/2,chords:['Dm','Bb','C','A','Dm','Bb','C','A'],
+      [[0,69,2],[2,72,2],[4,77,3],[7,76,1]],[[0,76,2],[2,72,2],[4,69,4]],[[0,70,1],[1,72,1],[2,74,2],[4,72,2],[6,70,2]],[[0,67,2],[2,72,2],[4,65,4]]],
+    play(T,st,t,e,ch,bar){const r=ch[0];
+      if(st===0)for(const n of ch)mNote(n+12,t,e*8.2,'sine',.016,.35);
+      const bs={0:[r,2],3:[r,1],4:[ch[2],2],6:[r+12,1],7:[ch[1],1]}[st];if(bs)mNote(bs[0]-12,t,e*bs[1]*.95,'triangle',.085);
+      mPerc(t,.04,st%2?.008:.014,7000);if(st%2===0)mPerc(t,.07,st%4===0?.03:.018,900,'lowpass');if(st===0||st===4)mKick(t,.07);
+      melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*1.1,'triangle',.065,.015);mNote(m+12,t,e*l*.6,'sine',.012)})}},
+  // 🚂 เพลงหลัก (ค่าเริ่มต้น — เดิมเป็นเพลงบอส เจ้าของชอบเลยให้เป็นเพลงปกติ): D minor 150 BPM เบสวิ่ง กลองแน่น
+  main:{name:'🚂 รถไฟซ่า',sub:'เพลงหลัก มันส์',e:60/150/2,chords:['Dm','Bb','C','A','Dm','Bb','C','A'],
     mel:[[[0,74,1],[1,74,1],[2,77,1],[3,74,1],[4,81,2],[6,79,1],[7,77,1]],[[0,77,2],[2,74,1],[3,77,1],[4,82,2],[6,81,2]],
       [[0,79,1],[1,79,1],[2,76,1],[3,79,1],[4,84,2],[6,82,1],[7,81,1]],[[0,81,3],[3,79,1],[4,77,2],[6,73,2]],
       [[0,74,1],[1,74,1],[2,77,1],[3,74,1],[4,81,2],[6,79,1],[7,77,1]],[[0,77,2],[2,74,1],[3,77,1],[4,82,2],[6,81,2]],
-      [[0,79,1],[1,79,1],[2,76,1],[3,79,1],[4,84,2],[6,82,1],[7,81,1]],[[0,69,1],[1,73,1],[2,76,1],[3,79,1],[4,81,1],[5,84,1],[6,85,1],[7,86,1]]]}};
+      [[0,79,1],[1,79,1],[2,76,1],[3,79,1],[4,84,2],[6,82,1],[7,81,1]],[[0,69,1],[1,73,1],[2,76,1],[3,79,1],[4,81,1],[5,84,1],[6,85,1],[7,86,1]]],
+    play(T,st,t,e,ch,bar){const r=ch[0];
+      mNote([r,r,r+12,r,r,r+12,r,r+7][st]-12,t,e*.9,'sawtooth',.05,.005,650);
+      if(st===0||st===3||st===6)for(const n of ch)mNote(n+12,t,e*.7,'square',.012,.004,2400);
+      if(st%2===0)mKick(t,.13);if(st===2||st===6){mPerc(t,.14,.06,1600);mNote(50,t,.08,'triangle',.05)}
+      mPerc(t,.03,.01,8000);mPerc(t+e/2,.03,.006,8000);
+      melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.95,'square',.022,.005,3200);mNote(m-12,t,e*l*.95,'triangle',.03)});chugga(t,e,.02)}},
+  // 👑 บอส (ใหม่ ระทึกกว่า): E minor 172 BPM เบส 16 ส่วน กลองรัว ไซเรน คอร์ดกระแทก ห้องสุดท้ายรัวกลองเร่งขึ้น
+  boss:{e:60/172/2,chords:['Em','Em','C','D','Em','Em','C','B'],
+    mel:[[[0,76,1],[1,79,1],[2,83,1],[3,79,1],[4,88,2],[6,86,1],[7,83,1]],[[0,84,2],[2,83,1],[3,79,1],[4,76,2],[6,78,2]],
+      [[0,79,1],[1,84,1],[2,88,1],[3,84,1],[4,91,2],[6,88,2]],[[0,86,1],[1,85,1],[2,86,1],[3,90,1],[4,93,2],[6,90,1],[7,86,1]],
+      [[0,76,1],[1,79,1],[2,83,1],[3,79,1],[4,88,2],[6,86,1],[7,83,1]],[[0,88,1],[1,86,1],[2,84,1],[3,83,1],[4,79,1],[5,78,1],[6,76,2]],
+      [[0,84,2],[2,88,2],[4,91,2],[6,93,2]],[[0,87,1],[1,86,1],[2,87,1],[3,90,1],[4,93,1],[5,94,1],[6,95,2]]],
+    play(T,st,t,e,ch,bar){const r=ch[0]-12,h=e/2;
+      for(let k=0;k<2;k++)mNote(r+[0,0,12,0,0,12,0,10,0,0,12,0,0,12,7,12][(st*2+k)%16]-12,t+k*h,h*.9,'sawtooth',.055,.003,900);   // เบส 16 ส่วนรัว
+      if(st===0)for(const n of ch)mNote(n,t,e*2.5,'sawtooth',.03,.004,1300);                         // แตรกระแทกต้นห้อง
+      if(st%2===1)for(const n of ch)mNote(n+12,t,e*.45,'square',.011,.003,2600);                      // คอร์ดออฟบีต
+      mKick(t,.15);if(st===3||st===7||bar===7)mKick(t+h,.12);                                          // กลองกระเดื่องรัว
+      if(bar===7&&st>=4){for(let k=0;k<2;k++)mPerc(t+k*h,.07,.03+.012*(st-4)+k*.006,1500)}else if(st===2||st===6)mPerc(t,.16,.075,1500);   // สแนร์ (ห้องสุดท้ายรัว)
+      mPerc(t,.02,.012,9000);mPerc(t+h,.02,.008,9000);
+      if((bar===0||bar===4)&&st===0){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(700,t);   // ไซเรนเตือนภัย
+        o.frequency.linearRampToValueAtTime(1150,t+e*2);o.frequency.linearRampToValueAtTime(700,t+e*4);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.025,t+.05);g.gain.linearRampToValueAtTime(0,t+e*4);
+        o.connect(g);g.connect(MUS.bus);o.start(t);o.stop(t+e*4+.05)}
+      if(bar===7&&st===0)mPerc(t,e*8,.03,400);
+      melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.9,'square',.026,.003,3800);mNote(m-12,t,e*l*.9,'sawtooth',.016,.003,2000)})}}};
+const TRACKS=['main','country','chip','electro','calm'];
+{let v='main';try{v=localStorage.getItem('trainMus2')||'main'}catch(e){}MUS.track=v==='off'||TRACKS.includes(v)?v:'main';MUS.on=MUS.track!=='off'}
 function mNote(m,t0,dur,type,vol,att,lp){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(mtof(m),t0);
   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+(att||.012));g.gain.exponentialRampToValueAtTime(.0008,t0+dur);
   let n=o;if(lp){const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);n=f}n.connect(g);g.connect(MUS.bus);o.start(t0);o.stop(t0+dur+.05)}
@@ -592,25 +671,13 @@ function mPerc(t0,dur,vol,freq,type){const c=SND.ctx,s=c.createBufferSource();s.
   const g=c.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0008,t0+dur);s.connect(f);f.connect(g);g.connect(MUS.bus);s.start(t0,Math.random()*.3,dur+.02)}
 function mKick(t0,vol){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(140,t0);o.frequency.exponentialRampToValueAtTime(45,t0+.12);
   g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0008,t0+.2);o.connect(g);g.connect(MUS.bus);o.start(t0);o.stop(t0+.25)}
-const musWant=()=>bossActive&&bossActive.alive&&state==='play'?'boss':'calm';
+const musWant=()=>bossActive&&bossActive.alive&&state==='play'?'boss':(MUS.track==='off'?'main':MUS.track);
 function musStep(t){const st=MUS.step;
   if(st===0){const w=musWant();if(w!==MUS.mood){MUS.mood=w;MUS.bar=0}}
-  const T=THEMES[MUS.mood],e=T.e,bar=MUS.bar%T.chords.length,ch=CH[T.chords[bar]],r=ch[0];
-  if(MUS.mood==='calm'){
-    if(st===0)for(const n of ch)mNote(n+12,t,e*8.2,'sine',.016,.35);                                // แพดคอร์ดนุ่ม ๆ
-    const bs={0:[r,2],3:[r,1],4:[ch[2],2],6:[r+12,1],7:[ch[1],1]}[st];if(bs)mNote(bs[0]-12,t,e*bs[1]*.95,'triangle',.085);   // เบสเดิน
-    mPerc(t,.04,st%2?.008:.014,7000);if(st%2===0)mPerc(t,.07,st%4===0?.03:.018,900,'lowpass');   // ฉึกฉัก ล้อรถไฟ
-    if(st===0||st===4)mKick(t,.07);
-    for(const[s0,m,l]of T.mel[bar])if(s0===st){mNote(m,t,e*l*1.1,'triangle',.065,.015);mNote(m+12,t,e*l*.6,'sine',.012)}   // ทำนอง (กล่องดนตรี)
-  }else{
-    mNote([r,r,r+12,r,r,r+12,r,r+7][st]-12,t,e*.9,'sawtooth',.05,.005,650);                        // เบสวิ่ง
-    if(st===0||st===3||st===6)for(const n of ch)mNote(n+12,t,e*.7,'square',.012,.004,2400);         // คอร์ดกระแทก
-    if(st%2===0)mKick(t,.13);if(st===2||st===6){mPerc(t,.14,.06,1600);mNote(50,t,.08,'triangle',.05)}   // กระเดื่อง + สแนร์
-    mPerc(t,.03,.01,8000);mPerc(t+e/2,.03,.006,8000);                                                // ไฮแฮท 16 ส่วน
-    for(const[s0,m,l]of T.mel[bar])if(s0===st){mNote(m,t,e*l*.95,'square',.022,.005,3200);mNote(m-12,t,e*l*.95,'triangle',.03)}
-  }
+  const T=THEMES[MUS.mood],e=T.e,bar=MUS.bar%T.chords.length;
+  T.play(T,st,t,e,CH[T.chords[bar]],bar);
   MUS.step=(st+1)%8;if(MUS.step===0)MUS.bar++;return e}
-function setMus(on){MUS.on=on;try{localStorage.setItem('trainMus',on?'1':'0')}catch(e){}}
+function setMus(v){MUS.track=v;MUS.on=v!=='off';try{localStorage.setItem('trainMus2',v)}catch(e){}if(MUS.on&&MUS.mood!=='boss'){MUS.mood=v;MUS.bar=0;MUS.step=0}}
 function startMusic(){if(MUS.timer||!SND.ctx)return;const c=SND.ctx;
   MUS.bus=c.createGain();MUS.bus.gain.value=0;MUS.bus.connect(SND.master);
   MUS.nb=c.createBuffer(1,Math.floor(c.sampleRate*.5),c.sampleRate);{const d=MUS.nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
@@ -886,13 +953,14 @@ function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
   <div class="lbl">🔊 เสียง</div>
   <div class="seg" id="segSnd"><div data-v="1" class="${SND.on?'on':''}">🔊 เปิด</div><div data-v="0" class="${SND.on?'':'on'}">🔇 ปิด</div></div>
   <div class="lbl">🎵 เพลงประกอบ</div>
-  <div class="seg" id="segMus"><div data-v="1" class="${MUS.on?'on':''}">🎵 เปิด<small>บอสมาเพลงเร้าใจ</small></div><div data-v="0" class="${MUS.on?'':'on'}">🔕 ปิด<small>เหลือแค่เสียงเอฟเฟกต์</small></div></div>
+  <div class="seg wrap" id="segMus">${TRACKS.map(k=>`<div data-v="${k}" class="${MUS.track===k?'on':''}">${THEMES[k].name}<small>${THEMES[k].sub}</small></div>`).join('')}<div data-v="off" class="${MUS.track==='off'?'on':''}">🔕 ปิดเพลง<small>เหลือแค่เสียงเอฟเฟกต์</small></div></div>
+  <div class="help" style="margin-top:4px">บอส 👑 มาเมื่อไหร่ เปลี่ยนเป็นเพลงบอสเร้าใจอัตโนมัติ</div>
   <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · ถ้าเครื่องกระตุก ลองเลือกกราฟิก "อัตโนมัติ" หรือ "ประหยัด"</div>
   <button class="btn" id="setDone">เสร็จแล้ว</button>`;
   b.querySelectorAll('#segSide div').forEach(d=>d.onclick=()=>{setSide(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segGfx div').forEach(d=>d.onclick=()=>{setGfx(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segSnd div').forEach(d=>d.onclick=()=>{audioInit();setSnd(d.dataset.v==='1');sheetRender&&sheetRender(b)});
-  b.querySelectorAll('#segMus div').forEach(d=>d.onclick=()=>{audioInit();setMus(d.dataset.v==='1');sheetRender&&sheetRender(b)});
+  b.querySelectorAll('#segMus div').forEach(d=>d.onclick=()=>{audioInit();setMus(d.dataset.v);sheetRender&&sheetRender(b)});
   $('setDone').onclick=()=>$('sheet').classList.add('hidden')})}
 $('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();openSettings()};
 // ---------- เต็มหน้าจอ: ปุ่ม ⛶ + เข้าเต็มจออัตโนมัติเมื่อกดเริ่มเล่น ----------
