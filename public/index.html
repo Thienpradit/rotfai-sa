@@ -145,6 +145,14 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .item.deal{border:2px solid #ffd23f}.item.tap{cursor:pointer}.item.tap:active{background:#18204a}
 .item .perk{display:block;font-style:normal;font-size:11.5px;color:#7cfc9a}
 .item .ic{position:relative}.item .ic.real{background:radial-gradient(circle,#2a3466,#141a3a);width:46px;height:46px}.item .ic canvas.lic{position:static;width:100%;height:100%;display:block}
+.cmpbtn{margin:0 0 10px;padding:9px;font-size:15px}
+table.cmp{width:100%;border-collapse:separate;border-spacing:0 5px;font-size:12px;table-layout:fixed}
+table.cmp th{font-weight:600;color:#aab3e6;font-size:15px;padding:0 1px}table.cmp th:first-child{width:38%;text-align:left;font-size:12px;padding-left:6px}
+table.cmp th small{display:block;font-size:9.5px;font-weight:400;color:#8891c4;white-space:nowrap}
+table.cmp td{background:#0f1330;text-align:center;padding:6px 1px;color:#aab3e6;font-weight:600}table.cmp td:first-child{border-radius:10px 0 0 10px}table.cmp td:last-child{border-radius:0 10px 10px 0}
+table.cmp tr{cursor:pointer}table.cmp tr.eq td{background:#1c2550}table.cmp td.up{color:#7cfc9a}table.cmp td.top{color:#ffd23f}
+table.cmp td.nm{display:flex;align-items:center;gap:5px;text-align:left;padding-left:4px}table.cmp td.nm canvas{width:34px;height:34px;flex:0 0 34px;position:static}
+table.cmp td.nm span{min-width:0;display:flex;flex-direction:column}table.cmp td.nm b{font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}table.cmp td.nm small{font-size:10.5px;font-weight:400;color:#ffd23f;white-space:nowrap}
 .perkbox .perks{display:grid;gap:3px;margin:6px 0 4px}.perkbox .perks div{color:#aab3e6}.perkbox .perks div.up{color:#cfffdc}.perkbox .perks b{color:#7cfc9a}.perkbox .perks i{font-style:normal;color:#8891c4;font-size:12px}.item .zoom{position:absolute;right:-5px;bottom:-5px;font-size:12px;background:#2f3870;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
 canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14px;border:1px solid #2f3870}
 .perkbox{background:rgba(124,252,154,.1);border:1px solid rgba(124,252,154,.4);border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:#cfffdc;margin:6px 0}
@@ -1400,6 +1408,17 @@ function drawItemIcon(cv2,cat,id){const c2=cv2.getContext('2d'),S=cv2.width;
     else{const w=new Worm('',sk,0,0,true,{loco:id,a:0});w.safe=0;w.ghost=0;const s=w.r()*.42,L=(id==='comet'?3.6:id==='bullet'?3.5:id==='metro'?3.4:3)*w.r();
       w.pts=[];for(let i=0;i<9;i++)w.pts.push({x:3.5*s-i*s,y:0});const sc=S/(L*1.18);c2.setTransform(sc,0,0,sc,S/2,S/2);c2.rotate(-.35);drawWorm(w,-1e4,-1e4,1e4,1e4)}}
   finally{ctx=old;smoke.length=sl}}
+// ตารางเทียบหัวจักรทุกแบบ (ราคา + ความสามารถ) · แตะแถว → หน้ารายละเอียด
+function openCompare(){openSheet('📊 เทียบหัวจักร',b=>{const B=LOCO_PERK.classic;
+  const best=k=>Math.max(...SHOP.loco.map(i=>LOCO_PERK[i.id][k]));
+  b.innerHTML=iconize(`<div class="help" style="margin:0 0 8px">แตะที่แถวเพื่อดูรูปใหญ่และซื้อ · ตัวเลขสีเขียว = ดีกว่าหัวปกติ</div>
+    <table class="cmp"><thead><tr><th>หัวจักร</th><th>🧲<small>เก็บพลอย</small></th><th>{B}<small>ระเบิด</small></th><th>{G}<small>ร่างทอง</small></th><th>💎<small>เร่งสูงสุด</small></th></tr></thead><tbody>
+    ${SHOP.loco.map(it=>{const P=LOCO_PERK[it.id],own=isOwned('loco',it.id),eq=isEq('loco',it.id),c=(v,b,k,t)=>`<td class="${v>b?'up':''}${v===best(k)&&v>b?' top':''}">${t}</td>`;
+      return`<tr data-id="${it.id}" class="${eq?'eq':''}"><td class="nm"><canvas class="lic" width="72" height="72"></canvas><span><b>${it.n}</b><small>${eq?'✅ ใช้อยู่':own?'✅ มีแล้ว':it.p.toLocaleString()+' 🪙'}</small></span></td>
+        ${c(P.pick,0,'pick',P.pick?'+'+P.pick:'ปกติ')}${c(P.bomb,0,'bomb',BOMB_LIFE+P.bomb+'วิ')}${c(P.gold,0,'gold',GOLD_LIFE+P.gold+'วิ')}${c(P.en,B.en,'en',P.en+'วิ')}</tr>`}).join('')}
+    </tbody></table><button class="btn gray" id="cmpBack">← กลับร้านค้า</button>`);
+  b.querySelectorAll('tr[data-id]').forEach(tr=>{const it=SHOP.loco.find(i=>i.id===tr.dataset.id);drawItemIcon(tr.querySelector('.lic'),'loco',it.id);tr.onclick=()=>openItem('loco',it)});
+  b.querySelector('#cmpBack').onclick=()=>openShop('loco')})}
 function perkBox(id){const P=LOCO_PERK[id]||LOCO_PERK.classic,B=LOCO_PERK.classic,up=(v,b)=>v>b?' class="up"':'';
   return iconize(`<div class="perkbox"><b>ความสามารถของหัวจักรนี้</b><div class="perks">
     <div${up(P.pick,0)}>🧲 เก็บพลอย/เพชรขาวไกลขึ้น <b>${P.pick?'+'+P.pick:'ระยะปกติ'}</b></div>
@@ -1442,6 +1461,7 @@ function renderShop(b){
     L.insertAdjacentHTML('beforeend','<div class="help">ของหายากขายเฉพาะวันที่หมุนมาเท่านั้น ซื้อแล้วเป็นของคุณถาวร</div>');return}
   if(shopTab==='title'){const d=document.createElement('div');d.className='item';const eq=!prof.eq.title;
     d.innerHTML='<div class="ic" style="background:#1f2650">➖</div><div class="tx">ไม่ใช้ฉายา</div>';const bt=document.createElement('button');bt.className='sbtn';bt.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';bt.disabled=eq;bt.onclick=()=>{equip('title','');saveProf();refreshSheet()};d.appendChild(bt);L.appendChild(d)}
+  if(shopTab==='loco'){L.insertAdjacentHTML('beforeend','<button class="btn alt cmpbtn" id="cmpBtn">📊 เทียบความสามารถหัวจักรทั้งหมด</button>');L.querySelector('#cmpBtn').onclick=openCompare}
   for(const it of SHOP[shopTab])shopRow(L,shopTab,it);
   for(const it of LIMITED)if(it.cat===shopTab&&isOwned(shopTab,it.id))shopRow(L,shopTab,it,{tag:'หายาก'});
   if(shopTab==='title'){
