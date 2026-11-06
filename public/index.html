@@ -565,13 +565,10 @@ function sfx(k){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime;try{swit
   case'tunnel':noise(t,.6,.3,2200);break;
   case'freeze':[1568,1318,1046,1760].forEach((f,i)=>tone(f,t+i*.05,.28,'sine',.08));break;
   case'boss':tone(110,t,1.1,'sawtooth',.16,85);tone(147,t+.3,1,'sawtooth',.12,110);break;
-  case'siren':{const c=SND.ctx,g=c.createGain(),f=c.createBiquadFilter(),ws=c.createWaveShaper(),T=1.05,N=3;   // บอสโผล่: ไซเรนเตือนภัยทางอากาศ ต่ำ หยาบ โหด 3 ครั้งแล้วเงียบ
-    const cv=new Float32Array(256);for(let i=0;i<256;i++){const x=i/128-1;cv[i]=Math.tanh(x*3.5)}ws.curve=cv;   // ทำให้เสียงแตกหยาบ
-    f.type='lowpass';f.frequency.value=2200;ws.connect(f);f.connect(g);g.connect(SND.master);
-    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.13,t+.12);g.gain.setValueAtTime(.13,t+T*N-.2);g.gain.linearRampToValueAtTime(0,t+T*N);
-    for(const[type,v,mul,det]of[['sawtooth',.5,1,-9],['sawtooth',.5,1,9],['square',.35,.5,0],['sawtooth',.25,1.5,0]]){const o=c.createOscillator(),og=c.createGain();o.type=type;o.detune.value=det;og.gain.value=v;
-      o.frequency.setValueAtTime(260*mul,t);for(let k=0;k<N;k++){o.frequency.linearRampToValueAtTime(560*mul,t+k*T+T*.55);o.frequency.linearRampToValueAtTime(260*mul,t+(k+1)*T)}
-      o.connect(og);og.connect(ws);o.start(t);o.stop(t+T*N+.05)}break}
+  case'siren':{const c=SND.ctx,f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=1600;f.connect(SND.master);   // บอสโผล่: แตรรถไฟทุ้ม ๆ "ปู๊น — ปู๊น" (เดิมไซเรน เจ้าของว่าตกใจเกิน 6 พ.ย. 22:47)
+    for(const[d,len]of[[0,1],[1.25,1.5]]){const g=c.createGain(),t0=t+d;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.16,t0+.09);g.gain.setValueAtTime(.16,t0+len-.18);g.gain.linearRampToValueAtTime(0,t0+len);g.connect(f);
+      for(const[fr,v]of[[277.2,1],[349.2,.8],[415.3,.7],[138.6,.5]]){const o=c.createOscillator(),og=c.createGain();o.type='sawtooth';og.gain.value=v*.4;o.frequency.setValueAtTime(fr*.97,t0);o.frequency.linearRampToValueAtTime(fr,t0+.12);
+        o.connect(og);og.connect(g);o.start(t0);o.stop(t0+len+.05)}}break}
   case'coin':tone(1318,t,.08,'square',.05);tone(1760,t+.07,.16,'square',.05);break;
 }}catch(e){}}
 // หวูดรถไฟ (ร้านค้า หมวดหวูด) — กด 📯 หรือ H
