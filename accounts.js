@@ -24,7 +24,7 @@ function fileStore(note) {
     async setAuth(l, salt, hash) { if (db[l]) { db[l].salt = salt; db[l].hash = hash; flush(); } },
     async setRecovery(l, rhash) { if (db[l]) { db[l].rhash = rhash; flush(); } },
     async top(n, season, by, me) {   // by: rp (ฤดูกาลนี้) / len (ยาวสุดตลอดกาล) / coins (เหรียญที่มีตอนนี้)
-      const all = Object.values(db).filter(u => by !== 'rp' || (u.data || {}).season === season).map(u => ({ name: u.name, lname: u.lname, val: LB_VAL[by](u), tid: ((u.data || {}).eq || {}).title || '' })).filter(u => u.val > 0).sort((a, b) => b.val - a.val);
+      const all = Object.values(db).filter(u => by !== 'rp' || (u.data || {}).season === season).map(u => ({ name: u.name, lname: u.lname, val: LB_VAL[by](u), rp: +u.rp || 0, tid: ((u.data || {}).eq || {}).title || '' })).filter(u => u.val > 0).sort((a, b) => b.val - a.val);
       const i = me ? all.findIndex(u => u.lname === me) : -1;
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null }; },
   };
@@ -61,11 +61,11 @@ if (DB_URL) {
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
     async top(n, season, by, me) { await ready; if (store !== dbStore) return store.top(n, season, by, me);
       const ex = LB_SQL[by], w = by === 'rp' ? "data->>'season'=$1 AND " : '$1::text IS NOT NULL AND ';
-      const r = await pool.query(`SELECT name, ${ex} AS val, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE ${w}${ex} > 0 ORDER BY val DESC, updated ASC LIMIT $2`, [season, n]);
+      const r = await pool.query(`SELECT name, rp, ${ex} AS val, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE ${w}${ex} > 0 ORDER BY val DESC, updated ASC LIMIT $2`, [season, n]);
       let mine = null;
       if (me) { const q = await pool.query(`SELECT ${ex} AS val FROM players WHERE lname=$1 AND (${by !== 'rp'} OR data->>'season'=$2)`, [me, season]); const v = q.rows[0] ? +q.rows[0].val : 0;
         if (v > 0) { const c = await pool.query(`SELECT count(*)::int AS n FROM players WHERE ${w}${ex} > $2`, [season, v]); mine = { pos: c.rows[0].n + 1, val: v }; } }
-      return { top: r.rows.map(x => ({ name: x.name, val: +x.val, tid: x.tid })), me: mine }; },
+      return { top: r.rows.map(x => ({ name: x.name, val: +x.val, rp: +x.rp || 0, tid: x.tid })), me: mine }; },
   };
   store = dbStore;
 } else {

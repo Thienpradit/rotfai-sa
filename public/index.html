@@ -100,10 +100,15 @@ input:focus{border-color:#77ccff}
 .acct.on{border-color:#7cfc9a;color:#7cfc9a}
 .gnote{font-size:12px;color:#ffb35e;margin-top:6px;line-height:1.5}.gnote u{cursor:pointer;color:#77ccff}
 input.locked{opacity:.75;border-color:#7cfc9a}
-.lb{max-height:340px;overflow-y:auto;text-align:left;margin-top:6px}
+.lb{max-height:none;overflow-y:auto;text-align:left;margin-top:6px}
 .lb div{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:8px;font-size:13px}
 .lb div span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb div span:last-child{white-space:nowrap;color:#cfd6ff}
-.lb .pos{display:inline-block;width:26px;font-weight:600}.lb .pos i{font-style:normal;color:#8891c4}.lb .top3{font-size:14px;font-weight:600}
+.lb div.lbrow{align-items:center;gap:10px;padding:7px 10px}
+.lb .pos{flex:0 0 26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;background:#232a52;color:#aab3e6}
+.lb .pos.p1{background:linear-gradient(135deg,#ffe27a,#d9a400);color:#3a2a00}.lb .pos.p2{background:linear-gradient(135deg,#f1f4fa,#9aa6bd);color:#2a3040}.lb .pos.p3{background:linear-gradient(135deg,#f0b07a,#a85a22);color:#2e1500}
+.lb .who{flex:1;display:flex;flex-direction:column;min-width:0}.lb .who b{font-size:14px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb .who small{font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb .who small i{font-style:normal;color:#9aa6d8}
+.lb .val{font-weight:600}.lb .top3 .who b{font-size:15px}.lb div.me .who b{color:#ffd23f}
 .lb small{color:#9aa6d8;font-size:11px}.lb div.gap{justify-content:center;color:#5a6080;padding:0}.lb div.lbnote{display:block;text-align:center;color:#8891c4;font-size:12px;background:none!important}.lb div:nth-child(odd){background:#0f1330}.lb div.me{color:#ffd23f}
 .rankbox{background:#0f1330;border-radius:12px;padding:8px 12px;margin:8px 0 2px;text-align:left;cursor:pointer}
 .rankbox .rk1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
@@ -403,8 +408,9 @@ function rankHTML(earn){const r=rankOf(prof.rp);
   return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}<span class="rkmore">ดูอันดับ ›</span></small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
-  b.innerHTML=rankHTML()+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
+  b.innerHTML=rankHTML()+
   (ACCT.mode!=='local'?'<div class="lbl" style="margin:12px 2px 6px">🌍 อันดับผู้เล่น</div><div class="tabs" id="lbTabs">'+LB_TABS.map(([k,t])=>`<div class="tab${lbBy===k?' on':''}" data-k="${k}">${t}</div>`).join('')+'</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
+  '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
   '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
   RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
   '<div class="lbl" style="margin:12px 2px 4px">กติกาแรงก์</div>'+`<div class="help" style="margin:0 0 4px;text-align:left">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>เล่นกับบอท: Easy ×0.5 · Normal ×1 · Hard ×1.5 · ออนไลน์ ×1<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`;
@@ -413,11 +419,12 @@ function renderRanks(b){const r=rankOf(prof.rp);
 let lbBy='rp';const LB_TABS=[['rp','🏅 แรงก์'],['len','🚂 ยาวสุด'],['coins','🪙 เหรียญ']];
 function loadLb(b){const el=b.querySelector('#lbList');if(!el)return;el.innerHTML='<div>กำลังโหลด...</div>';const by=lbBy,esc=t=>String(t).replace(/[<>&]/g,'');
   const unit=v=>by==='rp'?(+v).toLocaleString()+' RP':by==='len'?'ยาว '+(+v).toLocaleString():(+v).toLocaleString()+' 🪙';
-  const pos=i=>i<3?['🥇','🥈','🥉'][i]:'<i>'+(i+1)+'</i>';
+  const pos=i=>`<b class="pos p${Math.min(i+1,4)}">${i+1}</b>`;
   api('/api/top?by='+by).then(j=>{if(lbBy!==by)return;
-    const row=(u,i,me)=>`<div class="${me?'me':''}${i<3?' top3':''}"><span><b class="pos">${pos(i)}</b>${esc(u.name)}${u.tid&&titleText(u.tid)?' <small>'+esc(titleText(u.tid))+'</small>':''}</span><span>${unit(u.val)}</span></div>`;
+    const row=(u,i,me)=>{const k=rankOf(u.rp??(by==='rp'?u.val:0)),tt=u.tid&&titleText(u.tid);
+      return`<div class="lbrow${me?' me':''}${i<3?' top3':''}">${pos(i)}<span class="who"><b>${esc(u.name)}${me?' (คุณ)':''}</b><small style="color:${k.col}">${k.ic} ${k.name}${tt?' <i>· '+esc(tt)+'</i>':''}</small></span><span class="val">${unit(u.val)}</span></div>`};
     let h=j.top.length?j.top.map((u,i)=>row(u,i,ACCT.name&&u.name===ACCT.name)).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>';
-    if(j.me&&j.me.pos>j.top.length)h+=`<div class="gap">⋯</div>`+row({name:ACCT.name,val:j.me.val,tid:prof.eq.title},j.me.pos-1,true);
+    if(j.me&&j.me.pos>j.top.length)h+=`<div class="gap">⋯</div>`+row({name:ACCT.name,val:j.me.val,rp:prof.rp,tid:prof.eq.title},j.me.pos-1,true);
     el.innerHTML=h+(ACCT.mode==='guest'?'<div class="lbnote">👻 Guest ไม่ขึ้นตารางอันดับ — ลงทะเบียนเพื่อแข่งกับคนอื่น</div>':j.me?`<div class="lbnote">คุณอยู่อันดับที่ <b>${j.me.pos}</b></div>`:'')})
   .catch(()=>{if(lbBy===by)el.innerHTML='<div>โหลดอันดับไม่ได้</div>'})}
 const allSkins=()=>[...SKINS.map((c,i)=>({id:'b'+i,c,own:true})),...SHOP.skin.map(s=>({id:s.id,c:s.c,own:prof.owned.skin.includes(s.id),p:s.p})),...LIMITED.filter(s=>s.cat==='skin'&&prof.owned.skin.includes(s.id)).map(s=>({id:s.id,c:s.c,own:true,p:s.p}))];
