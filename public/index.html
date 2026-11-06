@@ -930,7 +930,7 @@ function spawnAI(){
 function spawnBoss(){
   const[x,y]=farSpot(500,1100);
   const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.ghost=w.safe=SPAWN_GHOST;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=BOSS_HEARTS;
-  worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss');
+  worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');   // ไม่มีเสียงตอนบอสมาแล้ว (เจ้าของสั่ง 6 พ.ย. 22:21)
 }
 
 // =====================================================================
@@ -1809,7 +1809,7 @@ function netMsg(m){
     case'lobby':{const old=NET.players;netPlayers(m.players);NET.phase=m.phase;refreshSheet();
       if(NET.ffa&&state==='play'){for(const p of NET.players.values())if(!old.has(p.id)&&p.id!==NET.id)announce('🚂 '+p.name+' เข้ามาในโลกนี้แล้ว!');
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
-    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss')}}break;
+    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss)announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี')}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
     case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
