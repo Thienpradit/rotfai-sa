@@ -1067,6 +1067,11 @@ function step(f,dt){
   if(NET&&player&&player.alive){if(player.bossCD>0)player.bossCD-=dt;
     const b=bossActive;if(b&&b.isRemote&&b.alive&&!(player.bossCD>0)&&!(player.safe>0)&&!(player.ghost>0)){const bh=b.pts[0],rr=b.r()*.7+player.r()*.9;
       for(let i=8;i<player.pts.length;i+=2){const q=player.pts[i];if((q.x-bh.x)**2+(q.y-bh.y)**2<rr*rr){player.bossCD=BOSS_HIT_CD;shake=.4;booms.push({x:bh.x,y:bh.y,t:.6});sfx('kill');bossHurt(b,player);break}}}}
+  // ออนไลน์ คนชนคน: หัวผู้เล่นคนอื่น (ตามที่เราเห็นบนจอ) แตะลำตัวเรา → แจ้งเซิร์ฟเวอร์ให้คนนั้นตาย (เดิมแต่ละเครื่องเห็นอีกฝ่ายช้ากว่าจริง ตัดหน้าแล้วอีกฝ่ายวิ่งผ่านไปได้)
+  if(NET&&player&&player.alive&&!(player.ghost>0)){const P=player.pts,pr=player.r();
+    for(const w of worms){if(!w.alive||!w.isRemote||w.isBot||ally(w,player)||w.ghost>0||w.safe>0||(w.hitT&&performance.now()-w.hitT<1500))continue;
+      const h=w.pts[0],rr=w.r()*.7+pr*.9;
+      for(let i=4;i<P.length;i+=2){const q=P[i];if((q.x-h.x)**2+(q.y-h.y)**2<rr*rr){if(!inMouth(q)){w.hitT=performance.now();netSend({t:'hitme',id:w.netId})}break}}}}
   // eating
   for(const w of worms){
     if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,lb=LOCO_PICK[w.loco]||0,reach=r+mr+14+lb,mult=w.pu.x3>0?3:1;
@@ -1824,6 +1829,8 @@ function netMsg(m){
     case'pa':for(const a of m.p)pups.push({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false});break;
     case'pr':for(const p of pups)if(p.id===m.id)p.dead=true;break;
     case'it':{const hadG=!!goldItem,hadT=!!tgsItem;setItems(m.items);if(!hadG&&goldItem)announce('{G} ทองคำแท่งปรากฏแล้ว!');if(!hadT&&tgsItem)announce('{B} ระเบิดปรากฏแล้ว!');break}
+    case'crash':if(player&&player.alive&&!(player.ghost>0)&&!(player.safe>0)){const k=worms.find(o=>o.netId===m.k);const h=player.pts[0];   // อีกฝ่ายเห็นเราชนลำตัวเขา
+      texts.push({x:h.x,y:h.y-40,txt:'💥 ชนขบวน '+(k?k.name:'')+'!',t:1.6,c:'#ff5e5e'});player.die(k||null)}break;
     case'kill':{const w=worms.find(o=>o.netId===m.v);
       {const kf=m.k===NET.id?prof.eq.kfx:(NET.players.get(m.k)||{}).kfx,q=w&&w.alive?w.pts[0]:null;if(q&&kf)killFx(q.x,q.y,kf)}
       if(w)w.alive=false;const bi=NET.bots.get(m.v);NET.bots.delete(m.v);

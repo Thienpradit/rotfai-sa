@@ -200,6 +200,18 @@ wss.on('connection', ws => {
       case 'horn': { const now = Date.now(); if (now - (me.hornT || 0) > 2000) { me.hornT = now; bcast(room, { t: 'horn', by: me.id, k: clean(m.k, 10) }, ws); } break; }
       // ---- ผลกับบอทบนเซิร์ฟเวอร์ ----
       case 'bhit': if (typeof m.id === 'number') botsim.onBossHit(room, me, m.id, m.d); break;
+      // ---- คนชนคน: เครื่องเจ้าของลำตัวเห็นหัวผู้เล่นอื่นแตะลำตัวตัวเองบนจอ → ผู้เล่นนั้นตาย (ชดเชยดีเลย์ เหมือนบอท) ----
+      // ตรวจว่าเป็นไปได้: ทั้งคู่ยังมีชีวิต, คนชนไม่ใช่ผี/อมตะ, ไม่ใช่ทีมเดียวกัน, หัวคนชนจริงอยู่ใกล้ลำตัวเรา ≤ 400px, กันซ้ำ 1.5 วิ
+      case 'hitme': {
+        const a = room.players.get(m.id), now = Date.now();
+        if (!a || a === me || !a.st || !(a.st.f & 4) || (a.st.f & 48) || !me.st || !(me.st.f & 4) || (me.st.f & 32)) break;
+        if (!room.ffa && a.team === me.team) break;
+        if (now - (a.crashT || 0) < 1500) break;
+        const b = me.body; let near = false;
+        if (b) for (let i = 0; i < b.pts.length; i += 3) { const q = b.pts[i]; if ((q.x - a.st.x) ** 2 + (q.y - a.st.y) ** 2 < 400 * 400) { near = true; break; } }
+        if (!near) break;
+        a.crashT = now; send(a.ws, { t: 'crash', k: me.id }); break;
+      }
     }
   });
   ws.on('close', () => {
