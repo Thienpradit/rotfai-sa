@@ -106,6 +106,10 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .rankbox .rk1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .rankbox b{font-size:16px}.rankbox span{font-size:12px;color:#aab3e6;white-space:nowrap}.rankbox i{font-style:normal}
 .rankbox small{display:block;font-size:11px;color:#8891c4;margin-top:3px}
+.rkmore{float:right;color:#77ccff;font-weight:600}
+#sheetBody .rkmore{display:none}
+@media (max-width:380px){#menu .row4.four{gap:4px}#menu .row4.four .mbtn{font-size:10.5px;letter-spacing:-.3px}}
+@media (max-width:340px){#menu .row4.four .mbtn{font-size:9px}}#sheetBody .rankbox{cursor:default}
 /* หน้าแรก: จัดกลุ่มให้อ่านง่าย */
 .card{background:#151a36;border:1px solid #2a3264;border-radius:16px;padding:12px 12px 6px;margin-top:4px}
 .card .gnote{margin:8px 0 0}
@@ -118,8 +122,8 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .btn.play .bt{font-size:17px;line-height:1.25}
 .btn.play small{font-size:11.5px;font-weight:400;opacity:.82;line-height:1.3}
 .btn.team.play small{opacity:.92}
-.row4.four{grid-template-columns:repeat(4,1fr);margin-top:14px}
-.row4.four .mbtn{padding:8px 2px 7px;font-size:12px}
+.row4.four{grid-template-columns:repeat(5,1fr);gap:5px;margin-top:14px}
+.row4.four .mbtn{padding:8px 1px 7px;font-size:11px;letter-spacing:-.2px;white-space:nowrap;overflow:hidden}
 .row4.four .mbtn b{display:block;font-size:20px;line-height:1.2;font-weight:400}
 .best{font-size:12.5px;color:#ffd23f;margin-top:10px;min-height:0}
 .best:empty{display:none}
@@ -156,6 +160,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
     <button class="btn team play" id="playOnline"><span class="bt">🌐 2v2 กับเพื่อน</span><small>สร้างห้องแข่งทีม · คนไม่ครบเติมบอทให้</small></button>
     <div id="rankMenu"></div>
     <div class="row4 four">
+      <button class="mbtn" id="bRank"><b>🏆</b>แรงก์</button>
       <button class="mbtn" id="bShop"><b>🛒</b>ร้านค้า</button>
       <button class="mbtn" id="bMis"><b>📋</b>ภารกิจ<span class="dot hidden" id="misDot"></span></button>
       <button class="mbtn" id="bAch"><b>🏅</b>เหรียญตรา</button>
@@ -393,11 +398,13 @@ function addRP(n){if(!n)return;const b=rankOf(prof.rp);prof.rp=Math.max(0,prof.r
   if(a.code>b.code){announce('🎉 เลื่อนแรงก์เป็น '+a.ic+' '+a.name+'!');sfx('gold')}else if(a.code<b.code)announce('📉 แรงก์ตกเป็น '+a.ic+' '+a.name)}
 function rankHTML(earn){const r=rankOf(prof.rp);
   return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
-  <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}</small></div>`}
+  <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}<span class="rkmore">ดูอันดับ ›</span></small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
-  b.innerHTML=rankHTML()+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div><div class="help" style="margin:4px 0 8px">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>เล่นกับบอท: Easy ×0.5 · Normal ×1 · Hard ×1.5 · ออนไลน์ ×1<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`+
-  (ACCT.mode!=='local'?'<div class="help" style="margin:2px 0 4px;text-align:left">🌍 อันดับแรงก์ฤดูกาลนี้</div><div class="lb" id="lbList">กำลังโหลด...</div><div class="help" style="margin:10px 0 4px;text-align:left">ขั้นแรงก์</div>':'')+
-  RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('');
+  b.innerHTML=rankHTML()+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
+  (ACCT.mode!=='local'?'<div class="lbl" style="margin:10px 2px 4px">🌍 อันดับแรงก์ฤดูกาลนี้</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
+  '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
+  RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
+  '<div class="lbl" style="margin:12px 2px 4px">กติกาแรงก์</div>'+`<div class="help" style="margin:0 0 4px;text-align:left">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>เล่นกับบอท: Easy ×0.5 · Normal ×1 · Hard ×1.5 · ออนไลน์ ×1<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`;
   if(ACCT.mode!=='local')api('/api/top').then(j=>{const el=b.querySelector('#lbList');if(!el)return;const esc=t=>String(t).replace(/[<>&]/g,'');
     el.innerHTML=j.top.length?j.top.map((u,i)=>`<div class="${ACCT.name&&u.name===ACCT.name?'me':''}"><span>${i+1}. ${rankOf(u.rp).ic} ${esc(u.name)}${u.tid&&titleText(u.tid)?' <small style="color:#9aa6d8">'+esc(titleText(u.tid))+'</small>':''}</span><span>${(+u.rp).toLocaleString()} RP</span></div>`).join(''):'<div>ยังไม่มีผู้เล่นลงทะเบียน</div>'}).catch(()=>{const el=b.querySelector('#lbList');if(el)el.textContent='โหลดอันดับไม่ได้'})}
 const allSkins=()=>[...SKINS.map((c,i)=>({id:'b'+i,c,own:true})),...SHOP.skin.map(s=>({id:s.id,c:s.c,own:prof.owned.skin.includes(s.id),p:s.p})),...LIMITED.filter(s=>s.cat==='skin'&&prof.owned.skin.includes(s.id)).map(s=>({id:s.id,c:s.c,own:true,p:s.p}))];
@@ -1348,6 +1355,7 @@ function renderShop(b){
 function equip(cat,id){if(cat==='skin'){const i=allSkins().findIndex(s=>s.id===id);if(i>=0){selSkin=i;try{localStorage.setItem('trainSkin',id)}catch(e){}}}else prof.eq[cat]=id;
   if(player&&cat==='title')player.title=myTitle();renderSkins()}
 $('bShop').onclick=()=>openShop();
+$('bRank').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks);
 $('bMis').onclick=()=>{ensureDaily();openSheet('📋 ภารกิจวันนี้',b=>{
   b.innerHTML='<div class="help" style="margin:0 0 8px">ภารกิจสุ่มใหม่ทุกวัน (ไม่ซ้ำเมื่อวาน) · ทำสำเร็จแล้วกดรับเหรียญ</div>';
   for(const m of prof.daily.m){const done=m.p>=m.n;const el=document.createElement('div');el.className='item';
