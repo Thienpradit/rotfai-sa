@@ -20,13 +20,10 @@ async def main():
         print('menu buttons', await a.evaluate("[...document.querySelectorAll('#menu .btn')].map(b=>b.textContent)"),
               'difficulty on menu?', await a.evaluate("!!document.querySelector('#menu .dbtn')"))
         await a.screenshot(path='/tmp/u_menu.png')
-        # --- เล่นกับบอท: กดปุ่มก่อนแล้วเลือกความยาก ---
-        await a.click('#playBot'); await a.wait_for_timeout(200)
-        print('bot sheet', await a.evaluate("[document.getElementById('sheetTitle').textContent,[...document.querySelectorAll('#sheetBody .dbtn')].map(b=>b.textContent)]"))
-        await a.click('#sheetBody .dbtn[data-d=hard]'); await a.wait_for_timeout(100)
-        await a.screenshot(path='/tmp/u_botsheet.png')
-        await a.click('#botInf'); await a.wait_for_timeout(600)
-        print('bot game', await a.evaluate("[state,mode,!!NET,diff,D().label,worms.filter(w=>!w.isP&&!w.isBoss).length]"))
+        # --- เมนูเล่นกับบอทเอาออกแล้ว: เกมออฟไลน์ (ตอนต่อเซิร์ฟเวอร์ไม่ได้) ยังเล่นได้ ระดับ Normal ---
+        print('no bot button', await a.evaluate("!document.getElementById('playBot')"))
+        await a.evaluate("startGame('inf')"); await a.wait_for_timeout(600)
+        print('offline game', await a.evaluate("[state,mode,!!NET,diff,D().label,worms.filter(w=>!w.isP&&!w.isBoss).length]"))
         # --- อุโมงค์ อมตะ 2 วิ ---
         r = await a.evaluate("""(()=>{player.safe=0;player.tunCD=0;const p=portals[0];const h=player.pts[0];const dx=p.x-h.x,dy=p.y-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}return 1})()""")
         await a.wait_for_timeout(150)
@@ -38,9 +35,8 @@ async def main():
         await a.screenshot(path='/tmp/u_minimap.png', clip={'x': 0, 'y': 0, 'width': 260, 'height': 260})
         await a.evaluate("toMenu()")
         # --- ออนไลน์: ทุกคนเข้าโลกเดียวกัน, บอท Normal, คน+บอท = 30 ---
-        await a.evaluate("setDiff('hard')")      # ผู้เล่นตั้ง Hard ไว้ในโหมดบอท แต่ออนไลน์ต้องเป็น Normal
         await a.click('#playInf'); await a.wait_for_timeout(3500); pages.append(a)
-        b = await open_page(1); await b.evaluate("setDiff('easy')"); await b.click('#playInf'); await b.wait_for_timeout(2500); pages.append(b)
+        b = await open_page(1); await b.click('#playInf'); await b.wait_for_timeout(2500); pages.append(b)
         await a.wait_for_timeout(4000)
         for i, pg in enumerate(pages):
             print(f'online P{i+1}', await pg.evaluate(f"[NET.room,NET.host,NET.players.size,{BOTS},D().label,diff,mode]"))
