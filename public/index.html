@@ -1763,20 +1763,19 @@ $('coopInv').onclick=()=>{if(!NET)return;const url=location.origin+location.path
   else try{navigator.clipboard.writeText(txt+' '+url).then(copied,()=>announce('ห้อง '+NET.room+' · '+url))}catch(e){announce('ห้อง '+NET.room+' · '+url)}};
 $('coopExit').onclick=()=>{if(state==='play'&&player&&player.alive){finish(true,true);player.alive=false}else toMenu()};
 function renderOnlineJoin(b){
-  let srv='';try{srv=localStorage.getItem('trainSrv')||''}catch(e){}
+  // ช่องที่อยู่เซิร์ฟเวอร์เอาออกแล้ว (เจ้าของสั่ง 6 พ.ย. 21:33) — ต่อเซิร์ฟเวอร์ของหน้าเว็บนี้เสมอ
   const code=(Math.random().toString(36).slice(2,6)).toUpperCase();
   b.innerHTML=`<div class="help" style="margin:0 0 8px">แบ่งเป็น 🔴 ทีมแดง vs 🔵 ทีมน้ำเงิน (สูงสุด 4 คน · คนไม่ครบเติมบอท)<br>เพื่อนร่วมทีมชนกันไม่ตาย · ทีมที่ได้คะแนนมากกว่าเมื่อหมดเวลาชนะ</div>
    <div class="help" style="text-align:left;margin:6px 2px 4px">รหัสห้อง (ให้เพื่อนใส่รหัสเดียวกัน)</div><input id="roomIn" maxlength="8" value="${code}" style="text-transform:uppercase;letter-spacing:3px;font-weight:600">
-   <div class="help" style="text-align:left;margin:8px 2px 4px">ที่อยู่เซิร์ฟเวอร์ (เว้นว่าง = เซิร์ฟเวอร์ที่เปิดหน้านี้)</div><input id="srvIn" placeholder="เช่น mygame.example.com" value="${srv}">
    <button class="btn team" id="joinBtn">เข้าห้อง</button><div class="status" id="netStatus"></div>`;
-  b.querySelector('#joinBtn').onclick=()=>{autoFS();const room=b.querySelector('#roomIn').value.trim().toUpperCase()||'PUBLIC',s=b.querySelector('#srvIn').value.trim();try{localStorage.setItem('trainSrv',s)}catch(e){}netConnect(room,s)};
+  b.querySelector('#joinBtn').onclick=()=>{autoFS();const room=b.querySelector('#roomIn').value.trim().toUpperCase()||'PUBLIC';netConnect(room,'')};
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
 function netConnect(room,srv,nmode){const ffa=nmode==='ffa';
   if(NET)netLeave(true);
   let ws;netStatus('กำลังเชื่อมต่อ...');
-  const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ — โหมดออนไลน์ต้องเปิดเกมจากเซิร์ฟเวอร์ของคุณ (ลิงก์ใน Claude เชื่อมต่อภายนอกไม่ได้)');NET=null};
+  const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกดเข้าห้องอีกครั้ง');NET=null};
   try{ws=new WebSocket(netURL(srv))}catch(e){fail();return}
   NET={ws,id:null,room,ffa,bots:new Map(),bseq:0,botT:0,players:new Map(),phase:'connecting',timeLeft:300,q:{eat:[]},sendT:0,respawnT:0,score:null,host:false,opened:false};
   const me=NET;
