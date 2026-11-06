@@ -162,6 +162,48 @@ canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14p
 .link{color:#77ccff;cursor:pointer;text-decoration:underline;font-size:13px}
 #horn{position:fixed;right:calc(122px + env(safe-area-inset-right));bottom:calc(36px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(119,204,255,.3);color:#fff;font-size:24px;z-index:5;touch-action:none;cursor:pointer}
 #horn.cd{opacity:.4}
+#setGame{position:fixed;left:calc(108px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8;font-size:17px}
+#setGame.nofs{left:calc(60px + env(safe-area-inset-left))}
+/* ตั้งค่า: ปุ่มควบคุมอยู่ซ้าย (body.sideL) → เร่ง/ระเบิด/หวูด ไปซ้าย, ปุ่มเสียง/เต็มจอ/ตั้งค่า ไปขวา */
+body.sideL #boost{right:auto;left:calc(22px + env(safe-area-inset-left))}
+body.sideL #bomb{right:auto;left:calc(30px + env(safe-area-inset-left))}
+body.sideL #horn{right:auto;left:calc(122px + env(safe-area-inset-left))}
+body.sideL #snd{left:auto;right:calc(108px + env(safe-area-inset-right))}
+body.sideL #fsGame{left:auto;right:calc(60px + env(safe-area-inset-right))}
+body.sideL #setGame{left:auto;right:calc(12px + env(safe-area-inset-right))}
+body.sideL #setGame.nofs{right:calc(12px + env(safe-area-inset-right))}
+body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
+/* มือถือแนวนอน (จอเตี้ย): ปุ่มเล็กลง ไม่ทับมินิแมป/ตารางอันดับ */
+@media (max-height:500px){
+  #boost{width:70px;height:70px;bottom:calc(16px + env(safe-area-inset-bottom));font-size:13px}
+  #bomb{width:56px;height:56px;bottom:calc(96px + env(safe-area-inset-bottom));right:calc(29px + env(safe-area-inset-right));font-size:19px}
+  body.sideL #bomb{left:calc(29px + env(safe-area-inset-left))}
+  #horn{width:48px;height:48px;bottom:calc(27px + env(safe-area-inset-bottom));right:calc(102px + env(safe-area-inset-right));font-size:20px}
+  body.sideL #horn{left:calc(102px + env(safe-area-inset-left))}
+  #boost small,#bomb small{font-size:10px}
+}
+.topbar>span{white-space:nowrap}
+@media (max-width:370px){.topbar .ibtn{width:32px;height:32px;font-size:15px;padding:0}.topbar .coin{padding:3px 7px;font-size:13px}.topbar .acct{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.seg{display:flex;gap:6px;margin:6px 0 2px}
+.seg div{flex:1;padding:9px 4px;border-radius:12px;background:#0f1330;border:2px solid #3a4590;cursor:pointer;color:#aab3e6;font-size:14px;line-height:1.35}
+.seg div.on{border-color:#ffd23f;color:#ffd23f;background:rgba(255,210,63,.1);font-weight:600}
+.seg small{display:block;font-size:11px;font-weight:400;color:#8891c4}
+/* หน้าจบเกมบนมือถือ: กะทัดรัด */
+@media (max-width:520px),(max-height:520px){
+  #over .panel{width:min(310px,86vw);padding:12px 12px 14px;border-radius:18px}
+  #over h2{font-size:21px;margin-bottom:6px}
+  #over .stats{gap:5px;margin:4px 0 2px}
+  #over .stat{padding:5px 4px;border-radius:10px}
+  #over .stat b{font-size:17px}
+  #over .stat span{font-size:10.5px}
+  #over #coinEarn{font-size:13px;margin-top:4px}
+  #over .rankbox{padding:6px 9px;margin-top:6px}
+  #over .gnote{font-size:11px;margin-top:4px}
+  #over .btn{padding:9px;font-size:15px;margin-top:7px;border-radius:12px;box-shadow:0 3px 0 #b8901a}
+  #over .btn.alt{box-shadow:0 3px 0 #3a86b8}
+}
+@media (max-width:520px),(max-height:520px){#over .stats{grid-template-columns:repeat(4,1fr)}#over .stat span{font-size:10px;line-height:1.25}}
+@media (max-height:520px){#over .btns2{display:flex;gap:8px}#over .btns2 .btn{flex:1}}
 </style>
 </head>
 <body>
@@ -169,7 +211,7 @@ canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14p
 
 <div id="menu" class="overlay">
   <div class="panel">
-    <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button></span></div>
+    <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button> <button class="ibtn" id="setMenu" title="ตั้งค่า">⚙️</button></span></div>
     <div class="fstip hidden" id="fsTip"><span id="fsTipTx"></span><button class="sbtn" id="fsTipGo">ดูวิธี</button><button class="fsx" id="fsTipX">✕</button></div>
     <h1>รถไฟซ่า.io</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
@@ -208,8 +250,8 @@ canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14p
     <div id="coinEarn"></div>
     <div id="rankOver"></div>
     <div class="gnote hidden" id="guestOver">👻 Guest: รอบนี้จะไม่ถูกบันทึก · <u id="guestReg2">ลงทะเบียนตอนนี้ เก็บเหรียญ/แรงก์รอบนี้ไว้ได้</u></div>
-    <button class="btn" id="again">เล่นอีกครั้ง</button>
-    <button class="btn alt" id="toMenu">กลับหน้าแรก</button>
+    <div class="btns2"><button class="btn" id="again">เล่นอีกครั้ง</button>
+    <button class="btn alt" id="toMenu">กลับหน้าแรก</button></div>
   </div>
 </div>
 
@@ -225,6 +267,7 @@ canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14p
 <button id="horn" class="hidden" title="หวูด (H)">📯</button>
 <button id="snd" class="ibtn hidden">🔊</button>
 <button id="fsGame" class="ibtn fsb hidden" title="เต็มจอ">⛶</button>
+<button id="setGame" class="ibtn hidden" title="ตั้งค่า">⚙️</button>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
 <div id="ann"></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
@@ -748,6 +791,21 @@ bb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();inp
 addEventListener('keydown',e=>{if(document.activeElement&&document.activeElement.tagName==='INPUT')return;if(e.code==='Space'){input.keyB=true;e.preventDefault()}if(e.code==='KeyB')useBomb();if(e.code==='KeyH')honk();if(e.code==='KeyM')setSnd(!SND.on);if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=true;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=true});
 addEventListener('keyup',e=>{if(e.code==='Space')input.keyB=false;if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=false;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=false});
 $('snd').onclick=$('sndMenu').onclick=()=>{audioInit();setSnd(!SND.on)};
+// ===== ตั้งค่า: ปุ่มควบคุมซ้าย/ขวา (localStorage trainSide) · ซ้าย = กลับด้าน HUD ทั้งหมด (ตารางอันดับไปซ้าย มินิแมป/สถานะไปขวา) =====
+let SIDE='R';try{if(localStorage.getItem('trainSide')==='L')SIDE='L'}catch(e){}
+function setSide(v){SIDE=v==='L'?'L':'R';document.body.classList.toggle('sideL',SIDE==='L');try{localStorage.setItem('trainSide',SIDE)}catch(e){}}
+setSide(SIDE);
+function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
+  b.innerHTML=`<div class="lbl">🎮 ปุ่มเร่ง / ระเบิด / หวูด อยู่ด้าน</div>
+  <div class="seg" id="segSide"><div data-v="L" class="${SIDE==='L'?'on':''}">⬅️ ซ้าย<small>ถนัดซ้าย · ตารางอันดับย้ายไปซ้าย</small></div><div data-v="R" class="${SIDE==='R'?'on':''}">ขวา ➡️<small>ถนัดขวา (ค่าเดิม)</small></div></div>
+  <div class="lbl">🔊 เสียง</div>
+  <div class="seg" id="segSnd"><div data-v="1" class="${SND.on?'on':''}">🔊 เปิด</div><div data-v="0" class="${SND.on?'':'on'}">🔇 ปิด</div></div>
+  <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · กราฟิกปรับให้ลื่นเองตามความเร็วเครื่อง</div>
+  <button class="btn" id="setDone">เสร็จแล้ว</button>`;
+  b.querySelectorAll('#segSide div').forEach(d=>d.onclick=()=>{setSide(d.dataset.v);sheetRender&&sheetRender(b)});
+  b.querySelectorAll('#segSnd div').forEach(d=>d.onclick=()=>{audioInit();setSnd(d.dataset.v==='1');sheetRender&&sheetRender(b)});
+  $('setDone').onclick=()=>$('sheet').classList.add('hidden')})}
+$('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();openSettings()};
 // ---------- เต็มหน้าจอ: ปุ่ม ⛶ + เข้าเต็มจออัตโนมัติเมื่อกดเริ่มเล่น ----------
 const FS_OK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
@@ -772,7 +830,7 @@ if(IS_TOUCH&&FS_OK&&!IS_STANDALONE()){const go=e=>{if(fsAuto&&!isFS()&&!(e.targe
   document.addEventListener('touchend',go,{passive:true});document.addEventListener('click',go)}
 ['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{updFS();setTimeout(resize,60)}));
 $('fsMenu').onclick=$('fsGame').onclick=e=>{e.stopPropagation();toggleFS()};
-if(IS_STANDALONE()){$('fsMenu').classList.add('hidden');$('fsGame').remove()}
+if(IS_STANDALONE()){$('fsMenu').classList.add('hidden');$('fsGame').remove();$('setGame').classList.add('nofs');$('snd').classList.add('nofs')}
 // iPhone (Safari ไม่ยอมให้เว็บเต็มจอ) / เปิดในแอป LINE, Facebook → แถบแนะนำวิธีเล่นเต็มจอ (ปิดได้ จำไว้ 3 วัน)
 {let hid=0;try{hid=+localStorage.getItem('fsTipHide')||0}catch(e){}
   if(IS_TOUCH&&!IS_STANDALONE()&&(!FS_OK||IN_APP)&&Date.now()-hid>3*864e5){$('fsTip').classList.remove('hidden');
@@ -1102,15 +1160,16 @@ function drawHUD(){
   const W0=VW,H0=VH;VW-=SAFE.l+SAFE.r;VH-=SAFE.t+SAFE.b;ctx.save();ctx.translate(SAFE.l,SAFE.t);try{drawHUD2()}finally{ctx.restore();VW=W0;VH=H0}
 }
 function drawHUD2(){
-  const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
-  ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(pad,pad,160,64,12);ctx.fill();
-  ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),pad+12,pad+27);
-  ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,pad+152,pad+26);ctx.textAlign='left';
+  const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass),SL=SIDE==='L',PH=Math.min(VW,VH)<520;   // PH = มือถือ → ตารางอันดับเล็กลง
+  const bx0=SL?VW-pad-160:pad;   // กล่องสถานะ/ชิป/มินิแมป: ปกติอยู่ซ้าย · ตั้งปุ่มไว้ซ้าย → ย้ายไปขวา
+  ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(bx0,pad,160,64,12);ctx.fill();
+  ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),bx0+12,pad+27);
+  ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+152,pad+26);ctx.textAlign='left';
   const rank=alive.indexOf(player)+1;
-  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText((NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,pad+12,pad+50);
+  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText((NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,bx0+12,pad+50);
   let py=pad+74;
-  const chip=(txt,col,frac)=>{ctx.font='13px Mitr,sans-serif';const cw=Math.max(160,textW(txt)+18);ctx.fillStyle='rgba(15,19,48,.7)';roundRect(pad,py,cw,26,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(pad,py,cw*Math.min(1,frac),26,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
-    ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';fillTextIcons(txt,pad+8,py+18);py+=30};
+  const chip=(txt,col,frac)=>{ctx.font='13px Mitr,sans-serif';const cw=Math.max(160,textW(txt)+18),cx=SL?VW-pad-cw:pad;ctx.fillStyle='rgba(15,19,48,.7)';roundRect(cx,py,cw,26,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(cx,py,cw*Math.min(1,frac),26,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
+    ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';fillTextIcons(txt,cx+8,py+18);py+=30};
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/maxEn(player));
   if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/goldLife(player));
   if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/bombLife(player));
@@ -1118,7 +1177,7 @@ function drawHUD2(){
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
   // minimap
-  const mr=Math.min(64,VW*.15),mx=pad+mr,my=py+mr+6,S=mr/WR;MINI_R=mr;
+  const mr=Math.min(64,VW*.15),mx=SL?VW-pad-mr:pad+mr,my=py+mr+6,S=mr/WR;MINI_R=mr;
   ctx.fillStyle='rgba(15,19,48,.75)';ctx.beginPath();ctx.arc(mx,my,mr,0,TAU);ctx.fill();
   ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
@@ -1134,20 +1193,22 @@ function drawHUD2(){
   if(bossActive&&bossActive.alive){const h=bossActive.pts[0];ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('👑',mx+h.x*S,my+h.y*S-6);ctx.textAlign='left'}
   if(player.alive)drawMiniMe(mx,my,S);
   // right panel
-  const lw=Math.min(180,VW*.42),lx=VW-lw-pad;
+  // มือถือ: ตารางอันดับเล็ก (ตัวหนังสือ 11px, 5 อันดับ, กว้าง ~130px) · คอม/แท็บเล็ต: ขนาดเดิม 8 อันดับ
+  const Z=PH?{w:Math.min(132,VW*.34),n:5,rh:15,h:26,t:'600 12px Mitr,sans-serif',f:'11px Mitr,sans-serif',p:7,r:9,sub:'9.5px Mitr,sans-serif'}:{w:Math.min(180,VW*.42),n:8,rh:21,h:34,t:'600 15px Mitr,sans-serif',f:'13px Mitr,sans-serif',p:10,r:12,sub:'11px Mitr,sans-serif'};
+  const lw=Z.w,lx=SL?pad:VW-lw-pad;
   if(NET&&!NET.ffa){
-    const sc=NET.score||{A:{k:0,l:0},B:{k:0,l:0}};
-    ctx.fillStyle='rgba(15,19,48,.75)';roundRect(lx,pad,lw,100,12);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='600 14px Mitr,sans-serif';ctx.fillText('⚔️ คะแนนทีม',lx+10,pad+22);
-    let y=pad+46;for(const t of['A','B']){ctx.fillStyle=TEAM_COL[t];ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='left';ctx.fillText((t===player.team?'▶ ':'')+TEAM_NAME[t],lx+10,y);
-      ctx.textAlign='right';ctx.fillText((sc[t].k*100+Math.floor(sc[t].l))+'',lx+lw-10,y);ctx.font='11px Mitr,sans-serif';ctx.fillStyle='#aab3e6';ctx.fillText('💀'+sc[t].k+' · ยาว '+Math.floor(sc[t].l),lx+lw-10,y+14);y+=32}
+    const sc=NET.score||{A:{k:0,l:0},B:{k:0,l:0}},th=PH?72:100;
+    ctx.fillStyle='rgba(15,19,48,.75)';roundRect(lx,pad,lw,th,Z.r);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font=Z.t;ctx.fillText('⚔️ คะแนนทีม',lx+Z.p,pad+(PH?17:22));
+    let y=pad+(PH?34:46);for(const t of['A','B']){ctx.fillStyle=TEAM_COL[t];ctx.font=PH?'600 11px Mitr,sans-serif':'600 13px Mitr,sans-serif';ctx.textAlign='left';ctx.fillText((t===player.team?'▶ ':'')+TEAM_NAME[t],lx+Z.p,y);
+      ctx.textAlign='right';ctx.fillText((sc[t].k*100+Math.floor(sc[t].l))+'',lx+lw-Z.p,y);ctx.font=Z.sub;ctx.fillStyle='#aab3e6';ctx.fillText('💀'+sc[t].k+' · ยาว '+Math.floor(sc[t].l),lx+lw-Z.p,y+(PH?11:14));y+=PH?23:32}
     ctx.textAlign='left';
   }else{
-    const top=alive.slice(0,8);
-    ctx.fillStyle='rgba(15,19,48,.7)';roundRect(lx,pad,lw,34+top.length*21+(rank>8?22:0),12);ctx.fill();
-    ctx.fillStyle='#fff';ctx.font='600 15px Mitr,sans-serif';ctx.fillText('🏆 อันดับ',lx+10,pad+22);ctx.font='13px Mitr,sans-serif';
-    const row=(w,i,y)=>{ctx.fillStyle=w===player?'#ffd23f':w.isBoss?'#ff7b7b':NET&&w.rk!==undefined?'#9be7ff':'#cfd6ff';ctx.textAlign='left';ctx.fillText((i+1)+'. '+clip(w.name,lw-70),lx+10,y);ctx.textAlign='right';ctx.fillText(Math.floor(w.mass),lx+lw-10,y)};
-    top.forEach((w,i)=>row(w,i,pad+44+i*21));if(rank>8)row(player,rank-1,pad+44+top.length*21+2);ctx.textAlign='left';
+    const top=alive.slice(0,Z.n),me=rank>Z.n;
+    ctx.fillStyle='rgba(15,19,48,.62)';roundRect(lx,pad,lw,Z.h+top.length*Z.rh+(me?Z.rh+1:0)-(PH?2:0),Z.r);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font=Z.t;ctx.fillText('🏆 อันดับ',lx+Z.p,pad+(PH?16:22));ctx.font=Z.f;
+    const row=(w,i,y)=>{ctx.fillStyle=w===player?'#ffd23f':w.isBoss?'#ff7b7b':NET&&w.rk!==undefined?'#9be7ff':'#cfd6ff';ctx.textAlign='left';ctx.fillText((i+1)+'. '+clip(w.name,lw-(PH?52:70)),lx+Z.p,y);ctx.textAlign='right';ctx.fillText(Math.floor(w.mass),lx+lw-Z.p,y)};
+    const y0=pad+(PH?32:44);top.forEach((w,i)=>row(w,i,y0+i*Z.rh));if(me)row(player,rank-1,y0+top.length*Z.rh+1);ctx.textAlign='left';
   }
   if(mode==='time'||NET&&!NET.ffa){const tl=NET?NET.timeLeft:timeLeft,s=Math.max(0,Math.ceil(tl)),txt=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
     ctx.textAlign='center';ctx.font='600 26px Mitr,sans-serif';ctx.fillStyle=tl<30?'#ff5e5e':'#fff';ctx.fillText('⏱ '+txt,VW/2,VW<560?VH-40:pad+28);ctx.textAlign='left'}
@@ -1211,7 +1272,7 @@ function startGame(m){
   do{[x,y]=randInWorld(800);ok=!worms.some(w=>w.alive&&Math.hypot(w.pts[0].x-x,w.pts[0].y-y)<500);tries++}while(!ok&&tries<40);
   player=new Worm(playerName(),curSkin(),x,y,true,{...myLook()});player.rk=myRank();input.angle=player.angle;worms.push(player);
   cam.x=x;cam.y=y;state='play';
-  $('menu').classList.add('hidden');$('over').classList.add('hidden');$('snd').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');
+  $('menu').classList.add('hidden');$('over').classList.add('hidden');$('snd').classList.remove('hidden');$('setGame').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');
   lastBtn='';updBtns();
 }
 function finish(timeUp,quit){
@@ -1240,7 +1301,7 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
 function toMenu(){
   if(NET)netLeave(true);
-  state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
+  state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('setGame').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
   renderSkins();showBest();
 }
@@ -1613,7 +1674,7 @@ function netSpawnMe(sp){
   let x,y,a;if(sp){[x,y,a]=sp}else{const t=NET.me&&NET.me.team;[x,y]=farSpot(600,700,t?(t==='A'?Math.PI:0):undefined);a=Math.atan2(-y,-x)+rnd(-.6,.6)}   // เกิดใหม่: ห่างจากทุกคัน หันเข้ากลางสนาม
   player=new Worm(playerName(),curSkin(),x,y,true,{...myLook(),a});player.team=NET.me?NET.me.team:null;player.netId=NET.id;player.rk=myRank();player.ghost=SPAWN_GHOST;input.angle=a;
   worms=worms.filter(w=>!w.isP);worms.push(player);cam.x=x;cam.y=y;state='play';NET.respawnT=0;
-  $('snd').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');lastBtn='';updBtns();
+  $('snd').classList.remove('hidden');$('setGame').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');lastBtn='';updBtns();
 }
 // ---- การเคลื่อนไหวของรถไฟคนอื่นให้ลื่น: เก็บสถานะพร้อมเวลาของเครื่องผู้ส่ง แล้ววาดย้อนหลัง INTERP ms โดยเลื่อนระหว่างสองสถานะ ----
 const INTERP=130;
