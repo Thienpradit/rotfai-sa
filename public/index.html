@@ -128,6 +128,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
     <div class="gnote hidden" id="guestNote">👻 โหมด Guest: เหรียญ แรงก์ และของในร้านจะ<b>ไม่ถูกบันทึก</b> · <u id="guestReg">ลงทะเบียน</u></div>
     <div class="skins" id="skins"></div>
     <button class="btn" id="playInf">🌍 เล่นออนไลน์ (สูงสุด 30 คน)</button>
+    <button class="btn alt" id="playBot">🤖 เล่นกับบอท (เลือกความยากได้)</button>
     <button class="btn team" id="playOnline">🌐 ออนไลน์ 2v2 กับเพื่อน</button>
     <div class="row4">
       <button class="mbtn" id="bShop">🛒<br>ร้านค้า</button>
@@ -368,7 +369,7 @@ function rankHTML(earn){const r=rankOf(prof.rp);
   return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}</small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
-  b.innerHTML=rankHTML()+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div><div class="help" style="margin:4px 0 8px">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`+
+  b.innerHTML=rankHTML()+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div><div class="help" style="margin:4px 0 8px">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>เล่นกับบอท: Easy ×0.5 · Normal ×1 · Hard ×1.5 · ออนไลน์ ×1<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`+
   (ACCT.mode!=='local'?'<div class="help" style="margin:2px 0 4px;text-align:left">🌍 อันดับแรงก์ฤดูกาลนี้</div><div class="lb" id="lbList">กำลังโหลด...</div><div class="help" style="margin:10px 0 4px;text-align:left">ขั้นแรงก์</div>':'')+
   RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('');
   if(ACCT.mode!=='local')api('/api/top').then(j=>{const el=b.querySelector('#lbList');if(!el)return;const esc=t=>String(t).replace(/[<>&]/g,'');
@@ -474,7 +475,7 @@ const DIFF={
   easy:{label:'Easy',ai:16,huntP:.25,huntR:420,others:.15,look:.6,think:[22,45],big:.1,safe:4,regen:0,boss:180,bossM:600,bossHp:80},
   normal:{label:'Normal',ai:26,huntP:.8,huntR:700,others:.3,look:1,think:[10,25],big:.25,safe:2.5,regen:0,boss:120,bossM:900,bossHp:120},
   hard:{label:'Hard',ai:32,huntP:.95,huntR:950,others:.4,look:1.25,think:[6,14],big:.4,safe:2,regen:.25,boss:90,bossM:1300,bossHp:180}};
-let diff='normal';   // ไม่มีเมนูเลือกความยากแล้ว: เล่นออฟไลน์ (ต่อเซิร์ฟเวอร์ไม่ได้) ใช้ Normal
+let diff='normal';try{diff=localStorage.getItem('wormDiff')||'normal';if(!DIFF[diff])diff='normal'}catch(e){}
 const ONLINE_DIFF='normal',FFA_MAX=30;   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 30 ขบวน (คนจริง + บอท)
 const netOn=()=>{try{return NET}catch(e){return null}};   // ปลอดภัยแม้เรียกก่อนประกาศ NET ตอนเริ่มเกม
 const D=()=>DIFF[netOn()?ONLINE_DIFF:diff];
@@ -1147,7 +1148,7 @@ function finish(timeUp,quit){
   $('over').classList.remove('hidden');
   if(timeUp)player.alive=false;
 }
-function showBest(){$('rankMenu').innerHTML=rankHTML();$('rankOpen').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks);{const pb=prof.best||{},parts=[];if(pb.online)parts.push('ออนไลน์ '+pb.online);$('best').textContent=parts.length?'🏆 สถิติดีสุด: '+parts.join(' · '):''}$('coinTop').textContent='🪙 '+prof.coins;
+function showBest(){$('rankMenu').innerHTML=rankHTML();$('rankOpen').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks);{const pb=prof.best||{},parts=[];if(pb.online)parts.push('ออนไลน์ '+pb.online);for(const k of['easy','normal','hard'])if(pb[k])parts.push('บอท '+DIFF[k].label+' '+pb[k]);$('best').textContent=parts.length?'🏆 สถิติดีสุด: '+parts.join(' · '):''}$('coinTop').textContent='🪙 '+prof.coins;
   $('misDot').classList.toggle('hidden',!prof.daily.m.some(m=>m.p>=m.n&&!m.c))}
 const DNOTE={easy:'คู่แข่งน้อย ไม่ค่อยไล่ ชนกันเองบ่อย เหมาะกับมือใหม่',normal:'คู่แข่งไล่ดักหน้าเป็นประจำ เล่นสนุกกำลังดี',hard:'คู่แข่งเยอะ ไล่ทุกทิศ หลบเก่ง บอสโผล่เร็ว!'};
 function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}loadBest();showBest();
@@ -1160,11 +1161,22 @@ function toMenu(){
   renderSkins();showBest();
 }
 $('playInf').onclick=()=>playEndless();
-// (เมนูเล่นกับบอทเอาออกแล้ว 6 พ.ย. 2026: โหมดออนไลน์เติมบอทให้อยู่แล้ว · ต่อเซิร์ฟเวอร์ไม่ได้ → endlessFallback เล่นออฟไลน์กับบอท Normal)
+// ---------- เล่นกับบอท (ออฟไลน์): กดปุ่มก่อน แล้วค่อยเลือกระดับความยากและโหมด ----------
+$('playBot').onclick=()=>{audioInit();openSheet('🤖 เล่นกับบอท',renderBotSheet)};
+function renderBotSheet(b){
+  b.innerHTML=`<div class="help" style="margin:0 0 6px">เลือกระดับความยากของบอท</div>
+    <div class="diffs"><div class="dbtn" data-d="easy">😊 Easy</div><div class="dbtn" data-d="normal">🙂 Normal</div><div class="dbtn" data-d="hard">😈 Hard</div></div>
+    <div class="dnote" id="dnote"></div><div class="help" id="botBest" style="margin:2px 0 6px"></div>
+    <button class="btn" id="botInf">▶ ไม่จำกัดเวลา</button>
+    <button class="btn alt" id="botTime">⏱ จับเวลา 5 นาที (วงแคบลง!)</button>`;
+  b.querySelectorAll('.dbtn').forEach(x=>x.onclick=()=>setDiff(x.dataset.d));setDiff(diff);
+  b.querySelector('#botInf').onclick=()=>{$('sheet').classList.add('hidden');startGame('inf')};
+  b.querySelector('#botTime').onclick=()=>{$('sheet').classList.add('hidden');startGame('time')};
+}
 $('again').onclick=()=>{if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=iconize((IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง')+
-  '<br>🌍 ออนไลน์ = โลกเดียวกันสูงสุด 30 ขบวน คนไม่ครบเติมบอท (Normal)<br>💎 เพชรขาว = เร่ง 5 วิ · 🛤️ ราง = เร็วฟรี · 🚇 อุโมงค์ = วาร์ป<br>🚉 สถานี = แลกตู้เป็นเหรียญ · ❄️ แช่แข็งศัตรู · {G} ร่างทอง · {B} ระเบิด (ใช้ใน 1 นาที)<br>👑 บอสยักษ์มีพลัง ชนลำตัว/ชนหัวบอสเพื่อลดพลัง ล้มได้ 500 🪙 · ชนขบวนตัวเอง = ขบวนขาด');
+  '<br>🌍 ออนไลน์ = โลกเดียวกันสูงสุด 30 ขบวน คนไม่ครบเติมบอท (Normal) · 🤖 เล่นกับบอท = เลือกความยากเอง<br>💎 เพชรขาว = เร่ง 5 วิ · 🛤️ ราง = เร็วฟรี · 🚇 อุโมงค์ = วาร์ป<br>🚉 สถานี = แลกตู้เป็นเหรียญ · ❄️ แช่แข็งศัตรู · {G} ร่างทอง · {B} ระเบิด (ใช้ใน 1 นาที)<br>👑 บอสยักษ์มีพลัง ชนลำตัว/ชนหัวบอสเพื่อลดพลัง ล้มได้ 500 🪙 · ชนขบวนตัวเอง = ขบวนขาด');
 function renderSkins(){const sk=$('skins');sk.innerHTML='';const list=allSkins();if(!list[selSkin]||!list[selSkin].own)selSkin=0;
   list.forEach((s,i)=>{const d=document.createElement('div');d.className='skin'+(i===selSkin?' sel':'')+(s.own?'':' lock');
     d.style.background=s.c.length>2?`conic-gradient(${s.c.join(',')},${s.c[0]})`:`linear-gradient(135deg,${s.c[0]} 50%,${s.c[1]} 50%)`;
