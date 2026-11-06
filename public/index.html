@@ -142,7 +142,12 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .hlist li{background:#0f1330;border-radius:10px;padding:7px 10px;margin-bottom:6px}
 .hlist li b{color:#ffd23f}
 .tabs.wrap{flex-wrap:wrap;gap:5px}.tabs.wrap .tab{flex:1 0 21%;font-size:12px;padding:6px 2px}
-.item.deal{border:2px solid #ffd23f}.item .old{text-decoration:line-through;color:#8891c4;margin-right:4px}
+.item.deal{border:2px solid #ffd23f}.item.tap{cursor:pointer}.item.tap:active{background:#18204a}
+.item .perk{display:block;font-style:normal;font-size:11.5px;color:#7cfc9a}
+.item .ic{position:relative}.item .zoom{position:absolute;right:-5px;bottom:-5px;font-size:12px;background:#2f3870;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14px;border:1px solid #2f3870}
+.perkbox{background:rgba(124,252,154,.1);border:1px solid rgba(124,252,154,.4);border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:#cfffdc;margin:6px 0}
+.perkbox small{color:#9fd9b0;font-size:12px}.item .old{text-decoration:line-through;color:#8891c4;margin-right:4px}
 .tag{display:inline-block;font-size:10px;font-weight:600;border-radius:6px;padding:1px 6px;margin-left:4px;background:#ff5e5e;color:#fff;vertical-align:1px}
 .rcode{font-size:24px;font-weight:600;letter-spacing:3px;color:#ffd23f;background:#0f1330;border-radius:12px;padding:10px;margin:8px 0;user-select:text;-webkit-user-select:text}
 .link{color:#77ccff;cursor:pointer;text-decoration:underline;font-size:13px}
@@ -219,7 +224,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 // =====================================================================
 //  basics
 // =====================================================================
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const cv=document.getElementById('c');let ctx=cv.getContext('2d');   // let: ภาพตัวอย่างในร้านค้าสลับไปวาดบน canvas อื่นชั่วคราว (drawPreview)
 {const A=CanvasRenderingContext2D.prototype.arc;ctx.arc=function(x,y,r,a,b,c){A.call(this,x,y,r>0?r:0,a,b,c)}}
 let VW,VH,DPR;
 const SAFE={t:0,r:0,b:0,l:0};
@@ -266,7 +271,7 @@ const GOLD_SKIN=['#ffd23f','#ffb000','#fff1a8'],BOSS_SKIN=['#3a0d0d','#ff3b3b','
 //  profile: coins, shop, missions, achievements
 // =====================================================================
 const SHOP={
-  loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:15000,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:30000,ic:'🚄'},{id:'tram',n:'รถรางไฟฟ้า',p:40000,ic:'🚋'},{id:'metro',n:'รถไฟใต้ดิน',p:55000,ic:'🚇'},{id:'comet',n:'หัวจักรดาวหาง',p:80000,ic:'☄️'}],
+  loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:25000,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:50000,ic:'🚄'},{id:'tram',n:'รถรางไฟฟ้า',p:90000,ic:'🚋'},{id:'metro',n:'รถไฟใต้ดิน',p:150000,ic:'🚇'},{id:'comet',n:'หัวจักรดาวหาง',p:300000,ic:'☄️'}],
   wagon:[{id:'gem',n:'ตู้ขนพลอย',p:0,ic:'💎'},{id:'cargo',n:'ตู้สินค้า',p:12000,ic:'📦'},{id:'coach',n:'ตู้โดยสาร',p:18000,ic:'🚃'},{id:'glass',n:'ตู้กระจกใส',p:30000,ic:'🔮'}],
   smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:10000,ic:'✨'},{id:'rainbow',n:'ควันสีรุ้ง',p:20000,ic:'🌈'}],
   skin:[{id:'candy',n:'สีลูกกวาด',p:10000,c:['#ff9ecb','#ffffff','#9ef0ff']},{id:'galaxy',n:'สีกาแล็กซี',p:15000,c:['#2b1055','#7597de','#d6e0ff']},{id:'lava',n:'สีลาวา',p:15000,c:['#ff4e00','#2b0a00','#ffb300']},{id:'neon',n:'สีนีออน',p:25000,c:['#39ff14','#ff00e6','#00e5ff']}],
@@ -274,6 +279,11 @@ const SHOP={
   horn:[{id:'classic',n:'หวูดไอน้ำ',p:0,ic:'📯'},{id:'deep',n:'หวูดเรือใหญ่',p:8000,ic:'🛳️'},{id:'chime',n:'หวูดกระดิ่ง',p:12000,ic:'🔔'},{id:'tune',n:'หวูดทำนอง',p:18000,ic:'🎵'}],
   title:[{id:'speed',n:'สายซิ่ง',p:10000,ic:'⚡'},{id:'gemking',n:'ราชาพลอย',p:25000,ic:'💎'},{id:'rich',n:'เศรษฐีรางเหล็ก',p:60000,ic:'🤑'}],
 };
+// หัวจักรแต่ละแบบ: เก็บพลอย/เพชรขาวได้ไกลขึ้น (px เพิ่มจากรัศมีปกติ) + คำอธิบายในร้าน
+const LOCO_PICK={classic:0,diesel:15,bullet:30,tram:45,metro:60,comet:80};
+const ITEM_DESC={classic:'หัวจักรไอน้ำคลาสสิก หม้อน้ำทรงกลม พ่นควันขาวตลอดทาง',diesel:'หัวดีเซลทรงกล่อง แข็งแรง มีแถบสีคาดกลางและไฟหน้าคู่',bullet:'หัวลู่ลมทรงกระสุน วิ่งเงียบไม่มีควัน',
+  tram:'รถรางไฟฟ้าในเมือง มีเสารับไฟบนหลังคา',metro:'รถไฟใต้ดินตัวยาว แถบสีกลางลำและประตูข้าง',comet:'หัวจรวดดาวหาง มีครีบสองข้าง ลากหางประกายไฟสีส้ม',
+  gem:'ตู้เปิดโล่งบรรทุกพลอยหลากสี',cargo:'ตู้สินค้าไม้ บรรทุกลังพัสดุ',coach:'ตู้โดยสาร มีหน้าต่างเรียงสองข้าง',glass:'ตู้กระจกใส มองเห็นพลอยวาววับข้างใน'};
 const CATS=Object.keys(SHOP),DEF_EQ={loco:'classic',wagon:'gem',smoke:'normal',kfx:'none',horn:'classic',title:''};
 // ของหายาก: ขายเฉพาะวันที่หมุนมาเป็น "ของพิเศษวันนี้" (วันละ 1 ชิ้น) ซื้อแล้วเก็บไว้ถาวร
 // ⚠️ ราคาใน SHOP / LIMITED ต้องตรงกับ accounts.js (เซิร์ฟเวอร์ตรวจราคาตอนบันทึก) — tests/test_shop_sync.js เช็คให้
@@ -810,15 +820,15 @@ function step(f,dt){
   }
   // eating
   for(const w of worms){
-    if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,reach=r+mr+14,mult=w.pu.x3>0?3:1;
+    if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,lb=LOCO_PICK[w.loco]||0,reach=r+mr+14+lb,mult=w.pu.x3>0?3:1;
     const x0=Math.floor((h.x-reach)/CS),x1=Math.floor((h.x+reach)/CS),y0=Math.floor((h.y-reach)/CS),y1=Math.floor((h.y+reach)/CS);
     let ate=false;
     for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){const a=fgrid.get(key(gx,gy));if(!a)continue;
-      for(const fd of a){if(fd.dead)continue;const dx=fd.x-h.x,dy=fd.y-h.y,d2=dx*dx+dy*dy,er=r+fd.r+6;
+      for(const fd of a){if(fd.dead)continue;const dx=fd.x-h.x,dy=fd.y-h.y,d2=dx*dx+dy*dy,er=r+fd.r+6+lb;
         if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult*GROW;ate=true;if(NET)NET.q.eat.push(fd.id)}
         else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f}}}
     if(ate&&w.isP)sfx('eat');
-    for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
+    for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20+lb){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
       if(NET)netSend({t:'white',id:wd.id});if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites')}}}
     if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;w.goldT=GOLD_LIFE;goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'{G} ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง ภายใน 30 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
     if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(BOMB_LIFE);tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน 15 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
@@ -1352,16 +1362,48 @@ function refreshSheet(){if(sheetRender&&!$('sheet').classList.contains('hidden')
 $('sheetClose').onclick=()=>{$('sheet').classList.add('hidden');if(NET&&state==='lobby')netLeave();showBest();renderSkins()};
 let shopTab='deal';
 const SHOP_TABS=[['deal','⭐ วันนี้'],['loco','🚂 หัวจักร'],['wagon','🚃 ตู้รถ'],['smoke','💨 ควัน'],['skin','🎨 สี'],['kfx','🎆 กำจัด'],['horn','📯 หวูด'],['title','🏷️ ฉายา']];
-const SHOP_NOTE={loco:'หัวรถจักรแต่ละแบบหน้าตาต่างกัน ความเร็วเท่ากัน',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'กดปุ่ม 📯 (หรือ H) ระหว่างเล่น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
+const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปและรายละเอียด · ความเร็วเท่ากันทุกหัว แต่หัวที่แพงกว่าเก็บพลอยได้กว้างกว่า',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'กดปุ่ม 📯 (หรือ H) ระหว่างเล่น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
 function openShop(tab){if(tab)shopTab=tab;openSheet('🛒 ร้านค้า',renderShop)}
 const isOwned=(cat,id)=>cat==='title'&&id.startsWith('a:')?!!prof.ach[id.slice(2)]:prof.owned[cat].includes(id);
 const isEq=(cat,id)=>cat==='skin'?allSkins()[selSkin]?.id===id:prof.eq[cat]===id;
 function buy(cat,it,price){if(prof.coins<price||isOwned(cat,it.id))return;prof.coins-=price;prof.owned[cat].push(it.id);equip(cat,it.id);saveProf();pushProf();audioInit();sfx('coin');announce('🛒 ซื้อ '+(it.ic||'🎨')+' '+it.n+' แล้ว!')}
+// ---------- หน้ารายละเอียดสินค้า: ภาพตัวอย่าง + คำอธิบาย + ซื้อ/ใช้งาน ----------
+const PREVIEW_CATS=['loco','wagon','skin'];
+function drawPreview(cv2,o){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.height;
+  {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
+  const old=ctx,sl=smoke.length;ctx=c2;
+  try{c2.setTransform(1,0,0,1,0,0);const g=c2.createLinearGradient(0,0,0,H);g.addColorStop(0,'#141a3a');g.addColorStop(1,'#0c1027');c2.fillStyle=g;c2.fillRect(0,0,W,H);
+    const VWW=380,sc=W/VWW,cy=H/sc/2;c2.setTransform(sc,0,0,sc,0,0);
+    c2.strokeStyle='#5a4128';c2.lineWidth=6;c2.beginPath();for(let x=4;x<VWW;x+=26){c2.moveTo(x,cy-15);c2.lineTo(x,cy+15)}c2.stroke();
+    c2.strokeStyle='#aeb8cc';c2.lineWidth=3;c2.beginPath();for(const d of[-9,9]){c2.moveTo(0,cy+d);c2.lineTo(VWW,cy+d)}c2.stroke();
+    const w=new Worm('',o.skin,0,0,true,{loco:o.loco,wag:o.wag,smoke:'normal',a:0});w.mass=55;w.safe=0;w.ghost=0;w.seed=3;
+    const n=w.nPts(),s=w.r()*.42,hx=o.ring?250:300;w.pts=[];for(let i=0;i<n;i++)w.pts.push({x:hx-i*s,y:cy});
+    const pk=o.ring?LOCO_PICK[o.loco]||0:0;
+    if(o.ring){const rr=w.r()+12;c2.setLineDash([7,6]);c2.lineWidth=2.5;c2.strokeStyle='rgba(255,255,255,.35)';c2.beginPath();c2.arc(hx,cy,rr,0,TAU);c2.stroke();
+      if(pk){c2.strokeStyle='#7cfc9a';c2.beginPath();c2.arc(hx,cy,rr+pk,0,TAU);c2.stroke()}c2.setLineDash([]);
+      for(const[gx,gy,ci]of[[hx+rr+pk-8,cy-26,0],[hx+18,cy+rr+pk-6,3],[hx-10,cy-rr-pk+8,1]])c2.drawImage(GEMS[FOOD_COLORS[ci]],gx-9,gy-9,18,18)}
+    drawWorm(w,-1e4,-1e4,1e4,1e4)}
+  finally{ctx=old;smoke.length=sl}}
+function openItem(cat,it,o={}){openSheet((it.ic||'🎨')+' '+it.n,b=>{
+  const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p,pk=cat==='loco'?LOCO_PICK[it.id]||0:0;
+  b.innerHTML=`<canvas class="pv" width="760" height="${cat==='loco'?420:220}"></canvas>
+    <div class="help" style="text-align:left;font-size:14px;color:#dfe4ff;margin:10px 2px 4px">${ITEM_DESC[it.id]||(cat==='skin'?'สีพิเศษสำหรับทั้งขบวน (หัวจักรและตู้)':'')}</div>
+    ${cat==='loco'?`<div class="perkbox">🧲 <b>เก็บพลอยกว้างขึ้น ${pk?'+'+pk:'— (ระยะปกติ)'}</b><br><small>${pk?'ขับผ่านใกล้ ๆ ก็ดูดพลอยและเพชรขาวเข้าขบวนได้ไกลกว่าหัวปกติ (วงสีเขียวในภาพ = ระยะเก็บใหม่ · วงสีเทา = ระยะปกติ)':'หัวเริ่มต้น เก็บพลอยในระยะปกติ (วงสีเทาในภาพ)'}</small></div>`:''}
+    <div class="help" style="margin:6px 0 0">${own?(eq?'✅ กำลังใช้อยู่':'✅ มีแล้ว'):'ราคา '+price.toLocaleString()+' 🪙 · คุณมี '+prof.coins.toLocaleString()+' 🪙'}</div>
+    <button class="btn" id="itGo"></button><button class="btn gray" id="itBack">← กลับร้านค้า</button>`;
+  const sk=cat==='skin'?it.c:curSkin();
+  drawPreview(b.querySelector('.pv'),{loco:cat==='loco'?it.id:prof.eq.loco,wag:cat==='wagon'?it.id:prof.eq.wagon,skin:sk,ring:cat==='loco'});
+  const go=b.querySelector('#itGo');
+  if(!own){go.textContent='ซื้อ '+price.toLocaleString()+' 🪙';go.disabled=prof.coins<price;if(go.disabled)go.textContent='เหรียญไม่พอ (ขาด '+(price-prof.coins).toLocaleString()+' 🪙)';go.onclick=()=>{buy(cat,it,price);openItem(cat,it,o)}}
+  else{go.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';go.disabled=eq;go.onclick=()=>{equip(cat,it.id);saveProf();openItem(cat,it,o)}}
+  b.querySelector('#itBack').onclick=()=>openShop(shopTab)})}
 function shopRow(L,cat,it,o={}){
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p;
   const d=document.createElement('div');d.className='item'+(o.deal?' deal':'');
   const icon=it.c?`<div class="ic" style="background:conic-gradient(${it.c.join(',')},${it.c[0]})"></div>`:`<div class="ic" style="background:#1f2650">${it.ic||'🏷️'}</div>`;
-  d.innerHTML=`${icon}<div class="tx">${it.n}${o.tag?'<span class="tag">'+o.tag+'</span>':''}<small>${own?(eq?'กำลังใช้อยู่':'มีแล้ว'):o.lock?o.lock:(o.price!==undefined&&o.price!==it.p?'<span class="old">'+it.p.toLocaleString()+'</span>':'')+'ราคา '+price.toLocaleString()+' 🪙'}</small></div>`;
+  const pk=cat==='loco'&&LOCO_PICK[it.id]?`<em class="perk">🧲 เก็บพลอย +${LOCO_PICK[it.id]}</em>`:'',canView=PREVIEW_CATS.includes(cat);
+  if(canView){d.classList.add('tap');d.onclick=e=>{if(!e.target.closest('button'))openItem(cat,it,o)}}
+  d.innerHTML=`${icon}<div class="tx">${it.n}${o.tag?'<span class="tag">'+o.tag+'</span>':''}${pk}<small>${own?(eq?'กำลังใช้อยู่':'มีแล้ว'):o.lock?o.lock:(o.price!==undefined&&o.price!==it.p?'<span class="old">'+it.p.toLocaleString()+'</span>':'')+'ราคา '+price.toLocaleString()+' 🪙'}</small></div>`;if(canView)d.querySelector('.ic').insertAdjacentHTML('beforeend','<span class="zoom">🔍</span>');
   const btn=document.createElement('button');btn.className='sbtn';
   if(!own){if(o.lock){btn.textContent='🔒';btn.disabled=true}else{btn.textContent='ซื้อ '+price.toLocaleString()+'🪙';btn.disabled=prof.coins<price;btn.onclick=()=>{buy(cat,it,price);refreshSheet()}}}
   else{btn.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';btn.disabled=eq;btn.onclick=()=>{equip(cat,it.id);saveProf();refreshSheet()}}

@@ -41,7 +41,7 @@ async def main():
         r = await ev(f"fetch('/api/login',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{name:'{NAME}',pass:'pass3333'}})}}).then(r=>r.status)")
         print('login with reset pw status', r)
         # ---------- กันโกง: แก้เหรียญในเบราว์เซอร์แล้วซื้อของแพง ----------
-        await ev("prof.coins=200000;openShop('loco')"); await pg.wait_for_timeout(200)
+        await ev("prof.coins=400000;openShop('loco')"); await pg.wait_for_timeout(200)
         await pg.screenshot(path='/tmp/s_shop_loco.png')
         await pg.click("#shopList .item:nth-child(6) .sbtn"); await pg.wait_for_timeout(1200)
         print('cheat buy comet -> coins', await ev("prof.coins"), 'owns comet', await ev("prof.owned.loco.includes('comet')"), 'eq', await ev("prof.eq.loco"), 'announce', await ev("document.getElementById('ann').textContent"))

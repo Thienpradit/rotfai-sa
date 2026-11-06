@@ -12,17 +12,17 @@ r = step(o, { ...o, coins: 1e6 }); assert(r.fixed); assert(r.data.coins <= 1000 
 // 3) ส่งซ้ำรัว ๆ ทุก 1 วิ ก็ได้ไม่เกินโควตาที่เติมตามเวลา
 let d = o, t = 0; for (let i = 0; i < 30; i++) { t += 1; d = AC.validate(d, { ...d, coins: d.coins + 5000 }, T0 + t * 1000).data; }
 assert(d.coins <= 1000 + AC.COIN_CAP + 30 * 15 + 1, d.coins);
-// 4) ซื้อหัวจักรดีเซล (15,000) แต่ไม่หักเหรียญ → ต้องหักจากโควตา (เกิน → ตัดเหรียญ)
-o = AC.validate(base(), { ...base(), coins: 20000 }, T0).data;   // ข้อมูลเริ่มต้นใหม่ (เหรียญ 1000 → 20000 เกินโควตา)
-o = { ...base(), coins: 20000, _srv: { cb: 5000, rb: 400, t: T0, paid: [], claims: [] } };
-r = step(o, { ...o, owned: { loco: ['classic', 'diesel'] } }); assert(r.fixed); assert(r.data.owned.loco.includes('diesel')); assert(r.data.coins <= 20000 - 15000 + 5000 + 300);
+// 4) ซื้อหัวจักรดีเซลแต่ไม่หักเหรียญ → ต้องหักจากโควตา (เกิน → ตัดเหรียญ)
+const DP = AC.SHOP.loco.diesel, C0 = DP + 5000;
+o = { ...base(), coins: C0, _srv: { cb: 5000, rb: 400, t: T0, paid: [], claims: [] } };
+r = step(o, { ...o, owned: { loco: ['classic', 'diesel'] } }); assert(r.fixed); assert(r.data.owned.loco.includes('diesel')); assert(r.data.coins <= C0 - DP + 5000 + 300);
 // 5) ซื้อถูกต้อง (หักเหรียญแล้ว) → ผ่าน
-r = step(o, { ...o, coins: 5000, owned: { loco: ['classic', 'diesel'] } }); assert(!r.fixed); assert.strictEqual(r.data.coins, 5000);
+r = step(o, { ...o, coins: C0 - DP, owned: { loco: ['classic', 'diesel'] } }); assert(!r.fixed); assert.strictEqual(r.data.coins, C0 - DP);
 // 6) ของที่ไม่มีในร้าน → ถูกเอาออก
 r = step(o, { ...o, owned: { loco: ['classic', 'golden-hack'] } }); assert(r.fixed); assert(!r.data.owned.loco.includes('golden-hack'));
 // 7) ของหายากซื้อได้เฉพาะวันที่ขาย
 const deal = AC.dealOf(AC.bkkDay(0, T0)), [lc, lid, lp] = deal.lim;
-o = { ...o, coins: 40000 };
+o = { ...o, coins: 40000, owned: { loco: ['classic'] } };
 r = step(o, { ...o, coins: 40000 - lp, owned: { ...o.owned, [lc]: [lid] } }); assert(!r.fixed, 'ซื้อของหายากของวันนี้ต้องผ่าน');
 const other = AC.LIMITED.find(l => ![-1, 0, 1].some(k => AC.dealOf(AC.bkkDay(k, T0)).lim[1] === l[1]));
 r = step(o, { ...o, coins: 40000 - other[2], owned: { ...o.owned, [other[0]]: [other[1]] } }); assert(r.fixed); assert(!r.data.owned[other[0]].includes(other[1]), 'ของหายากที่ไม่ได้ขายวันนี้ต้องซื้อไม่ได้');
