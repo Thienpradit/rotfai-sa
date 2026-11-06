@@ -57,3 +57,14 @@ console.log('anticheat OK — 14 cases');
 // 16) โควตาย้ายข้อมูลตอนลงทะเบียนใช้ได้ครั้งเดียว
 { const reg = AC.validate(null, { coins: 0, rp: 0, owned: {} }, T0).data; assert(reg._srv.cb <= AC.COIN_CAP, reg._srv.cb); }
 console.log('anticheat OK — 16 cases');
+// 17) ความยาวสูงสุด (ตารางอันดับ) ปลอมไม่ได้ · ค่าที่ไม่ใช่ตัวเลขถูกล้าง
+{ const o = { coins: 0, rp: 0, owned: {}, ach: {}, st: { maxLen: 500 }, season: '2026-11', _srv: { cb: 0, rb: 0, t: T0, paid: [], claims: [] } };
+  let r = AC.validate(o, { ...o, st: { maxLen: 999999, kills: 'abc' } }, T0 + 10000); assert(r.fixed); assert.strictEqual(r.data.st.maxLen, 500 + 300 + 400); assert.strictEqual(r.data.st.kills, 0);
+  r = AC.validate(o, { ...o, st: { maxLen: 1100 } }, T0 + 10000); assert(!r.fixed); assert.strictEqual(r.data.st.maxLen, 1100); }
+console.log('anticheat OK — 17 cases');
+// 18) ใส่ฉายา/หัวจักรที่ไม่ได้ซื้อ → กลับเป็นค่าเริ่มต้น
+{ const o = { coins: 0, rp: 0, owned: { title: ['gemking'] }, ach: { k1: 1 }, season: '2026-11', _srv: { cb: 0, rb: 0, t: T0, paid: ['k1'], claims: [] } };
+  let r = AC.validate(o, { ...o, eq: { title: 'rich', loco: 'comet' } }, T0); assert.strictEqual(r.data.eq.title, ''); assert.strictEqual(r.data.eq.loco, 'classic');
+  r = AC.validate(o, { ...o, eq: { title: 'gemking' } }, T0); assert.strictEqual(r.data.eq.title, 'gemking');
+  r = AC.validate(o, { ...o, eq: { title: 'a:k1' } }, T0); assert.strictEqual(r.data.eq.title, 'a:k1'); }
+console.log('anticheat OK — 18 cases');

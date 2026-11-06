@@ -59,7 +59,8 @@ function validate(old, nu, now = Date.now()) {
   const o0 = old._srv;
   const srv = o0 ? { ...o0 } : { cb: reg ? REG_COINS : COIN_CAP, rb: reg ? REG_RP : RP_CAP, t: now,
     paid: Object.keys(old.ach || {}), claims: ((old.daily || {}).m || []).map((m, i) => m.c ? old.daily.date + ':' + i : null).filter(Boolean), sp: '' };
-  if (o0) { const el = Math.max(0, (now - (+srv.t || now)) / 1000); srv.cb = Math.min(COIN_CAP, (+srv.cb || 0) + el * COIN_RATE); srv.rb = Math.min(RP_CAP, (+srv.rb || 0) + el * RP_RATE); }
+  const el = o0 ? Math.max(0, (now - (+srv.t || now)) / 1000) : 0;
+  if (o0) { srv.cb = Math.min(COIN_CAP, (+srv.cb || 0) + el * COIN_RATE); srv.rb = Math.min(RP_CAP, (+srv.rb || 0) + el * RP_RATE); }
   srv.t = now;
   let fixed = false, extra = 0, spent = 0;
   // เหรียญตรา (ได้ครั้งเดียวต่อเหรียญ ตลอดไป)
@@ -96,10 +97,19 @@ function validate(old, nu, now = Date.now()) {
   // RP (ลดลงได้เสมอ เช่น โดนหัก / ขึ้นฤดูกาลใหม่)
   const orp = num(old.rp); let rp = Math.min(1e7, num(nu.rp));
   if (rp > orp) { const g = rp - orp; if (g > srv.rb) { rp = orp + Math.floor(srv.rb); srv.rb = 0; fixed = true; } else srv.rb -= g; }
+  // สถิติ: ต้องเป็นตัวเลข · ความยาวสูงสุด (ใช้ในตารางอันดับ) เพิ่มได้ไม่เกิน 300 + 40/วินาที (ลงทะเบียนครั้งแรกไม่เกิน 3,000)
+  const st = {}, ist = nu.st && typeof nu.st === 'object' ? nu.st : {};
+  for (const k of Object.keys(ist).slice(0, 60)) { const v = +ist[k]; st[k] = Number.isFinite(v) ? Math.max(0, Math.min(1e7, v)) : 0; }
+  const oml = +((old.st || {}).maxLen) || 0, mlCap = reg ? 3000 : oml + 300 + 40 * Math.min(el, 600);
+  if ((st.maxLen || 0) > Math.max(oml, mlCap)) { st.maxLen = Math.floor(Math.max(oml, mlCap)); fixed = true; }
   srv.paid = [...paid]; srv.claims = [...claims].slice(-30);
   if (reg) { srv.cb = Math.min(srv.cb, COIN_CAP); srv.rb = Math.min(srv.rb, RP_CAP); }   // โควตาย้ายข้อมูลใช้ได้ตอนลงทะเบียนครั้งเดียว
   srv.cb = Math.round(srv.cb * 100) / 100; srv.rb = Math.round(srv.rb * 100) / 100;
-  return { data: { ...nu, coins, rp, owned, _srv: srv }, fixed };
+  // ของที่ใส่อยู่ต้องเป็นของที่มีจริง (ฉายาโชว์ในตารางอันดับ) ไม่งั้นกลับเป็นค่าเริ่มต้น
+  const DEF = { loco: 'classic', wagon: 'gem', smoke: 'normal', kfx: 'none', horn: 'classic', title: '' }, eq = { ...DEF, ...(nu.eq && typeof nu.eq === 'object' ? nu.eq : {}) };
+  for (const c of Object.keys(DEF)) { const v = String(eq[c] || ''); if (v === DEF[c]) continue;
+    const ok = c === 'title' && v.startsWith('a:') ? paid.has(v.slice(2)) : owned[c].includes(v); if (!ok) eq[c] = DEF[c]; }
+  return { data: { ...nu, coins, rp, owned, st, eq, _srv: srv }, fixed };
 }
 
 // ---------- รหัสกู้คืน ----------

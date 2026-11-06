@@ -23,7 +23,10 @@ function fileStore(note) {
     async save(l, data, rp) { if (db[l]) { db[l].data = data; db[l].rp = rp; db[l].updated = Date.now(); flush(); } },
     async setAuth(l, salt, hash) { if (db[l]) { db[l].salt = salt; db[l].hash = hash; flush(); } },
     async setRecovery(l, rhash) { if (db[l]) { db[l].rhash = rhash; flush(); } },
-    async top(n, season) { return Object.values(db).filter(u => (u.data || {}).season === season).sort((a, b) => b.rp - a.rp).slice(0, n).map(u => ({ name: u.name, rp: u.rp, tid: ((u.data || {}).eq || {}).title || '' })); },
+    async top(n, season, by, me) {   // by: rp (ฤดูกาลนี้) / len (ยาวสุดตลอดกาล) / coins (เหรียญที่มีตอนนี้)
+      const all = Object.values(db).filter(u => by !== 'rp' || (u.data || {}).season === season).map(u => ({ name: u.name, lname: u.lname, val: LB_VAL[by](u), tid: ((u.data || {}).eq || {}).title || '' })).filter(u => u.val > 0).sort((a, b) => b.val - a.val);
+      const i = me ? all.findIndex(u => u.lname === me) : -1;
+      return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null }; },
   };
 }
 // บอกลักษณะของ DATABASE_URL แบบไม่เปิดเผยรหัสผ่าน (ไว้เช็คว่าค่าที่ใส่ใน Render ตรงกับของ Neon ไหม)
@@ -56,8 +59,13 @@ if (DB_URL) {
     async save(l, data, rp) { await ready; if (store !== dbStore) return store.save(l, data, rp); await pool.query('UPDATE players SET data=$2, rp=$3, updated=now() WHERE lname=$1', [l, data, rp]); },
     async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
-    async top(n, season) { await ready; if (store !== dbStore) return store.top(n, season);
-      const r = await pool.query("SELECT name, rp, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE data->>'season'=$2 ORDER BY rp DESC, updated ASC LIMIT $1", [n, season]); return r.rows; },
+    async top(n, season, by, me) { await ready; if (store !== dbStore) return store.top(n, season, by, me);
+      const ex = LB_SQL[by], w = by === 'rp' ? "data->>'season'=$1 AND " : '$1::text IS NOT NULL AND ';
+      const r = await pool.query(`SELECT name, ${ex} AS val, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE ${w}${ex} > 0 ORDER BY val DESC, updated ASC LIMIT $2`, [season, n]);
+      let mine = null;
+      if (me) { const q = await pool.query(`SELECT ${ex} AS val FROM players WHERE lname=$1 AND (${by !== 'rp'} OR data->>'season'=$2)`, [me, season]); const v = q.rows[0] ? +q.rows[0].val : 0;
+        if (v > 0) { const c = await pool.query(`SELECT count(*)::int AS n FROM players WHERE ${w}${ex} > $2`, [season, v]); mine = { pos: c.rows[0].n + 1, val: v }; } }
+      return { top: r.rows.map(x => ({ name: x.name, val: +x.val, tid: x.tid })), me: mine }; },
   };
   store = dbStore;
 } else {
@@ -67,6 +75,10 @@ if (DB_URL) {
 // บน Render (มีตัวแปร RENDER) ถ้าไม่ได้ต่อฐานข้อมูล → ปิดลงทะเบียน/เข้าสู่ระบบ ไม่ให้บัญชีไปอยู่ในไฟล์ชั่วคราวแล้วหายตอนเซิร์ฟเวอร์รีสตาร์ท
 const LIVE = !!process.env.RENDER && !process.env.ALLOW_FILE_STORE;
 const accountsDown = () => LIVE && store.kind === 'file';
+
+// ตารางอันดับ 3 แบบ: rp = แรงก์ฤดูกาลนี้, len = ความยาวสูงสุดตลอดกาล, coins = เหรียญที่มีตอนนี้
+const LB_VAL = { rp: u => +u.rp || 0, len: u => Math.floor(+((u.data || {}).st || {}).maxLen || 0), coins: u => Math.floor(+(u.data || {}).coins || 0) };
+const LB_SQL = { rp: 'rp', len: "floor(COALESCE((data->'st'->>'maxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))" };
 
 // ---------- helpers ----------
 const b64u = s => Buffer.from(s, 'utf8').toString('base64url');
@@ -109,7 +121,11 @@ async function handleApi(req, res, p) {
   const out = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
   try {
     if (p === '/api/status') { await store.ready.catch(() => {}); return out(200, { accounts: true, store: store.kind, dbError: store.dbError || undefined, down: accountsDown() || undefined, season: AC.seasonKey() }); }
-    if (p === '/api/top' && req.method === 'GET') return out(200, { season: AC.seasonKey(), top: await store.top(30, AC.seasonKey()) });
+    if (p === '/api/top' && req.method === 'GET') {
+      const by = LB_VAL[new URL(req.url, 'http://x').searchParams.get('by')] ? new URL(req.url, 'http://x').searchParams.get('by') : 'rp';
+      const u = req.headers.authorization ? await authUser(req).catch(() => null) : null;
+      return out(200, { season: AC.seasonKey(), by, ...(await store.top(50, AC.seasonKey(), by, u && u.lname)) });
+    }
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดปรับปรุงชั่วคราว (ยังไม่ได้ต่อฐานข้อมูล) เล่นแบบ Guest ไปก่อนได้' });
     if (req.method === 'GET' && p === '/api/me') {
       const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
@@ -149,7 +165,7 @@ async function handleApi(req, res, p) {
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
       const { data, fixed } = AC.validate(u.data || {}, raw);
       await store.save(u.lname, data, rpOf(data));
-      return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, owned: data.owned } } : { ok: true });
+      return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
     }
     if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });

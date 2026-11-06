@@ -100,8 +100,11 @@ input:focus{border-color:#77ccff}
 .acct.on{border-color:#7cfc9a;color:#7cfc9a}
 .gnote{font-size:12px;color:#ffb35e;margin-top:6px;line-height:1.5}.gnote u{cursor:pointer;color:#77ccff}
 input.locked{opacity:.75;border-color:#7cfc9a}
-.lb{max-height:260px;overflow-y:auto;text-align:left;margin-top:6px}
-.lb div{display:flex;justify-content:space-between;padding:5px 8px;border-radius:8px;font-size:13px}.lb div:nth-child(odd){background:#0f1330}.lb div.me{color:#ffd23f}
+.lb{max-height:340px;overflow-y:auto;text-align:left;margin-top:6px}
+.lb div{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:8px;font-size:13px}
+.lb div span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lb div span:last-child{white-space:nowrap;color:#cfd6ff}
+.lb .pos{display:inline-block;width:26px;font-weight:600}.lb .pos i{font-style:normal;color:#8891c4}.lb .top3{font-size:14px;font-weight:600}
+.lb small{color:#9aa6d8;font-size:11px}.lb div.gap{justify-content:center;color:#5a6080;padding:0}.lb div.lbnote{display:block;text-align:center;color:#8891c4;font-size:12px;background:none!important}.lb div:nth-child(odd){background:#0f1330}.lb div.me{color:#ffd23f}
 .rankbox{background:#0f1330;border-radius:12px;padding:8px 12px;margin:8px 0 2px;text-align:left;cursor:pointer}
 .rankbox .rk1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .rankbox b{font-size:16px}.rankbox span{font-size:12px;color:#aab3e6;white-space:nowrap}.rankbox i{font-style:normal}
@@ -248,7 +251,7 @@ const GROW=.7,FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=480,FREEZE_R=650;
 const ICON_HTML={G:'<svg viewBox="0 0 24 18" width="1.35em" height="1em" style="vertical-align:-.15em"><g fill="#ffd23f" stroke="#8a5a00" stroke-width="1.2"><path d="M1 17h10l-2-5H3z"/><path d="M13 17h10l-2-5h-6z"/><path d="M7 11h10l-2-5H9z"/></g></svg>',
   B:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" style="vertical-align:-.2em"><circle cx="10" cy="14" r="8" fill="#22252f" stroke="#7a82a8" stroke-width="1.2"/><circle cx="7" cy="11" r="2.2" fill="#fff" opacity=".55"/><rect x="13" y="4.5" width="4" height="4" fill="#8a6a3a" transform="rotate(35 15 6.5)"/><path d="M16.5 5q2.5-4 5.5-2" stroke="#c9a36a" fill="none" stroke-width="1.6"/><circle cx="22" cy="3" r="2" fill="#ffd23f"/></svg>'};
 const iconize=h=>h.replace(/\{([GB])\}/g,(_,k)=>ICON_HTML[k]);
-const BOMB_LIFE=30,GOLD_LIFE=30;   // ระเบิดต้องใช้ใน 30 วิ · ร่างทองอยู่ได้ 30 วิ (ไม่ชนใครก็หมดไป)
+const BOMB_LIFE=15,GOLD_LIFE=30;   // ระเบิดต้องใช้ใน 15 วิ · ร่างทองอยู่ได้ 30 วิ (ไม่ชนใครก็หมดไป)
 const GOLD_SKIN=['#ffd23f','#ffb000','#fff1a8'],BOSS_SKIN=['#3a0d0d','#ff3b3b','#1a1a1a'];
 
 // =====================================================================
@@ -333,7 +336,7 @@ function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;
   fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ACCT.token},body:JSON.stringify({data:prof}),keepalive:true})
     .then(async r=>{if(r.status===401)return authExpired();const j=await r.json().catch(()=>({}));if(j.fix&&ACCT.mode==='acct'&&ACCT.token===tok)applyFix(j.fix)}).catch(()=>{profDirty=true})}
 // เซิร์ฟเวอร์ตรวจเหรียญ/RP/ของที่ซื้อแล้วไม่ตรง (เช่น แก้ค่าในเบราว์เซอร์) → ใช้ค่าจากเซิร์ฟเวอร์แทน
-function applyFix(d){prof.coins=Math.max(0,+d.coins||0);prof.rp=Math.max(0,+d.rp||0);if(d.owned)prof.owned=d.owned;prof=normProf(prof);
+function applyFix(d){prof.coins=Math.max(0,+d.coins||0);prof.rp=Math.max(0,+d.rp||0);if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
   if(player)player.rk=myRank();showBest();announce('⚠️ ข้อมูลเหรียญ/แรงก์ไม่ตรงกับเซิร์ฟเวอร์ ปรับให้ตรงแล้ว')}
 const MP=Object.fromEntries(MPOOL.map(m=>[m.id,m]));
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
@@ -401,12 +404,22 @@ function rankHTML(earn){const r=rankOf(prof.rp);
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}<span class="rkmore">ดูอันดับ ›</span></small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
   b.innerHTML=rankHTML()+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
-  (ACCT.mode!=='local'?'<div class="lbl" style="margin:10px 2px 4px">🌍 อันดับแรงก์ฤดูกาลนี้</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
+  (ACCT.mode!=='local'?'<div class="lbl" style="margin:12px 2px 6px">🌍 อันดับผู้เล่น</div><div class="tabs" id="lbTabs">'+LB_TABS.map(([k,t])=>`<div class="tab${lbBy===k?' on':''}" data-k="${k}">${t}</div>`).join('')+'</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
   '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
   RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
   '<div class="lbl" style="margin:12px 2px 4px">กติกาแรงก์</div>'+`<div class="help" style="margin:0 0 4px;text-align:left">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>เล่นกับบอท: Easy ×0.5 · Normal ×1 · Hard ×1.5 · ออนไลน์ ×1<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`;
-  if(ACCT.mode!=='local')api('/api/top').then(j=>{const el=b.querySelector('#lbList');if(!el)return;const esc=t=>String(t).replace(/[<>&]/g,'');
-    el.innerHTML=j.top.length?j.top.map((u,i)=>`<div class="${ACCT.name&&u.name===ACCT.name?'me':''}"><span>${i+1}. ${rankOf(u.rp).ic} ${esc(u.name)}${u.tid&&titleText(u.tid)?' <small style="color:#9aa6d8">'+esc(titleText(u.tid))+'</small>':''}</span><span>${(+u.rp).toLocaleString()} RP</span></div>`).join(''):'<div>ยังไม่มีผู้เล่นลงทะเบียน</div>'}).catch(()=>{const el=b.querySelector('#lbList');if(el)el.textContent='โหลดอันดับไม่ได้'})}
+  if(ACCT.mode!=='local'){b.querySelectorAll('#lbTabs .tab').forEach(t=>t.onclick=()=>{lbBy=t.dataset.k;b.querySelectorAll('#lbTabs .tab').forEach(x=>x.classList.toggle('on',x===t));loadLb(b)});loadLb(b)}}
+// ตารางอันดับผู้เล่น: แรงก์ (ฤดูกาลนี้) / ยาวสุด / เหรียญ · เรียงอันดับ 1, 2, 3, ... + อันดับของเรา
+let lbBy='rp';const LB_TABS=[['rp','🏅 แรงก์'],['len','🚂 ยาวสุด'],['coins','🪙 เหรียญ']];
+function loadLb(b){const el=b.querySelector('#lbList');if(!el)return;el.innerHTML='<div>กำลังโหลด...</div>';const by=lbBy,esc=t=>String(t).replace(/[<>&]/g,'');
+  const unit=v=>by==='rp'?(+v).toLocaleString()+' RP':by==='len'?'ยาว '+(+v).toLocaleString():(+v).toLocaleString()+' 🪙';
+  const pos=i=>i<3?['🥇','🥈','🥉'][i]:'<i>'+(i+1)+'</i>';
+  api('/api/top?by='+by).then(j=>{if(lbBy!==by)return;
+    const row=(u,i,me)=>`<div class="${me?'me':''}${i<3?' top3':''}"><span><b class="pos">${pos(i)}</b>${esc(u.name)}${u.tid&&titleText(u.tid)?' <small>'+esc(titleText(u.tid))+'</small>':''}</span><span>${unit(u.val)}</span></div>`;
+    let h=j.top.length?j.top.map((u,i)=>row(u,i,ACCT.name&&u.name===ACCT.name)).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>';
+    if(j.me&&j.me.pos>j.top.length)h+=`<div class="gap">⋯</div>`+row({name:ACCT.name,val:j.me.val,tid:prof.eq.title},j.me.pos-1,true);
+    el.innerHTML=h+(ACCT.mode==='guest'?'<div class="lbnote">👻 Guest ไม่ขึ้นตารางอันดับ — ลงทะเบียนเพื่อแข่งกับคนอื่น</div>':j.me?`<div class="lbnote">คุณอยู่อันดับที่ <b>${j.me.pos}</b></div>`:'')})
+  .catch(()=>{if(lbBy===by)el.innerHTML='<div>โหลดอันดับไม่ได้</div>'})}
 const allSkins=()=>[...SKINS.map((c,i)=>({id:'b'+i,c,own:true})),...SHOP.skin.map(s=>({id:s.id,c:s.c,own:prof.owned.skin.includes(s.id),p:s.p})),...LIMITED.filter(s=>s.cat==='skin'&&prof.owned.skin.includes(s.id)).map(s=>({id:s.id,c:s.c,own:true,p:s.p}))];
 
 // =====================================================================
@@ -739,7 +752,7 @@ function updBtns(){
   bb.innerHTML='เร่ง!<br><small>'+e.toFixed(1)+' วิ</small>';bb.style.opacity=e>0?1:.45;
   if(IS_TOUCH)bb.classList.toggle('hidden',!player.alive);
   $('horn').classList.toggle('hidden',!player.alive);$('horn').classList.toggle('cd',hornCD>0);
-  $('bomb').classList.toggle('hidden',!(player.tgs>0&&player.alive));$('bomb').innerHTML=ICON_HTML.B+'<br><small>×'+player.tgs+(bs?' · '+bs+'วิ':'')+'</small>';$('bomb').classList.toggle('warn',bs>0&&bs<=10);
+  $('bomb').classList.toggle('hidden',!(player.tgs>0&&player.alive));$('bomb').innerHTML=ICON_HTML.B+'<br><small>×'+player.tgs+(bs?' · '+bs+'วิ':'')+'</small>';$('bomb').classList.toggle('warn',bs>0&&bs<=5);
 }
 const ally=(a,b)=>!!(NET&&a.team&&a.team===b.team);
 function freezeAround(src,x,y){
@@ -789,7 +802,7 @@ function step(f,dt){
     for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
       if(NET)netSend({t:'white',id:wd.id});if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites')}}}
     if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;w.goldT=GOLD_LIFE;goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'{G} ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง ภายใน 30 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
-    if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(BOMB_LIFE);tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน 30 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
+    if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(BOMB_LIFE);tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน 15 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
     if(!(NET&&w.isBot))for(const p of pups){if(p.dead)continue;if(Math.hypot(p.x-h.x,p.y-h.y)<r+20){p.dead=true;if(w.isP)track('pups');
       if(NET&&w.isP)netSend({t:'pu',id:p.id});
       if(p.type==='freeze'){const n=!NET||NET.host?freezeAround(w,h.x,h.y):0;if(NET){netSend({t:'frz',x:Math.round(h.x),y:Math.round(h.y)});booms.push({x:h.x,y:h.y,t:0,ice:1})}
@@ -1063,7 +1076,7 @@ function drawHUD2(){
     ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';fillTextIcons(txt,pad+8,py+18);py+=30};
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/MAX_EN);
   if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/GOLD_LIFE);
-  if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=10?'#ff5e5e':'#ff8c42',player.bombT[0]/BOMB_LIFE);
+  if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/BOMB_LIFE);
   if(player.onRail&&player.alive)chip('🛤️ วิ่งบนราง เร็ว x1.6','#ffb35e',1);
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
@@ -1211,12 +1224,11 @@ $('again').onclick=()=>{if(NET&&NET.ffa){$('over').classList.add('hidden');round
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
-  ['🎮 บังคับ',IS_TOUCH?'แตะค้างแล้วลากเพื่อเลี้ยว · ปุ่ม <b>เร่ง!</b> พุ่ง · 💣 ระเบิด · 📯 หวูด':'เมาส์เลี้ยว · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง'],
   ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ถึง 20 วิ)'],
   ['🛤️ ราง / 🚇 อุโมงค์','วิ่งบนรางเร็วขึ้น ×1.6 · ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
   ['🚉 สถานี','ขับผ่านสถานีเพื่อแลกตู้เป็นเหรียญ'],
   ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ'],
-  ['{B} ระเบิด','กำจัดทุกขบวนรอบตัว ต้องใช้ภายใน 30 วิ'],
+  ['{B} ระเบิด','กำจัดทุกขบวนรอบตัว ต้องใช้ภายใน 15 วิ'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','มีพลังชีวิต ชนลำตัว/หัวบอสเพื่อลดพลัง ล้มได้ 500 🪙'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย']];
