@@ -120,10 +120,8 @@ input.locked{opacity:.75;border-color:#7cfc9a}
     <div id="rankMenu"></div>
     <div class="gnote hidden" id="guestNote">👻 โหมด Guest: เหรียญ แรงก์ และของในร้านจะ<b>ไม่ถูกบันทึก</b> · <u id="guestReg">ลงทะเบียน</u></div>
     <div class="skins" id="skins"></div>
-    <div class="diffs" id="diffs"><div class="dbtn" data-d="easy">😊 Easy</div><div class="dbtn" data-d="normal">🙂 Normal</div><div class="dbtn" data-d="hard">😈 Hard</div></div>
-    <div class="dnote" id="dnote"></div>
-    <button class="btn" id="playInf">🌍 เล่นแบบไม่จำกัด (ออนไลน์)</button>
-    <button class="btn alt" id="playTime">จับเวลา 5 นาที (วงแคบลง!)</button>
+    <button class="btn" id="playInf">🌍 เล่นออนไลน์ (สูงสุด 30 คน)</button>
+    <button class="btn alt" id="playBot">🤖 เล่นกับบอท (เลือกความยากได้)</button>
     <button class="btn team" id="playOnline">🌐 ออนไลน์ 2v2 กับเพื่อน</button>
     <div class="row4">
       <button class="mbtn" id="bShop">🛒<br>ร้านค้า</button>
@@ -315,7 +313,7 @@ const rankIcon=c=>RANKS[Math.min(RANKS.length-1,Math.max(0,Math.floor((c|0)/3)))
 const myRank=()=>rankOf(prof.rp).code;
 let roundRP=0;
 const DIFF_RP={easy:.5,normal:1,hard:1.5};
-function gameRP(score,kills,extra,mult){return Math.round((Math.floor(score/60)+kills*2+(extra||0))*(mult??(DIFF_RP[diff]||1)))}
+function gameRP(score,kills,extra,mult){return Math.round((Math.floor(score/60)+kills*2+(extra||0))*(mult??(netOn()?1:(DIFF_RP[diff]||1))))}
 // ตั้งแต่แรงก์เงินขึ้นไป ถ้าตายตอนขบวนยังสั้น จะโดนหัก RP (ยิ่งแรงก์สูงยิ่งต้องยาวกว่าเดิมและโดนหักมากขึ้น)
 const rpNeed=t=>100+t*75,rpLoss=t=>t*8;
 function deathPenalty(score){const t=rankOf(prof.rp).t;return t>=1&&score<rpNeed(t)?rpLoss(t):0}
@@ -326,7 +324,7 @@ function rankHTML(earn){const r=rankOf(prof.rp);
   return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}</small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
-  b.innerHTML=rankHTML()+`<div class="help" style="margin:4px 0 8px">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>Easy ×0.5 · Normal ×1 · Hard ×1.5<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`+
+  b.innerHTML=rankHTML()+`<div class="help" style="margin:4px 0 8px">ได้ RP จาก: ความยาวตอนจบ (ทุก 60 = 1) · กำจัดตัวละ 2 · ที่ 1 / 2–3 โหมดจับเวลา +10 / +5 · ชนะ 2v2 +15 แพ้ −5<br>เล่นกับบอท: Easy ×0.5 · Normal ×1 · Hard ×1.5 · ออนไลน์ ×1<br>⚠️ ตั้งแต่แรงก์เงินขึ้นไป ตายตอนขบวนยังสั้นโดนหัก: ${RANKS.slice(1).map((K,i)=>K.ic+' ยาวไม่ถึง '+rpNeed(i+1)+' −'+rpLoss(i+1)).join(' · ')}</div>`+
   (ACCT.mode!=='local'?'<div class="help" style="margin:2px 0 4px;text-align:left">🌍 อันดับแรงก์ผู้เล่นทั้งหมด</div><div class="lb" id="lbList">กำลังโหลด...</div><div class="help" style="margin:10px 0 4px;text-align:left">ขั้นแรงก์</div>':'')+
   RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('');
   if(ACCT.mode!=='local')api('/api/top').then(j=>{const el=b.querySelector('#lbList');if(!el)return;const esc=t=>String(t).replace(/[<>&]/g,'');
@@ -392,12 +390,13 @@ function onRail(h,ang){
     if((h.x-px)**2+(h.y-py)**2<26*26&&Math.abs(ca*s.ux+sa*s.uy)>.75)return true}
   return false;
 }
+const TUNNEL_SAFE=2;
 function checkTunnel(w){
   const h=w.pts[0];
   for(const p of portals){if((h.x-p.x)**2+(h.y-p.y)**2<38*38){
     const q=portals[p.pair],dx=q.x+Math.cos(w.angle)*75-h.x,dy=q.y+Math.sin(w.angle)*75-h.y;
-    for(const pt of w.pts){pt.x+=dx;pt.y+=dy}w.tunCD=1.5;
-    if(w.isP){sfx('tunnel');track('tunnels');texts.push({x:q.x,y:q.y-50,txt:'🚇 ลอดอุโมงค์!',t:1.2,c:p.col})}
+    for(const pt of w.pts){pt.x+=dx;pt.y+=dy}w.tunCD=1.5;w.safe=Math.max(w.safe,TUNNEL_SAFE);   // ออกจากอุโมงค์แล้วอมตะ 2 วิ
+    if(w.isP){sfx('tunnel');track('tunnels');texts.push({x:q.x,y:q.y-50,txt:'🚇 ลอดอุโมงค์! 🛡️ อมตะ 2 วิ',t:1.6,c:p.col})}
     return}}
 }
 function checkStations(dt){
@@ -420,8 +419,11 @@ const DIFF={
   normal:{label:'Normal',ai:26,huntP:.8,huntR:700,others:.3,look:1,think:[10,25],big:.25,safe:2.5,regen:0,boss:120,bossM:900,bossHp:120},
   hard:{label:'Hard',ai:32,huntP:.95,huntR:950,others:.4,look:1.25,think:[6,14],big:.4,safe:2,regen:.25,boss:90,bossM:1300,bossHp:180}};
 let diff='normal';try{diff=localStorage.getItem('wormDiff')||'normal';if(!DIFF[diff])diff='normal'}catch(e){}
-const D=()=>DIFF[diff];
-function loadBest(){best=+(prof.best&&prof.best[diff])||0}
+const ONLINE_DIFF='normal',FFA_MAX=30;   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 30 ขบวน (คนจริง + บอท)
+const netOn=()=>{try{return NET}catch(e){return null}};   // ปลอดภัยแม้เรียกก่อนประกาศ NET ตอนเริ่มเกม
+const D=()=>DIFF[netOn()?ONLINE_DIFF:diff];
+const bestKey=()=>{const n=netOn();return n&&n.ffa?'online':diff};
+function loadBest(){best=+(prof.best&&prof.best[bestKey()])||0}
 loadBest();
 
 function randInWorld(m){const a=Math.random()*TAU,r=Math.sqrt(Math.random())*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
@@ -712,9 +714,9 @@ function step(f,dt){
   }else{
     worms=worms.filter(w=>w.alive||w.isP);
     if(NET.ffa&&NET.host){
-      // คนจริงเข้ามา 1 คน = บอทหายไป 1 ตัว
-      const mine=worms.filter(w=>w.isBot&&!w.isRemote&&!w.isBoss&&w.alive),n=mine.length,want=Math.max(4,Math.min(D().ai,24)-(NET.players.size-1));
-      if(n<want&&(n<want*.6||Math.random()<.03))spawnAI();
+      // คนจริงเข้ามา 1 คน = บอทหายไป 1 ตัว (รวมกันไม่เกิน 30)
+      const mine=worms.filter(w=>w.isBot&&!w.isRemote&&!w.isBoss&&w.alive),n=mine.length,want=Math.max(0,FFA_MAX-NET.players.size);   // คน + บอท = 30 ขบวน
+      if(n<want&&(n<want-2||Math.random()<.03))spawnAI();   // เติมบอทให้ครบเกือบทันที เหลือ 2 ช่องไว้เกิดใหม่ทีละนิด
       NET.trimT=(NET.trimT||0)-dt;
       if(n>want&&NET.trimT<=0){NET.trimT=.4;const hs=worms.filter(o=>o.alive&&isHum(o));let pick=null,pd=-1;
         for(const w of mine){const h=w.pts[0];let d=1e9;for(const o of hs)d=Math.min(d,Math.hypot(o.pts[0].x-h.x,o.pts[0].y-h.y));if(d>pd){pd=d;pick=w}}
@@ -912,7 +914,7 @@ function drawHUD2(){
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
   // minimap
-  const mr=Math.min(56,VW*.13),mx=pad+mr,my=py+mr+6,S=mr/WR;
+  const mr=Math.min(64,VW*.15),mx=pad+mr,my=py+mr+6,S=mr/WR;
   ctx.fillStyle='rgba(15,19,48,.75)';ctx.beginPath();ctx.arc(mx,my,mr,0,TAU);ctx.fill();
   ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
@@ -926,7 +928,7 @@ function drawHUD2(){
     mb(gx-5,gy+2.5);mb(gx+5,gy+2.5);mb(gx,gy-2)}
   if(tgsItem){const bx=mx+tgsItem.x*S,by=my+tgsItem.y*S;ctx.fillStyle='rgba(255,140,40,.4)';ctx.beginPath();ctx.arc(bx,by,7+2*Math.sin(frame*.2),0,TAU);ctx.fill();drawBombIcon(bx,by,13)}
   if(bossActive&&bossActive.alive){const h=bossActive.pts[0];ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('👑',mx+h.x*S,my+h.y*S-6);ctx.textAlign='left'}
-  if(player.alive){const h=player.pts[0];ctx.fillStyle='#ffd23f';ctx.strokeStyle='#000';ctx.lineWidth=1;ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,3.5,0,TAU);ctx.fill();ctx.stroke()}
+  if(player.alive)drawMiniMe(mx,my,S);
   // right panel
   const lw=Math.min(180,VW*.42),lx=VW-lw-pad;
   if(NET&&!NET.ffa){
@@ -966,6 +968,14 @@ function fillTextIcons(str,x,y){   // ข้อความที่มี {G}=�
   let cx=al==='center'?x-w/2:al==='right'?x-w:x;ctx.textAlign='left';
   for(const p of parts){if(p==='{G}'){drawGoldIcon(cx+iw/2,y-fs*.32,fs*.8);cx+=iw}else if(p==='{B}'){drawBombIcon(cx+iw/2,y-fs*.32,fs*.95);cx+=iw}else if(p){ctx.fillStyle=col;ctx.fillText(p,cx,y);cx+=ctx.measureText(p).width}}
   ctx.fillStyle=col;ctx.textAlign=al}
+// มินิแมป: ตำแหน่งตัวเองให้เห็นชัด = เส้นขบวนสีเหลือง + วงกระพริบ + ลูกศรชี้ทิศ + ป้าย "คุณ"
+function drawMiniMe(mx,my,S){const P=player.pts,h=P[0],hx=mx+h.x*S,hy=my+h.y*S,pl=Math.sin(frame*.15);
+  ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(255,210,63,.85)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(hx,hy);for(let i=6;i<P.length;i+=6)ctx.lineTo(mx+P[i].x*S,my+P[i].y*S);ctx.stroke();
+  ctx.strokeStyle='rgba(255,210,63,'+(.55+.35*pl)+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(hx,hy,8+2.5*pl,0,TAU);ctx.stroke();
+  ctx.translate(hx,hy);ctx.rotate(player.angle);ctx.fillStyle='#ffd23f';ctx.strokeStyle='#1a1f3d';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-4.5,4.5);ctx.lineTo(-2,0);ctx.lineTo(-4.5,-4.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+  ctx.font='600 10px Mitr,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(15,19,48,.9)';ctx.strokeText('คุณ',hx,hy-12);ctx.fillStyle='#ffd23f';ctx.fillText('คุณ',hx,hy-12);ctx.textAlign='left'}
 function hpBar(x,y,w,h,f){f=Math.max(0,Math.min(1,f||0));ctx.fillStyle='rgba(0,0,0,.6)';roundRect(x-2,y-2,w+4,h+4,5);ctx.fill();ctx.fillStyle=f>.5?'#ff5e5e':f>.25?'#ff8c42':'#ffd23f';roundRect(x,y,w*f,h,4);ctx.fill()}
 function clip(s,w){if(ctx.measureText(s).width<=w)return s;while(s.length&&ctx.measureText(s+'…').width>w)s=s.slice(0,-1);return s+'…'}
 function roundRect(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h)}
@@ -998,7 +1008,7 @@ function finish(timeUp,quit){
   const alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   const score=Math.floor(timeUp?player.mass:player.maxMass),rk=alive.indexOf(player)+1;
   state='over';bb.classList.add('hidden');$('bomb').classList.add('hidden');input.boost=false;bb.classList.remove('on');
-  if(score>best){best=score;prof.best[diff]=best}
+  if(score>best){best=score;prof.best[bestKey()]=best}
   track('games');trackMax('maxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
   addCoins(Math.floor(score/10)+player.kills*5);
   {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);if(!timeUp||quit)rp-=deathPenalty(score);addRP(rp)}
@@ -1011,12 +1021,12 @@ function finish(timeUp,quit){
   $('over').classList.remove('hidden');
   if(timeUp)player.alive=false;
 }
-function showBest(){$('rankMenu').innerHTML=rankHTML();$('rankOpen').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks);$('best').textContent=best?'🏆 สถิติดีสุด ('+D().label+'): '+best:'';$('coinTop').textContent='🪙 '+prof.coins;
+function showBest(){$('rankMenu').innerHTML=rankHTML();$('rankOpen').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks);{const pb=prof.best||{},parts=[];if(pb.online)parts.push('ออนไลน์ '+pb.online);for(const k of['easy','normal','hard'])if(pb[k])parts.push('บอท '+DIFF[k].label+' '+pb[k]);$('best').textContent=parts.length?'🏆 สถิติดีสุด: '+parts.join(' · '):''}$('coinTop').textContent='🪙 '+prof.coins;
   $('misDot').classList.toggle('hidden',!prof.daily.m.some(m=>m.p>=m.n&&!m.c))}
 const DNOTE={easy:'คู่แข่งน้อย ไม่ค่อยไล่ ชนกันเองบ่อย เหมาะกับมือใหม่',normal:'คู่แข่งไล่ดักหน้าเป็นประจำ เล่นสนุกกำลังดี',hard:'คู่แข่งเยอะ ไล่ทุกทิศ หลบเก่ง บอสโผล่เร็ว!'};
 function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}loadBest();showBest();
-  document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d));$('dnote').textContent=DNOTE[d]}
-document.querySelectorAll('.dbtn').forEach(b=>b.onclick=()=>setDiff(b.dataset.d));
+  document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d));const dn=document.getElementById('dnote');if(dn)dn.textContent=DNOTE[d];
+  const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
 function toMenu(){
   if(NET)netLeave(true);
   state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');
@@ -1024,11 +1034,22 @@ function toMenu(){
   renderSkins();showBest();
 }
 $('playInf').onclick=()=>playEndless();
-$('playTime').onclick=()=>startGame('time');
+// ---------- เล่นกับบอท (ออฟไลน์): กดปุ่มก่อน แล้วค่อยเลือกระดับความยากและโหมด ----------
+$('playBot').onclick=()=>{audioInit();openSheet('🤖 เล่นกับบอท',renderBotSheet)};
+function renderBotSheet(b){
+  b.innerHTML=`<div class="help" style="margin:0 0 6px">เลือกระดับความยากของบอท</div>
+    <div class="diffs"><div class="dbtn" data-d="easy">😊 Easy</div><div class="dbtn" data-d="normal">🙂 Normal</div><div class="dbtn" data-d="hard">😈 Hard</div></div>
+    <div class="dnote" id="dnote"></div><div class="help" id="botBest" style="margin:2px 0 6px"></div>
+    <button class="btn" id="botInf">▶ ไม่จำกัดเวลา</button>
+    <button class="btn alt" id="botTime">⏱ จับเวลา 5 นาที (วงแคบลง!)</button>`;
+  b.querySelectorAll('.dbtn').forEach(x=>x.onclick=()=>setDiff(x.dataset.d));setDiff(diff);
+  b.querySelector('#botInf').onclick=()=>{$('sheet').classList.add('hidden');startGame('inf')};
+  b.querySelector('#botTime').onclick=()=>{$('sheet').classList.add('hidden');startGame('time')};
+}
 $('again').onclick=()=>{if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=iconize((IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · M ปิดเสียง')+
-  '<br>🌍 ไม่จำกัด = โลกออนไลน์ เจอผู้เล่นจริงปนบอท<br>💎 เพชรขาว = เร่ง 5 วิ · 🛤️ ราง = เร็วฟรี · 🚇 อุโมงค์ = วาร์ป<br>🚉 สถานี = แลกตู้เป็นเหรียญ · ❄️ แช่แข็งศัตรู · {G} ร่างทอง · {B} ระเบิด (ใช้ใน 1 นาที)<br>👑 บอสยักษ์มีพลัง ชนลำตัว/ชนหัวบอสเพื่อลดพลัง ล้มได้ 500 🪙 · ชนขบวนตัวเอง = ขบวนขาด');
+  '<br>🌍 ออนไลน์ = โลกเดียวกันสูงสุด 30 ขบวน คนไม่ครบเติมบอท (Normal) · 🤖 เล่นกับบอท = เลือกความยากเอง<br>💎 เพชรขาว = เร่ง 5 วิ · 🛤️ ราง = เร็วฟรี · 🚇 อุโมงค์ = วาร์ป<br>🚉 สถานี = แลกตู้เป็นเหรียญ · ❄️ แช่แข็งศัตรู · {G} ร่างทอง · {B} ระเบิด (ใช้ใน 1 นาที)<br>👑 บอสยักษ์มีพลัง ชนลำตัว/ชนหัวบอสเพื่อลดพลัง ล้มได้ 500 🪙 · ชนขบวนตัวเอง = ขบวนขาด');
 function renderSkins(){const sk=$('skins');sk.innerHTML='';const list=allSkins();if(!list[selSkin]||!list[selSkin].own)selSkin=0;
   list.forEach((s,i)=>{const d=document.createElement('div');d.className='skin'+(i===selSkin?' sel':'')+(s.own?'':' lock');
     d.style.background=s.c.length>2?`conic-gradient(${s.c.join(',')},${s.c[0]})`:`linear-gradient(135deg,${s.c[0]} 50%,${s.c[1]} 50%)`;
@@ -1148,7 +1169,7 @@ function playEndless(room){
   netConnect(room||'','', 'ffa');
 }
 function endlessFallback(){resetPlayBtn();startGame('inf');announce('📴 ต่อเซิร์ฟเวอร์ไม่ได้ เล่นออฟไลน์กับบอทแทน')}
-function resetPlayBtn(){$('playInf').disabled=false;$('playInf').textContent='🌍 เล่นแบบไม่จำกัด (ออนไลน์)'}
+function resetPlayBtn(){$('playInf').disabled=false;$('playInf').textContent='🌍 เล่นออนไลน์ (สูงสุด 30 คน)'}
 function resetItemsKeep(){booms=[];shrinkWarned=false}
 function renderInvite(b,code){
   b.innerHTML=`<div class="help" style="margin:0 0 10px">เพื่อนชวนเข้าโลก <b style="color:#ffd23f;letter-spacing:2px">${code}</b><br>ทุกคนอยู่ในสนามเดียวกันกับบอท (ชนกันได้ แข่งกันยาว!) · คนจริงเข้ามา บอทจะหายไปแทน</div>
@@ -1181,7 +1202,7 @@ function netConnect(room,srv,nmode){const ffa=nmode==='ffa';
   const me=NET;
   try{localStorage.setItem('wormName',playerName())}catch(e){}
   if(ffa)setTimeout(()=>{if(NET===me&&!me.opened){try{ws.close()}catch(e){}fail()}},7000);
-  ws.onopen=()=>{me.opened=true;netSend({t:'join',room,mode:ffa?'ffa':'vs',diff,name:playerName(),skin:curSkin(),loco:prof.eq.loco,smoke:prof.eq.smoke,rk:myRank()})};
+  ws.onopen=()=>{me.opened=true;netSend({t:'join',room,mode:ffa?'ffa':'vs',diff:ONLINE_DIFF,name:playerName(),skin:curSkin(),loco:prof.eq.loco,smoke:prof.eq.smoke,rk:myRank()})};
   ws.onerror=()=>{if(!me.opened)fail()};
   ws.onclose=()=>{if(NET!==me)return;if(!me.opened){fail();return}NET=null;if(state==='over'){worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
   ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
@@ -1192,7 +1213,7 @@ function netMsg(m){
   switch(m.t){
     case'err':if(NET.ffa){const n=NET;NET=null;try{n.ws.close()}catch(e){}announce(m.msg+' — หาโลกอื่นให้แทน');netConnect('','','ffa');break}netStatus('❌ '+m.msg);break;
     case'welcome':{
-      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;if(m.diff&&m.diff!==diff&&DIFF[m.diff])setDiff(m.diff);resetPlayBtn();resetItems()}
+      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;loadBest();resetPlayBtn();resetItems()}
       NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;
       setFoods(m.foods);whites=m.whites.map(a=>({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false}));pups=m.pups.map(a=>({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false}));
       setItems(m.items);NET.timeLeft=m.timeLeft;netPlayers(m.players);worms=[];player=null;

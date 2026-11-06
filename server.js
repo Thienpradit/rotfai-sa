@@ -8,7 +8,7 @@ const { handleApi } = require('./accounts');
 
 const PORT = process.env.PORT || 3000;
 const R2 = 2200, RF = 3000;  // รัศมีสนาม: 2v2 / free-for-all
-const CFG = { vs: { R: R2, food: 700, white: 40, pu: 10, max: 4 }, ffa: { R: RF, food: 1200, white: 50, pu: 14, max: 10 } };
+const CFG = { vs: { R: R2, food: 700, white: 40, pu: 10, max: 4 }, ffa: { R: RF, food: 1400, white: 60, pu: 16, max: 30 } };   // ออนไลน์: โลกละ 30 คน (ขาดเติมบอท)
 const DIFFS = ['easy', 'normal', 'hard'];
 const MATCH = +process.env.MATCH_SECS || 300;   // วินาทีต่อแมตช์
 const SHRINK = Math.min(120, Math.round(MATCH * .4));   // วงเริ่มหดเมื่อเหลือกี่วินาที
@@ -114,7 +114,7 @@ wss.on('connection', ws => {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!me) {
       if (m.t !== 'join') return;
-      const ffa = m.mode === 'ffa' || m.mode === 'coop', d = DIFFS.includes(m.diff) ? m.diff : 'normal';
+      const ffa = m.mode === 'ffa' || m.mode === 'coop', d = ffa ? 'normal' : (DIFFS.includes(m.diff) ? m.diff : 'normal');   // ออนไลน์ใช้ Normal อย่างเดียว ทุกคนอยู่โลกเดียวกัน
       let code = clean(m.room, 8).toUpperCase().replace(/[^0-9A-Z]/g, '');
       if (ffa && !code) {   // จับคู่อัตโนมัติ: เข้าโลกที่ระดับความยากเดียวกันและยังไม่เต็ม ถ้าไม่มีก็เปิดโลกใหม่
         const open = [...rooms.values()].find(r => r.ffa && r.diff === d && r.players.size < r.cfg.max);

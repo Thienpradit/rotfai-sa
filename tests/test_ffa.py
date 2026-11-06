@@ -20,7 +20,7 @@ async def main():
             await pg.click('#playInf'); await pg.wait_for_timeout(2500 if i == 0 else 1500); pages.append(pg)
             print(f'P{i+1} joined', await pg.evaluate(f"[state,mode,NET&&NET.ffa,NET&&NET.room,NET&&NET.host,NET&&NET.players.size,{BOTS}]"))
         await pages[0].wait_for_timeout(3000)
-        print('bots after 3 humans (want 26-2=24 cap 24-2=22):', [await pg.evaluate(BOTS) for pg in pages])
+        print('bots after 3 humans (want 30-3=27):', [await pg.evaluate(BOTS) for pg in pages])
         async def revive(pg):
             if not await pg.evaluate("player.alive"): await pg.click('#again'); await pg.wait_for_timeout(500)
         for pg in pages: await revive(pg); await pg.evaluate("player.safe=99")
