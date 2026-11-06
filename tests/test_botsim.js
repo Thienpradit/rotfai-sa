@@ -27,10 +27,19 @@ step(room, 1); const p7 = room.players.get(7);
 for (let i = 0; i < 40; i++) { p7.st.x += 8; step(room, 1); }
 const b = live(room)[0]; const q = p7.body.pts[30];
 for (const pt of b.pts) { pt.x += q.x - b.pts[0].x; pt.y += q.y - b.pts[0].y; }
+const putOn = (bt, i) => { const qq = p7.body.pts[i]; for (const pt of bt.pts) { pt.x += qq.x - bt.pts[0].x; pt.y += qq.y - bt.pts[0].y; } bt.safe = bt.ghost = 0; bt.ai.t = 999; bt.hist = null; };
 b.safe = b.ghost = 0; b.ai.t = 999; room.msgs = []; step(room, 1);
-ok(!b.alive && p7.kills === 1, 'บอทชนลำตัวผู้เล่น → บอทตาย ผู้เล่นได้ +1 กำจัด');
+ok(b.alive && b.hearts === 2 && b.safe > 0 && b.st[7] === 2, 'บอทชนลำตัวผู้เล่นครั้งที่ 1 → ไม่ตาย เหลือหัวใจ 2 + เกราะ 1 วิ (ส่ง hearts ในสถานะ)');
+putOn(b, 30); step(room, 1); ok(b.alive && b.hearts === 1, 'ชนครั้งที่ 2 → เหลือหัวใจ 1');
+putOn(b, 30); room.msgs = []; step(room, 1);
+ok(!b.alive && p7.kills === 1, 'ชนครั้งที่ 3 → บอทตาย ผู้เล่นได้ +1 กำจัด');
 ok(room.msgs.some(m => m.t === 'kill' && m.v === b.id && m.k === 7), 'ส่ง kill{v:บอท,k:ผู้เล่น}');
 ok(drops.some(d => d.ttl === 30), 'บอทตายทิ้งพลอยที่หายใน 30 วิ');
+
+// 2b) บอทชนบอท → ผ่านกันได้ ไม่มีใครตายหรือเสียหัวใจ
+{ const [x1, x2] = live(room).filter(x => x.pts.length > 30); const qq = x2.pts[20];
+  for (const pt of x1.pts) { pt.x += qq.x - x1.pts[0].x; pt.y += qq.y - x1.pts[0].y; } x1.safe = x1.ghost = 0; x1.hist = null; x1.ai.t = 999; const hh = x1.hearts;
+  step(room, 1); ok(x1.alive && x1.hearts === hh && x2.alive, 'บอทชนบอท → ผ่านกันได้ ไม่ตาย ไม่เสียหัวใจ'); }
 
 // 3) ผู้เล่นผี (flag 32) → บอทชนทะลุ
 const b2 = live(room)[0]; p7.st.f = 4 | 32; step(room, 1); const q2 = p7.body.pts[30];
@@ -57,6 +66,15 @@ room.sim.bossT = 0; step(room, 1); const boss2 = [...room.bots.values()].find(x 
 const q3 = p7.body.pts[25]; for (const pt of boss2.pts) { pt.x += q3.x - boss2.pts[0].x; pt.y += q3.y - boss2.pts[0].y; } boss2.safe = boss2.ghost = 0;
 room.msgs = []; step(room, 1);
 ok(boss2.alive && !room.msgs.some(m => m.t === 'cut' && m.v === 7), 'บอสชนผู้เล่น → เซิร์ฟเวอร์ไม่สั่งตัด (ให้เครื่องผู้เล่นตรวจเองจากภาพจริง)');
+
+// 6b) ชดเชยดีเลย์: หัวบอทเมื่อ ~0.2 วิก่อนอยู่บนลำตัวผู้เล่น (ผู้เล่นเห็นแบบนั้นบนจอ) แม้ตอนนี้วิ่งเลยไปแล้ว → บอทต้องตาย
+{ const r2 = mkRoom(true); r2.players.set(9, { id: 9, kills: 0, st: { x: 0, y: 0, a: 0, m: 200, f: 4 } });
+  step(r2, 1); const p9 = r2.players.get(9); for (let i = 0; i < 40; i++) { p9.st.x += 8; step(r2, 1); }
+  const bb = live(r2).find(b => Math.hypot(b.pts[0].x - p9.st.x, b.pts[0].y) > 600); bb.safe = bb.ghost = 0; bb.ai.t = 999;
+  const q = p9.body.pts[30]; bb.hist = []; for (let i = 0; i < 13; i++) bb.hist.push(q.x, q.y);   // เมื่อ 0.2 วิก่อนอยู่บนลำตัว
+  for (const pt of bb.pts) { pt.x += q.x + 400 - bb.pts[0].x; pt.y += q.y + 400 - bb.pts[0].y; }  // ตอนนี้อยู่ห่างแล้ว
+  bb.hearts = 1; r2.msgs = []; botsim.step(r2, 1 / 20, bc(r2), drop);
+  ok(!bb.alive && p9.kills === 1, 'ชดเชยดีเลย์: บอทที่ผู้เล่นเห็นวิ่งทะลุลำตัว → ตาย ผู้เล่นได้แต้ม'); }
 
 // 7) 2v2: คน 2 คนทีม A → บอท 2 ตัวทีม B, ทีม A ไม่มีบอท
 room = mkRoom(false); room.arena = () => 2200;

@@ -713,6 +713,12 @@ function bodyNear(x,y,rad,self){
 //  AI
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
+// ระบบหัวใจบอท (เจ้าของสั่ง 6 พ.ย. 2026): บอทชนกันเองไม่เป็นไร · หัวบอทชนลำตัว "ผู้เล่น" = เสียหัวใจ 1 ดวง (มี 3) เด้งกลับ + เกราะ 1 วิ · หมด 3 ดวงถึงตาย
+const BOT_HEARTS=3,BOT_HIT_SAFE=1;
+function botHurt(w,by){w.hearts=(w.hearts??BOT_HEARTS)-1;const h=w.pts[0];
+  if(w.hearts<=0){w.die(by);return}
+  w.angle+=Math.PI;w.target=w.angle;w.safe=Math.max(w.safe,BOT_HIT_SAFE);booms.push({x:h.x,y:h.y,t:.45});
+  texts.push({x:h.x,y:h.y-50,txt:'💔 เหลือ '+w.hearts,t:1.2,c:'#ff7b9a'});if(by&&by.isP)sfx('cut')}
 function aiThink(w,f){
   const h=w.pts[0],r=w.r(),ai=w.ai;ai.t-=f;
   if(ai.t<=0){
@@ -772,7 +778,7 @@ function spawnAI(){
   const[x,y]=farSpot(400,650);
   const w=new Worm(NAMES[(Math.random()*NAMES.length)|0],SKINS[(Math.random()*SKINS.length)|0],x,y,false,{loco:LOCOS[(Math.random()*4)|0]});
   w.mass=rnd(25,120);if(Math.random()<D().big)w.mass=rnd(150,450);w.maxMass=w.mass;w.ghost=SPAWN_GHOST;w.safe=Math.max(w.safe,SPAWN_GHOST);
-  worms.push(w);
+  w.isBot=true;w.hearts=BOT_HEARTS;worms.push(w);
 }
 function spawnBoss(){
   const[x,y]=farSpot(500,1100);
@@ -904,6 +910,8 @@ function step(f,dt){
     else if(hit&&w.gold){w.gold=false;const lost0=Math.floor(hit.mass);w.safe=1;const h2=w.pts[0];booms.push({x:h2.x,y:h2.y,t:.6});if(hit.isBoss)bossHurt(hit,BOSS_DMG.gold,w);
       if(NET&&hit.isRemote)netSend({t:'cut',v:hit.netId,x:Math.round(h2.x),y:Math.round(h2.y)});else cutSelf(hit,Math.max(hitIdx,8),true);
       if(w.isP){sfx('cut');track('golds');texts.push({x:h2.x,y:h2.y-40,txt:'{G} ชนขาด! '+hit.name+(NET?'':' สั้นลง '+(lost0-Math.floor(hit.mass))),t:2,c:'#ffd23f'})}}
+    else if(hit&&w.isBot&&!w.isBoss&&!isHum(hit))continue;   // บอทชนบอท: ผ่านกันได้ ไม่มีใครเป็นอะไร
+    else if(hit&&w.isBot&&!w.isBoss)botHurt(w,hit);            // บอทชนผู้เล่น: เสียหัวใจ (ครบ 3 ครั้งตาย)
     else if(hit&&hit.isBoss&&w.isP)rammedBoss(w,hit,hitIdx);
     else if(hit)w.die(hit);else if(cut>0)cutSelf(w,cut);
   }
@@ -987,6 +995,9 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.gold){const pl=.5+.5*Math.sin(frame*.15);glowAlong(w,`rgba(255,210,63,${.18+.17*pl})`,1.9,vx0,vy0,vx1,vy1,M);
     if(frame%(4*QSMOKE[QUAL])===0)smoke.push({x:p[(Math.random()*n)|0].x+rnd(-r,r),y:p[(Math.random()*n)|0].y+rnd(-r,r),r:3,t:.6,k:'gold'})}
   if(w.isBoss)glowAlong(w,`rgba(255,40,40,${.12+.08*Math.sin(frame*.1)})`,1.7,vx0,vy0,vx1,vy1,M);
+  // ขบวนที่มีเกราะ (ออกจากอุโมงค์/เด้งจากบอส) หัวชนใครก็ไม่ตาย → วาดโล่สีทองรอบหัวให้เห็นชัด จะได้ไม่งงว่าทำไมชนแล้วไม่ตาย
+  if(w.safe>0&&!(w.ghost>0)&&w.alive){const h0=p[0],pl=.5+.5*Math.sin(frame*.3);ctx.strokeStyle=`rgba(255,210,63,${.55+.35*pl})`;ctx.lineWidth=3.5;ctx.beginPath();ctx.arc(h0.x,h0.y,r*1.9+5*pl,0,TAU);ctx.stroke();
+    ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillStyle='#ffd23f';ctx.fillText('🛡️',h0.x,h0.y-r*1.9-10)}
   if(w.ghost>0){const h0=p[0],pl=.5+.5*Math.sin(frame*.25);ctx.strokeStyle=`rgba(155,231,255,${.5+.4*pl})`;ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.beginPath();ctx.arc(h0.x,h0.y,r*2.6+8*pl,0,TAU);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle='#9be7ff';ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('✨ เกิดใหม่',h0.x,h0.y+r*2.6+24)}
   if(w.ghost>0)ctx.globalAlpha=.4;else if(w.safe>0&&Math.floor(frame/6)%2)ctx.globalAlpha=.45;
@@ -1068,6 +1079,8 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   ctx.font=`600 ${Math.max(13,r*.75)}px Mitr,sans-serif`;ctx.textAlign='center';
   ctx.fillStyle=NET&&NET.ffa?(w.isP?'#ffd23f':w.isBoss?'#ff5e5e':w.rk!==undefined?'#9be7ff':'rgba(255,255,255,.8)'):w.team?TEAM_COL[w.team]:w.isBoss?'#ff5e5e':w.isP?'#ffd23f':'rgba(255,255,255,.8)';
   if(w.isBoss&&w.maxHp)hpBar(c.x-55,c.y-W-44,110,9,w.hp/w.maxHp);
+  if(w.isBot&&!w.isBoss&&w.alive){const hs=Math.max(7,Math.min(11,r*.42)),hy=c.y-W-16-Math.max(13,r*.75)-hs,hv=w.hearts??BOT_HEARTS,fs0=ctx.fillStyle;   // หัวใจเหนือชื่อบอท ❤❤❤
+    for(let i=0;i<BOT_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.22)';heart(c.x+(i-1)*hs*2.4,hy,hs)}ctx.fillStyle=fs0}
   const fs=Math.max(13,r*.75);ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+(w.rk!==undefined?rankIcon(w.rk)+' ':'')+w.name,c.x,c.y-W-12);
   if(w.title){ctx.font=`600 ${Math.max(10,r*.5)}px Mitr,sans-serif`;ctx.fillStyle='#ffe9a8';ctx.fillText('« '+w.title+' »',c.x,c.y-W-14-fs)}
 }
@@ -1642,7 +1655,7 @@ function netMsg(m){
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
         if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||100;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
-        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;if(hp!==undefined)w.hp=hp}
+        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;if(hp!==undefined){if(w.isBoss)w.hp=hp;else{if(w.hearts!==undefined&&hp<w.hearts){const h=w.pts[0];texts.push({x:h.x,y:h.y-50,txt:'💔 เหลือ '+hp,t:1.2,c:'#ff7b9a'})}w.hearts=hp}}}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;
