@@ -568,7 +568,7 @@ function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornC
 // =====================================================================
 //  เพลงประกอบ — แต่งเองทั้งหมด สังเคราะห์ด้วย WebAudio (ไม่มีไฟล์เพลง)
 //  เพลงปกติเลือกได้ใน ⚙️ (`TRACKS`, localStorage trainMus2): main 🚂 (ค่าเริ่มต้น D minor 150) / country 🤠 / chip 👾 / electro 🌃 / calm 🌿 / off
-//  'boss' = E minor 140 BPM ระทึก — เล่นอัตโนมัติตอนบอส 👑 อยู่ในสนาม แล้วกลับเพลงเดิมเมื่อบอสตาย
+//  'boss' = E minor 140 BPM มีไซเรน — ไม่ได้ใช้แล้ว (เจ้าของไม่เอาเพลงบอส บอสมาก็เล่นเพลงเดิม)
 //  เปลี่ยนเพลงตรงต้นห้อง · หน้าเมนูเบาลง · แต่ละเพลงมี play() ของตัวเอง
 // =====================================================================
 const mtof=m=>440*Math.pow(2,(m-69)/12);
@@ -678,7 +678,8 @@ function mPerc(t0,dur,vol,freq,type){const c=SND.ctx,s=c.createBufferSource();s.
   const g=c.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0008,t0+dur);s.connect(f);f.connect(g);g.connect(MUS.bus);s.start(t0,Math.random()*.3,dur+.02)}
 function mKick(t0,vol){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(140,t0);o.frequency.exponentialRampToValueAtTime(45,t0+.12);
   g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0008,t0+.2);o.connect(g);g.connect(MUS.bus);o.start(t0);o.stop(t0+.25)}
-const musWant=()=>bossActive&&bossActive.alive&&state==='play'?'boss':(MUS.track==='off'?'main':MUS.track);
+// บอสมาไม่เปลี่ยนเพลงแล้ว (เจ้าของสั่ง 6 พ.ย. 21:28) — เล่นเพลงที่เลือกไว้ตลอด · THEMES.boss เก็บไว้เผื่อใช้ทีหลัง
+const musWant=()=>MUS.track==='off'?'main':MUS.track;
 function musStep(t){const st=MUS.step;
   if(st===0){const w=musWant();if(w!==MUS.mood){MUS.mood=w;MUS.bar=0}}
   const T=THEMES[MUS.mood],e=T.e,bar=MUS.bar%T.chords.length;
@@ -967,7 +968,7 @@ function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
   <div class="seg" id="segSnd"><div data-v="1" class="${SND.on?'on':''}">🔊 เปิด</div><div data-v="0" class="${SND.on?'':'on'}">🔇 ปิด</div></div>
   <div class="lbl">🎵 เพลงประกอบ</div>
   <div class="seg wrap" id="segMus">${TRACKS.map(k=>`<div data-v="${k}" class="${MUS.track===k?'on':''}">${THEMES[k].name}<small>${THEMES[k].sub}</small></div>`).join('')}<div data-v="off" class="${MUS.track==='off'?'on':''}">🔕 ปิดเพลง<small>เหลือแค่เสียงเอฟเฟกต์</small></div></div>
-  <div class="help" style="margin-top:4px">บอส 👑 มาเมื่อไหร่ เปลี่ยนเป็นเพลงบอสเร้าใจอัตโนมัติ</div>
+
   <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · ถ้าเครื่องกระตุก ลองเลือกกราฟิก "อัตโนมัติ" หรือ "ประหยัด"</div>
   <button class="btn" id="setDone">เสร็จแล้ว</button>`;
   b.querySelectorAll('#segSide div').forEach(d=>d.onclick=()=>{setSide(d.dataset.v);sheetRender&&sheetRender(b)});
