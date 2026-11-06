@@ -10,7 +10,7 @@ async def main():
         await pg.goto(GAME); await pg.wait_for_timeout(800)
         await pg.screenshot(path='/tmp/m0.png')
         await pg.fill('#name','ทดสอบ')
-        await pg.click('#playInf'); await pg.wait_for_timeout(500)
+        await pg.click('#playBot'); await pg.click('#sheetBody .dbtn[data-d=normal]'); await pg.click('#botInf'); await pg.wait_for_timeout(500)
         await pg.evaluate("""(()=>{player.safe=99;
           const s=rails[0];player.pts.forEach((q,i)=>{q.x=s.ax-s.ux*i*4;q.y=s.ay-s.uy*i*4});player.angle=Math.atan2(s.uy,s.ux);input.angle=player.angle;})()""")
         await pg.wait_for_timeout(300)
@@ -43,7 +43,7 @@ async def main():
         await pg.click('#sheetClose'); await pg.evaluate("prof.rp=1234;showBest()"); await pg.click('#rankOpen'); await pg.wait_for_timeout(200); await pg.screenshot(path='/tmp/m6.png')
         out['rankSheet']=await pg.evaluate("document.getElementById('sheetTitle').textContent")
         out['nameSaved']=await pg.evaluate("localStorage.getItem('wormName')")
-        await pg.click('#sheetClose'); await pg.click('#playTime'); await pg.evaluate("player.safe=99;timeLeft=60"); await pg.wait_for_timeout(500)
+        await pg.click('#sheetClose'); await pg.click('#playBot'); await pg.click('#botTime'); await pg.evaluate("player.safe=99;timeLeft=60"); await pg.wait_for_timeout(500)
         out['AR']=await pg.evaluate("Math.round(AR)")
         await pg.screenshot(path='/tmp/m7.png')
         print(out); print('errors',errs)
