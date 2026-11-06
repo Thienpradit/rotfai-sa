@@ -617,12 +617,14 @@ const bestKey=()=>{const n=netOn();return n&&n.ffa?'online':diff};
 function loadBest(){best=+(prof.best&&prof.best[bestKey()])||0}
 loadBest();
 
+// พลอย/เพชรขาว กระจุกกลางสนามมากกว่าขอบ (เหมือน gemIn ใน server.js)
+function gemInWorld(m){const a=Math.random()*TAU,r=Math.pow(Math.random(),.8)*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
 function randInWorld(m){const a=Math.random()*TAU,r=Math.sqrt(Math.random())*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
 function mkFood(x,y,v,id,ci,ttl){return{id,x,y,v,ttl:+ttl||0,r:3+Math.sqrt(v)*2.4,c:FOOD_COLORS[ci??((Math.random()*FOOD_COLORS.length)|0)],ph:Math.random()*TAU,dead:false}}
 const DROP_TTL=30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วิ ถ้าไม่มีใครเก็บจะหายไป
-function addFood(x,y,v,ttl){if(NET)return;if(x===undefined)[x,y]=randInWorld(40);foods.push(mkFood(x,y,v||1,undefined,undefined,ttl))}
+function addFood(x,y,v,ttl){if(NET)return;if(x===undefined)[x,y]=gemInWorld(40);foods.push(mkFood(x,y,v||1,undefined,undefined,ttl))}
 function addPu(){const[x,y]=randInWorld(150),k=Object.keys(PU_TYPES);pups.push({x,y,type:k[(Math.random()*k.length)|0],dead:false,ph:Math.random()*TAU})}
-function addWhite(){const[x,y]=randInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
+function addWhite(){const[x,y]=gemInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
 const key=(cx,cy)=>(cx+500)*1000+(cy+500);
 let annT=null;function announce(m){const a=$('ann');a.innerHTML=iconize(String(m).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'})[c]));a.classList.add('show');clearTimeout(annT);annT=setTimeout(()=>a.classList.remove('show'),3000)}
 function calcAR(){const tl=NET?NET.timeLeft:timeLeft;if(mode==='time'||mode==='online'){const S=mode==='online'?(NET&&NET.shrink||120):150;if(tl<S)return WR*(.3+.7*Math.max(0,tl)/S)}return WR}

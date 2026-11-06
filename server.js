@@ -41,6 +41,9 @@ const rooms = new Map();
 let nextId = 1;
 const rnd = (a, b) => a + Math.random() * (b - a);
 const arena = room => !room.ffa && room.phase === 'play' && room.timeLeft < SHRINK ? room.cfg.R * (.3 + .7 * Math.max(0, room.timeLeft) / SHRINK) : room.cfg.R;
+// พลอย/เพชรขาว: กระจุกกลางสนามมากกว่าขอบ (เจ้าของขอ) · r = u^0.8 → ครึ่งในของสนามได้ ~42% ของพลอย (เดิม 25%), ขอบนอก 20% ได้ ~24% (เดิม 36%)
+const GEM_POW = 0.8;
+function gemIn(room, m) { const a = Math.random() * Math.PI * 2, r = Math.pow(Math.random(), GEM_POW) * Math.max(50, arena(room) - m); return [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)]; }
 function randIn(room, m) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * Math.max(50, arena(room) - m); return [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)]; }
 function send(ws, o) { if (ws.readyState === 1) ws.send(JSON.stringify(o)); }
 function bcast(room, o, except) { const s = JSON.stringify(o); for (const p of room.players.values()) if (p.ws !== except && p.ws.readyState === 1) p.ws.send(s); }
@@ -48,14 +51,14 @@ const clean = (s, n) => String(s || '').replace(/[<>&]/g, '').slice(0, n);
 
 const DROP_TTL = 30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วินาที ถ้าไม่มีใครเก็บจะหายไป
 function newFood(room, x, y, v, ttl) {
-  if (x === undefined) [x, y] = randIn(room, 40);
+  if (x === undefined) [x, y] = gemIn(room, 40);
   const f = [room.nid++, Math.round(x), Math.round(y), Math.round((v || 1) * 100) / 100, (Math.random() * 7) | 0];
   if (ttl) { f.push(ttl); room.exp.set(f[0], Date.now() + ttl * 1000); }
   room.foods.set(f[0], f); return f;
 }
 // ส่งอาหารให้คนที่เพิ่งเข้าห้อง: พลอยที่กำลังจะหายให้บอกเวลาที่เหลือจริง
 const foodsNow = room => { const now = Date.now(); return [...room.foods.values()].map(f => f.length > 5 ? [f[0], f[1], f[2], f[3], f[4], Math.max(1, Math.round(((room.exp.get(f[0]) || now) - now) / 1000))] : f); };
-function newWhite(room) { const [x, y] = randIn(room, 60); const w = [room.nid++, x, y]; room.whites.set(w[0], w); return w; }
+function newWhite(room) { const [x, y] = gemIn(room, 60); const w = [room.nid++, x, y]; room.whites.set(w[0], w); return w; }
 function newPu(room) { const [x, y] = randIn(room, 150); const p = [room.nid++, x, y, PU_KEYS[(Math.random() * PU_KEYS.length) | 0]]; room.pups.set(p[0], p); return p; }
 
 function getRoom(code, ffa) {
