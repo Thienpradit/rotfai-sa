@@ -757,7 +757,8 @@ function rammedBoss(w,b,idx){   // ผู้เล่นพุ่งชนบอ
   const h=w.pts[0];booms.push({x:h.x,y:h.y,t:.5});
   if(w.isP){track('bossHits');shake=.35;sfx('cut');texts.push({x:h.x,y:h.y-40,txt:head?'💥 ชนหัวบอส! -'+dmg:'💥 ชนลำตัวบอส -'+dmg,t:1.6,c:'#ffd23f'})}}
 // ที่เกิดใหม่: สุ่มหลายจุด เลือกจุดที่ไกลจากขบวนทุกคัน (หัว+ตัว) มากที่สุด ไม่ให้เกิดมาทับหน้าใคร
-function farSpot(margin,minD,side){let best=null,bd=-1;const ts=worms.filter(w=>w.alive);
+// bd เริ่ม -Infinity: ถ้าทุกจุดใกล้หัวขบวนอื่น ก็ยังได้จุดที่ดีที่สุด (เดิม -1 → คืน null → หน้าแรกค้างหลังจบ 2v2)
+function farSpot(margin,minD,side){let best=null,bd=-Infinity;const ts=worms.filter(w=>w.alive);
   for(let i=0;i<36;i++){let x,y;if(side!==undefined&&i<24){const a=side+rnd(-.8,.8),rr=Math.sqrt(Math.random())*Math.max(100,AR-margin);x=Math.cos(a)*rr;y=Math.sin(a)*rr}else[x,y]=randInWorld(margin);
     let d=1e9;for(const w of ts){const p=w.pts;for(let k=0;k<p.length;k+=8){const dd=Math.hypot(p[k].x-x,p[k].y-y)-(k?0:350);if(dd<d)d=dd}}
     if(d>=minD)return[x,y];if(d>bd){bd=d;best=[x,y]}}
@@ -1317,6 +1318,7 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
 function toMenu(){
   if(NET)netLeave(true);
+  mode='inf';AR=WR;   // กลับหน้าแรกหลังจบ 2v2: วงสนามที่หดไว้ต้องคืนขนาด ไม่งั้นบอทฉากหลังเกิดไม่ได้แล้วค้าง
   state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('setGame').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
   renderSkins();showBest();
