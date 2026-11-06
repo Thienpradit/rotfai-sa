@@ -1,4 +1,4 @@
-// รถไฟซ่า.io — เซิร์ฟเวอร์: โหมดไม่จำกัดแบบ free-for-all (ทุกคนอยู่โลกเดียวกัน คนจริงเข้ามาแทนบอท) + ออนไลน์ 2v2
+// รถไฟซ่า — เซิร์ฟเวอร์: โหมดไม่จำกัดแบบ free-for-all (ทุกคนอยู่โลกเดียวกัน คนจริงเข้ามาแทนบอท) + ออนไลน์ 2v2
 // รัน:  npm install  แล้ว  npm start   (ค่าเริ่มต้นพอร์ต 3000 หรือกำหนดด้วยตัวแปร PORT)
 const http = require('http');
 const fs = require('fs');
@@ -234,4 +234,4 @@ setInterval(() => {
   }
 }, TICK * 1000);
 
-server.listen(PORT, () => console.log(`รถไฟซ่า.io server running → http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`รถไฟซ่า server running → http://localhost:${PORT}`));

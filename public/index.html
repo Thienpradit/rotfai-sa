@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="รถไฟซ่า">
 <meta name="theme-color" content="#0d1020">
-<title>รถไฟซ่า.io</title>
+<title>รถไฟซ่า</title>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;600&display=swap" rel="stylesheet">
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#0d1020;font-family:'Mitr',system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
@@ -213,7 +213,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
   <div class="panel">
     <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button> <button class="ibtn" id="setMenu" title="ตั้งค่า">⚙️</button></span></div>
     <div class="fstip hidden" id="fsTip"><span id="fsTipTx"></span><button class="sbtn" id="fsTipGo">ดูวิธี</button><button class="fsx" id="fsTipX">✕</button></div>
-    <h1>รถไฟซ่า.io</h1>
+    <h1>รถไฟซ่า</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
     <div class="card">
       <input id="name" maxlength="14" placeholder="ตั้งชื่อรถไฟของคุณ">
@@ -281,11 +281,14 @@ const cv=document.getElementById('c');let ctx=cv.getContext('2d');   // let: ภ
 let VW,VH,DPR;
 // กราฟิกปรับอัตโนมัติ: 2 = สวยสุด · 1 = กลาง · 0 = ประหยัด (เครื่องช้า) — วัด FPS ตอนเล่น ถ้าต่ำต่อเนื่องจะลดระดับเอง (ไม่เพิ่มกลางเกม)
 // จำระดับไว้ใน localStorage trainQual · เปิดเกมครั้งถัดไปเริ่มสูงกว่าเดิม 1 ขั้น เผื่อครั้งก่อนช้าเพราะอย่างอื่น
-let QUAL=2;try{const q=localStorage.getItem('trainQual');if(q!==null)QUAL=Math.min(2,(+q|0)+1)}catch(e){}
+// ตั้งค่า ⚙️ กราฟิก (localStorage trainGfx): 'hi' = สวยสุด ค่าเริ่มต้น (ไม่ลดเอง — เจ้าของไม่อยากให้เพชรหาย/ภาพเบลอกลางเกม) · 'auto' = ลดเองเมื่อเครื่องช้า · 'lo' = ประหยัดตลอด
+let GFX='hi';try{GFX=localStorage.getItem('trainGfx')||'hi'}catch(e){}
+let QUAL=GFX==='lo'?0:2;
 const QDPR=[1.25,1.5,2],QSMOKE=[3,2,1],QSMOKE_MAX=[120,300,600],FPS={n:0,t:0,cd:3};
-function fpsWatch(ms){if(state!=='play'||document.hidden||QUAL<=0)return;if(FPS.cd>0){FPS.cd-=ms/1000;return}
+function fpsWatch(ms){if(GFX!=='auto'||state!=='play'||document.hidden||QUAL<=0)return;if(FPS.cd>0){FPS.cd-=ms/1000;return}
   if(ms>250)return;FPS.n++;FPS.t+=ms;if(FPS.t<3000)return;const fps=FPS.n*1000/FPS.t;FPS.n=0;FPS.t=0;
-  if(fps<38){QUAL--;FPS.cd=4;resize();try{localStorage.setItem('trainQual',QUAL)}catch(e){}}}
+  if(fps<38){QUAL--;FPS.cd=4;resize()}}
+function setGfx(v){GFX=v;QUAL=v==='lo'?0:2;FPS.n=FPS.t=0;FPS.cd=3;resize();try{localStorage.setItem('trainGfx',v)}catch(e){}}
 const SAFE={t:0,r:0,b:0,l:0};
 function readSafe(){const e=document.getElementById('safeProbe');if(!e)return;const c=getComputedStyle(e);SAFE.t=parseFloat(c.paddingTop)||0;SAFE.r=parseFloat(c.paddingRight)||0;SAFE.b=parseFloat(c.paddingBottom)||0;SAFE.l=parseFloat(c.paddingLeft)||0}
 function resize(){DPR=Math.min(window.devicePixelRatio||1,QDPR[QUAL]);const vv=window.visualViewport;VW=Math.round(Math.max(innerWidth,vv?vv.width:0));VH=Math.round(Math.max(innerHeight,vv?vv.height:0));cv.width=VW*DPR;cv.height=VH*DPR;readSafe()}
@@ -798,11 +801,14 @@ setSide(SIDE);
 function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
   b.innerHTML=`<div class="lbl">🎮 ปุ่มเร่ง / ระเบิด / หวูด อยู่ด้าน</div>
   <div class="seg" id="segSide"><div data-v="L" class="${SIDE==='L'?'on':''}">⬅️ ซ้าย<small>ถนัดซ้าย · ตารางอันดับย้ายไปซ้าย</small></div><div data-v="R" class="${SIDE==='R'?'on':''}">ขวา ➡️<small>ถนัดขวา (ค่าเดิม)</small></div></div>
+  <div class="lbl">✨ กราฟิก</div>
+  <div class="seg" id="segGfx"><div data-v="hi" class="${GFX==='hi'?'on':''}">💎 สวยสุด<small>ภาพคม เพชรวิบวับ</small></div><div data-v="auto" class="${GFX==='auto'?'on':''}">⚡ อัตโนมัติ<small>ลดเองถ้าเครื่องกระตุก</small></div><div data-v="lo" class="${GFX==='lo'?'on':''}">🔋 ประหยัด<small>เครื่องช้า/ประหยัดแบต</small></div></div>
   <div class="lbl">🔊 เสียง</div>
   <div class="seg" id="segSnd"><div data-v="1" class="${SND.on?'on':''}">🔊 เปิด</div><div data-v="0" class="${SND.on?'':'on'}">🔇 ปิด</div></div>
-  <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · กราฟิกปรับให้ลื่นเองตามความเร็วเครื่อง</div>
+  <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · ถ้าเครื่องกระตุก ลองเลือกกราฟิก "อัตโนมัติ" หรือ "ประหยัด"</div>
   <button class="btn" id="setDone">เสร็จแล้ว</button>`;
   b.querySelectorAll('#segSide div').forEach(d=>d.onclick=()=>{setSide(d.dataset.v);sheetRender&&sheetRender(b)});
+  b.querySelectorAll('#segGfx div').forEach(d=>d.onclick=()=>{setGfx(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segSnd div').forEach(d=>d.onclick=()=>{audioInit();setSnd(d.dataset.v==='1');sheetRender&&sheetRender(b)});
   $('setDone').onclick=()=>$('sheet').classList.add('hidden')})}
 $('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();openSettings()};
@@ -1361,7 +1367,7 @@ function mergeProf(a,b){const m=normProf(JSON.parse(JSON.stringify(a)));b=normPr
   for(const k in b.st)m.st[k]=k==='coinsEarned'||!/^(len|maxLen|bestBomb)$/.test(k)?(m.st[k]||0)+b.st[k]:Math.max(m.st[k]||0,b.st[k]);
   for(const k in b.ach)m.ach[k]=m.ach[k]||b.ach[k];for(const k in b.best)m.best[k]=Math.max(m.best[k]||0,b.best[k]);m.daily=b.daily||m.daily;return normProf(m)}
 function authExpired(){try{localStorage.removeItem('rsAuth')}catch(e){}setProfile('guest',null);announce('⚠️ หมดเวลาเข้าสู่ระบบ กรุณาเข้าสู่ระบบใหม่');openAccount()}
-function openAccount(first){openSheet(first?'👋 ยินดีต้อนรับสู่ รถไฟซ่า.io':ACCT.mode==='acct'?'👤 บัญชีผู้เล่น':'👤 เข้าสู่ระบบ / ลงทะเบียน',b=>renderAccount(b,first))}
+function openAccount(first){openSheet(first?'👋 ยินดีต้อนรับสู่ รถไฟซ่า':ACCT.mode==='acct'?'👤 บัญชีผู้เล่น':'👤 เข้าสู่ระบบ / ลงทะเบียน',b=>renderAccount(b,first))}
 let acctTab='register';
 const escH=t=>String(t).replace(/[<>&"]/g,'');
 function saveAuth(name,token){ACCT.token=token;try{localStorage.setItem('rsAuth',JSON.stringify({name,token}));localStorage.setItem('wormName',name)}catch(e){}}
@@ -1568,9 +1574,9 @@ function renderInvite(b,code){
    <button class="btn" id="joinBtn">เข้าไปเล่นด้วย</button><div class="status" id="netStatus"></div>`;
   b.querySelector('#joinBtn').onclick=()=>{$('sheet').classList.add('hidden');playEndless(code)};
 }
-$('coopInv').onclick=()=>{if(!NET)return;const url=location.origin+location.pathname+'?w='+encodeURIComponent(NET.room),txt='มาเล่นรถไฟซ่า.io ด้วยกัน! โลก '+NET.room;
+$('coopInv').onclick=()=>{if(!NET)return;const url=location.origin+location.pathname+'?w='+encodeURIComponent(NET.room),txt='มาเล่นรถไฟซ่า ด้วยกัน! โลก '+NET.room;
   const copied=()=>announce('📋 คัดลอกลิงก์ชวนเพื่อนแล้ว — โลก '+NET.room);
-  if(navigator.share)navigator.share({title:'รถไฟซ่า.io',text:txt,url}).catch(()=>{});
+  if(navigator.share)navigator.share({title:'รถไฟซ่า',text:txt,url}).catch(()=>{});
   else try{navigator.clipboard.writeText(txt+' '+url).then(copied,()=>announce('ห้อง '+NET.room+' · '+url))}catch(e){announce('ห้อง '+NET.room+' · '+url)}};
 $('coopExit').onclick=()=>{if(state==='play'&&player&&player.alive){finish(true,true);player.alive=false}else toMenu()};
 function renderOnlineJoin(b){
