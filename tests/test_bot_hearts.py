@@ -1,4 +1,4 @@
-# บอส 👑 หัวใจ 3 ดวง: บอสชนตัวเรา = บอสเสีย 1 ดวง (เราไม่ขาด) ครบ 3 ครั้งบอสตาย · เราชนบอส = เด้งกลับ ไม่เสียอะไร · บอทธรรมดาชนเราครั้งเดียวตาย
+# บอส 👑 หัวใจ 3 ดวง: บอสชนตัวเรา = บอสเสีย 1 ดวง (เราไม่ขาด) ครบ 3 ครั้งบอสตาย · เราเอาหัวชนตัวบอส = ตาย · หัวชนหัวบอส = บอสเสีย 1 ดวง · บอทธรรมดาชนเราครั้งเดียวตาย
 # (ออฟไลน์ + ออนไลน์) รันเซิร์ฟเวอร์ก่อน: PORT=3456 npm start
 import asyncio
 from playwright.async_api import async_playwright
@@ -14,7 +14,12 @@ async def main():
           spawnBoss();const bs=bossActive;const res=[];const n0=player.pts.length;
           for(let k=0;k<3;k++){player.safe=999;put(bs,40);bs.safe=0;await fr();await fr();res.push([bs.alive,bs.hp]);}
           const bot=worms.find(w=>!w.isP&&!w.isBoss&&w.alive);put(bot,40);await fr();await fr();
-          return {bossHits:res,playerNotCut:player.pts.length>=n0-2,botDiesOneHit:!bot.alive}})()""")
+          const nc=player.pts.length>=n0-2,bd=!bot.alive;
+          spawnBoss();const b2=bossActive;for(let i=0;i<30;i++)await fr();b2.safe=99;b2.ghost=0;
+          const mv=q=>{const h=player.pts[0],dx=q.x-h.x,dy=q.y-h.y;for(const pt of player.pts){pt.x+=dx;pt.y+=dy}};
+          player.safe=0;player.ghost=0;mv(b2.pts[0]);await fr();await fr();const headOk=[player.alive,b2.hp];
+          await new Promise(r=>setTimeout(r,1700));player.safe=0;player.ghost=0;mv(b2.pts[Math.min(60,b2.pts.length-1)]);await fr();await fr();
+          return {bossHits:res,playerNotCut:nc,botDiesOneHit:bd,headHit_aliveAndBossHp:headOk,ramBodyDies:!player.alive}})()""")
         print('offline',r)
         await pg.evaluate("toMenu()");await pg.evaluate("playEndless()");await pg.wait_for_timeout(3000)
         r=await pg.evaluate("(()=>{const bs=worms.filter(w=>w.isBot&&w.alive&&!w.isBoss);return [bs.length,bs.every(w=>w.hearts===undefined)]})()")
