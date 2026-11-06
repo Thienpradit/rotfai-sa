@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const { handleApi } = require('./accounts');
+const botsim = require('./botsim');   // บอทรันบนเซิร์ฟเวอร์
 
 const PORT = process.env.PORT || 3000;
 const R2 = 2200, RF = 3000;  // รัศมีสนาม: 2v2 / free-for-all
@@ -73,9 +74,9 @@ function getRoom(code, ffa) {
 }
 const pubPlayers = room => [...room.players.values()].map(p => ({ id: p.id, name: p.name, team: p.team, host: p.host, skin: p.skin, loco: p.loco, smoke: p.smoke, wag: p.wag, kfx: p.kfx, title: p.title, rk: p.rk }));
 const pubBots = room => [...room.bots.values()].map(b => b.info);
-// free-for-all: รถไฟ AI ทั้งหมดรันอยู่ในเครื่องหัวหน้าห้อง ถ้าหัวหน้าเปลี่ยน ต้องล้าง AI ชุดเก่าทิ้ง
-function clearBots(room) { room.deadBots = 0; if (!room.bots.size) return; room.bots.clear(); bcast(room, { t: 'bclr' }); }
-function setHost(room, p) { for (const q of room.players.values()) q.host = q === p; clearBots(room); lobby(room); }
+// บอททั้งหมดรันบนเซิร์ฟเวอร์ (botsim.js) — หัวหน้าห้องมีไว้กดเริ่มแมตช์ 2v2 เท่านั้น
+function clearBots(room) { room.deadBots = 0; const had = room.bots.size; botsim.clear(room); if (had) bcast(room, { t: 'bclr' }); }
+function setHost(room, p) { for (const q of room.players.values()) q.host = q === p; lobby(room); }
 const lobby = room => bcast(room, { t: 'lobby', players: pubPlayers(room), phase: room.phase });
 function teamScore(room) {
   const sc = { A: { k: 0, l: 0 }, B: { k: 0, l: 0 } };
@@ -149,7 +150,7 @@ wss.on('connection', ws => {
       case 'start':
         if (!room.ffa && me.host && room.phase === 'lobby') {
           const ps = [...room.players.values()];
-          if (ps.length) startMatch(room);   // คนไม่ครบ → เครื่องหัวหน้าห้องเติมบอทให้ทีมที่ขาด
+          if (ps.length) startMatch(room);   // คนไม่ครบ → เซิร์ฟเวอร์เติมบอทให้ทีมที่ขาด
         }
         break;
       case 'st':
@@ -180,46 +181,12 @@ wss.on('connection', ws => {
         break;
       }
       case 'drop': dropFoods(room, m.drop, m.v); break;
-      case 'bomb': bcast(room, { t: 'bomb', by: me.id, x: +m.x || 0, y: +m.y || 0 }, ws); break;
-      case 'cut': bcast(room, { t: 'cut', by: me.id, v: m.v, x: +m.x || 0, y: +m.y || 0 }, ws); break;
-      case 'frz': bcast(room, { t: 'frz', by: me.id, x: +m.x || 0, y: +m.y || 0 }, ws); break;
+      case 'bomb': { const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'bomb', by: me.id, x, y }, ws); botsim.onBomb(room, me, x, y); break; }
+      case 'cut': { const x = +m.x || 0, y = +m.y || 0; if (m.v < 0) botsim.onCut(room, me, m.v, x, y); else bcast(room, { t: 'cut', by: me.id, v: m.v, x, y }, ws); break; }
+      case 'frz': { const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'frz', by: me.id, x, y }, ws); botsim.onFreeze(room, me, x, y); break; }
       case 'horn': { const now = Date.now(); if (now - (me.hornT || 0) > 2000) { me.hornT = now; bcast(room, { t: 'horn', by: me.id, k: clean(m.k, 10) }, ws); } break; }
-      // ---- free-for-all: หัวหน้าห้องส่งข้อมูลรถไฟ AI ----
-      case 'binfo':
-        if (!(room.ffa || room.phase === 'play') || !me.host || !Array.isArray(m.b)) break;
-        { const add = [];
-          for (const b of m.b.slice(0, 40)) {
-            const id = Math.round(+b.id); if (!(id < 0) || room.bots.size - (room.deadBots || 0) >= 60) continue;
-            const info = { id, name: clean(b.name, 20), skin: Array.isArray(b.skin) ? b.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffffff', '#888888'],
-              loco: clean(b.loco, 10), boss: !!b.boss, mhp: Math.max(0, Math.min(5000, b.mhp | 0)) };
-            if (!room.ffa) info.team = b.team === 'B' ? 'B' : 'A';
-            room.bots.set(id, { info, st: null }); add.push(info);
-          }
-          if (add.length) bcast(room, { t: 'binfo', b: add }, ws); }
-        break;
-      case 'bs':
-        if (!(room.ffa || room.phase === 'play') || !me.host || !Array.isArray(m.b)) break;
-        me.lastT = Date.now();
-        { const ts = +m.ts || Date.now();
-          for (const a of m.b.slice(0, 60)) { if (!Array.isArray(a)) continue; const b = room.bots.get(a[0]); if (b) { b.st = [a[0], +a[1] || 0, +a[2] || 0, +a[3] || 0, Math.min(5000, +a[4] || 0), a[5] | 0, ts]; if (b.st[4] > (b.maxLen || 0)) b.maxLen = b.st[4]; if (b.info.boss && a.length > 6) b.st.push(Math.max(0, +a[6] || 0)); } } }
-        break;
-      case 'bhit': {   // ผู้เล่นชนบอส → ส่งให้เครื่องหัวหน้าห้องที่คุมบอสอยู่คำนวณ
-        if (!room.ffa) break;
-        const host = [...room.players.values()].find(p => p.host);
-        if (host && host !== me) send(host.ws, { t: 'bhit', id: m.id, d: Math.max(0, Math.min(60, +m.d || 0)), by: me.id });
-        break;
-      }
-      case 'bdie': {
-        const dead = room.bots.get(m.id);
-        if (!me.host || !dead) break;
-        if (room.ffa) room.bots.delete(m.id); else if (!dead.dead) { dead.st = null; dead.dead = true; room.deadBots = (room.deadBots || 0) + 1; }   // 2v2: เก็บบอทไว้นับแต้มตอนจบ แต่ไม่ส่งตำแหน่งแล้ว
-        const killer = room.players.get(m.k), kb = !killer && room.bots.get(m.k);
-        if (killer && (room.ffa || killer.team !== dead.info.team)) killer.kills++;
-        if (kb && kb !== dead && kb.info.team !== dead.info.team) kb.kills = (kb.kills || 0) + 1;
-        bcast(room, { t: 'kill', v: m.id, k: killer ? killer.id : kb ? kb.info.id : null }, ws);
-        dropFoods(room, m.drop, m.v, DROP_TTL);
-        break;
-      }
+      // ---- ผลกับบอทบนเซิร์ฟเวอร์ ----
+      case 'bhit': if (typeof m.id === 'number') botsim.onBossHit(room, me, m.id, m.d); break;
     }
   });
   ws.on('close', () => {
@@ -243,11 +210,6 @@ setInterval(() => {
   for (const room of rooms.values()) {
     if (room.phase !== 'play') continue;
     if (!room.ffa) room.timeLeft -= TICK;
-    else {
-      // หัวหน้าห้องเงียบไป (เช่น สลับแอปบนมือถือ) → ย้ายหัวหน้าให้คนที่ยังเล่นอยู่ เพื่อให้ AI ขยับต่อได้
-      const now = Date.now(), host = [...room.players.values()].find(p => p.host);
-      if (host && now - host.lastT > 4000) { const alt = [...room.players.values()].find(p => p !== host && now - p.lastT < 1500); if (alt) setHost(room, alt); }
-    }
     // พลอยจากการตายที่หมดเวลา → ลบทิ้ง
     if (room.exp.size) { const now = Date.now(), gone = [];
       for (const [id, t] of room.exp) if (t <= now) { room.exp.delete(id); if (room.foods.delete(id)) gone.push(id); }
@@ -261,10 +223,12 @@ setInterval(() => {
     for (const k of ['tgs', 'gold']) {
       if (!room.items[k]) { room.timers[k] -= TICK; if (room.timers[k] <= 0) { room.items[k] = randIn(room, 300); bcast(room, { t: 'it', items: room.items }); } }
     }
+    // บอท: คิด + ขยับ + ชน + กิน บนเซิร์ฟเวอร์
+    botsim.step(room, TICK, bcast, dropFoods);
     // states
     const p = [];
     for (const pl of room.players.values()) if (pl.st) p.push([pl.id, pl.st.x, pl.st.y, pl.st.a, pl.st.m, pl.st.f, pl.st.ts]);
-    for (const b of room.bots.values()) if (b.st) p.push(b.st);
+    for (const b of room.bots.values()) if (b.st && b.alive) p.push(b.st);
     bcast(room, { t: 's', p, tl: +room.timeLeft.toFixed(2), sc: teamScore(room) });
     if (!room.ffa && room.timeLeft <= 0) endMatch(room);
   }

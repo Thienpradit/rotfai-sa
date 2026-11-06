@@ -1,4 +1,4 @@
-# ทดสอบ 2v2 เติมบอท: คน 2 คนอยู่ทีมแดง → หัวหน้าห้องเติมบอท 2 ตัวให้ทีมน้ำเงิน, บอทชนคนตายได้แต้ม, จบแมตช์มีบอทในสรุป
+# ทดสอบ 2v2 เติมบอท: คน 2 คนอยู่ทีมแดง → เซิร์ฟเวอร์เติมบอท 2 ตัวให้ทีมน้ำเงิน, บอทชนคนตายได้แต้ม, จบแมตช์มีบอทในสรุป
 # รันเซิร์ฟเวอร์ก่อน: PORT=3456 MATCH_SECS=40 npm start  แล้ว python tests/test_vs_bots.py
 import asyncio
 from playwright.async_api import async_playwright
@@ -27,8 +27,9 @@ async def main():
         await c.evaluate(f"(()=>{{const h=player.pts[0];const dx={tgt[0]}-h.x,dy={tgt[1]}-h.y;for(const q of player.pts){{q.x+=dx;q.y+=dy}}}})()")
         await c.wait_for_timeout(1500)
         print('guest hit bot -> respawn timer', await c.evaluate("NET.respawnT>0||player.safe>0"), 'score', await a.evaluate("JSON.stringify(NET.score)"))
-        # บอทตาย → เกิดใหม่ใน ~3 วิ
-        await a.evaluate("(()=>{const w=worms.find(w=>w.isBot&&!w.isRemote&&w.alive);w.die(null)})()"); await a.wait_for_timeout(300)
+        # หัวหน้าห้องโยนระเบิดใส่บอท (เซิร์ฟเวอร์คำนวณ) → บอทตาย เกิดใหม่ใน ~3 วิ
+        await a.evaluate("(()=>{const w=worms.find(w=>w.isBot&&w.alive&&!w.ghost);const t=w.pts[0];player.safe=99;player.tgs=1;player.bombT=[15];const h=player.pts[0];const dx=t.x+200-h.x,dy=t.y-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}useBomb()})()"); await a.wait_for_timeout(500)
+        print('bomb kills credited', await a.evaluate("player.kills"), 'score', await a.evaluate("JSON.stringify(NET.score)"))
         n1 = await a.evaluate("worms.filter(w=>w.isBot&&w.alive).length"); await a.wait_for_timeout(3500)
         print('bot died ->', n1, 'after 3.5s ->', await a.evaluate("worms.filter(w=>w.isBot&&w.alive).length"))
         await a.wait_for_timeout(36000)

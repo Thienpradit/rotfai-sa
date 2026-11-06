@@ -1,0 +1,252 @@
+// รถไฟซ่า.io — บอทรันบนเซิร์ฟเวอร์ (โลกออนไลน์ free-for-all + 2v2 เติมบอท)
+// เดิมบอทรันในมือถือ "หัวหน้าห้อง" → เครื่องช้า/สลับแอป บอทกระตุกทั้งโลก · ตอนนี้เซิร์ฟเวอร์คำนวณเองทุกตัว ทุกคนเห็นลื่นเท่ากัน
+// กติกาการเคลื่อนที่/AI/ชน/กิน ลอกมาจาก public/index.html (class Worm, aiThink, step) — ถ้าแก้กติกาที่นั่น ให้แก้ที่นี่ด้วย
+const TAU = Math.PI * 2, CS = 100, SELF_IDX = 20, GROW = .7, BOMB_R = 480, FREEZE_R = 650, FREEZE_T = 6, PORTAL_EDGE = 260;
+const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, BOSS_DMG_BOMB = 50, DROP_TTL = 30;
+const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: 120 };   // ระดับ Normal
+const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
+const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
+const NAMES = ['ไส้เดือนสายซิ่ง', 'น้องหนอนน้อย', 'Wiggle', 'Noodle', 'ต้มยำกุ้ง', 'SlimJim', 'หนอนชาเขียว', 'กัปตันหนอน', 'มะม่วงสุก', 'Zigzag', 'ข้าวเหนียว', 'Spaghetti', 'หนอนหิว', 'Bubbles', 'Doodle', 'ลูกชิ้นปิ้ง', 'Mochi', 'Sneaky', 'Turbo', 'ปลาทูทอด', 'Pixel', 'Squiggle', 'Banana', 'ส้มตำ', 'Ninja', 'Gummy', 'ขนมครก', 'Shadow', 'หนอนบุ้ง', 'Lucky', 'ชาไทย', 'Bobo'];
+const BOSS_SKIN = ['#3a0d0d', '#ff3b3b', '#1a1a1a'], LOCOS = ['classic', 'classic', 'diesel', 'bullet'];
+const rnd = (a, b) => a + Math.random() * (b - a), pick = a => a[(Math.random() * a.length) | 0];
+const key = (cx, cy) => (cx + 500) * 1000 + (cy + 500);
+const rOf = m => Math.min(10 + Math.sqrt(m) * .75, 44), nOf = m => Math.min(Math.floor(14 + m * .45), 700);
+let nextBot = 1;
+
+// ---------- โลก: ราง + อุโมงค์ (ตำแหน่งตายตัวตามรัศมี เหมือน buildWorld ในเกม) ----------
+function mkSeg(ax, ay, bx, by) { const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy); return { ax, ay, ux: dx / l, uy: dy / l, l, x0: Math.min(ax, bx) - 30, x1: Math.max(ax, bx) + 30, y0: Math.min(ay, by) - 30, y1: Math.max(ay, by) + 30 }; }
+function buildWorld(R) {
+  const rails = [], portals = [], lr = R * .6, N = 72;
+  for (let i = 0; i < N; i++) { const a = i / N * TAU, b = (i + 1) / N * TAU; rails.push(mkSeg(Math.cos(a) * lr, Math.sin(a) * lr, Math.cos(b) * lr, Math.sin(b) * lr)); }
+  for (let k = 0; k < 3; k++) { const a = k * TAU / 3 + .4, b = a + 2.3; rails.push(mkSeg(Math.cos(a) * R * .86, Math.sin(a) * R * .86, Math.cos(b) * R * .86, Math.sin(b) * R * .86)); }
+  for (let k = 0; k < 3; k++) { const a = k * TAU / 3 + 1.05; portals.push({ x: Math.cos(a) * R * .33, y: Math.sin(a) * R * .33, pair: k * 2 + 1 }); portals.push({ x: Math.cos(a + Math.PI * .85) * R * .82, y: Math.sin(a + Math.PI * .85) * R * .82, pair: k * 2 }); }
+  return { rails, portals };
+}
+function onRail(world, h, ang) {
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+  for (const s of world.rails) { if (h.x < s.x0 || h.x > s.x1 || h.y < s.y0 || h.y > s.y1) continue;
+    const t = (h.x - s.ax) * s.ux + (h.y - s.ay) * s.uy; if (t < 0 || t > s.l) continue;
+    const px = s.ax + s.ux * t, py = s.ay + s.uy * t;
+    if ((h.x - px) ** 2 + (h.y - py) ** 2 < 26 * 26 && Math.abs(ca * s.ux + sa * s.uy) > .75) return true; }
+  return false;
+}
+
+// ---------- ขบวน (บอท / ร่างจำลองของผู้เล่นจริงที่ใช้ตรวจชน) ----------
+function follow(t) {
+  const n = nOf(t.mass), p = t.pts;
+  while (p.length < n) { const q = p[p.length - 1]; p.push({ x: q.x, y: q.y }); }
+  if (p.length > n) p.length = n;
+  const s = rOf(t.mass) * .42;
+  for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], dx = a.x - b.x, dy = a.y - b.y, dd = Math.hypot(dx, dy); if (dd > s) { const k = (dd - s) / dd; b.x += dx * k; b.y += dy * k; } }
+}
+function mkPts(x, y, a, mass) { const n = nOf(mass), s = rOf(mass) * .42, pts = []; for (let i = 0; i < n; i++) pts.push({ x: x - Math.cos(a) * i * s, y: y - Math.sin(a) * i * s }); return pts; }
+
+function arenaR(room) { return room.arena ? room.arena(room) : room.cfg.R; }
+function randIn(room, m) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * Math.max(50, arenaR(room) - m); return [Math.cos(a) * r, Math.sin(a) * r]; }
+// ที่เกิดใหม่: ไกลจากทุกขบวนให้มากที่สุด (2v2 เกิดฝั่งทีมตัวเอง)
+function farSpot(room, trains, margin, minD, side) {
+  let best = null, bd = -1; const AR = arenaR(room);
+  for (let i = 0; i < 36; i++) { let x, y;
+    if (side !== undefined && i < 24) { const a = side + rnd(-.8, .8), rr = Math.sqrt(Math.random()) * Math.max(100, AR - margin); x = Math.cos(a) * rr; y = Math.sin(a) * rr; } else [x, y] = randIn(room, margin);
+    let d = 1e9; for (const t of trains) { if (!t.alive) continue; const p = t.pts; for (let k = 0; k < p.length; k += 8) { const dd = Math.hypot(p[k].x - x, p[k].y - y) - (k ? 0 : 350); if (dd < d) d = dd; } }
+    if (d >= minD) return [x, y]; if (d > bd) { bd = d; best = [x, y]; } }
+  return best;
+}
+
+function freeName(room) {   // ชื่อไม่ซ้ำกับบอทที่ยังอยู่ (ถ้าชื่อหมดค่อยยอมซ้ำ)
+  const used = new Set([...room.bots.values()].filter(b => b.alive).map(b => b.name.replace('🤖 ', '')));
+  const free = NAMES.filter(n => !used.has(n)); return pick(free.length ? free : NAMES);
+}
+function spawnBot(room, o = {}) {
+  const S = room.sim, trains = allTrains(room);
+  const side = o.team ? (o.team === 'A' ? Math.PI : 0) : undefined;
+  const [x, y] = farSpot(room, trains, o.boss ? 500 : 400, o.boss ? 1100 : 650, side);
+  const a = side !== undefined ? side + Math.PI + rnd(-.5, .5) : Math.random() * TAU;
+  let mass = o.boss ? D.bossM : rnd(25, 120); if (!o.boss && !o.team && Math.random() < D.big) mass = rnd(150, 450); if (o.team) mass = rnd(20, 45);
+  const id = -(100000000 + (nextBot++ % 90000000));
+  const b = { id, bot: true, name: o.boss ? '👑 บอสยักษ์' : (o.team ? '🤖 ' : '') + freeName(room), skin: o.boss ? BOSS_SKIN : pick(SKINS), loco: o.boss ? 'diesel' : pick(LOCOS), team: o.team,
+    mass, maxLen: mass, pts: mkPts(x, y, a, mass), angle: a, target: a, boost: false, energy: o.boss ? 10 : 5, alive: true, safe: SPAWN_GHOST, ghost: SPAWN_GHOST, slow: 0, selfCD: 0, tunCD: 0,
+    kills: 0, isBoss: !!o.boss, hp: o.boss ? D.bossHp : 0, maxHp: o.boss ? D.bossHp : 0, ai: { t: 0, tx: x, ty: y, boostT: 0, hunt: null } };
+  b.info = { id, name: b.name, skin: b.skin, loco: b.loco, boss: b.isBoss, mhp: b.maxHp }; if (b.team) b.info.team = b.team;
+  room.bots.set(id, b); if (b.isBoss) S.boss = b;
+  S.bcast(room, { t: 'binfo', b: [b.info] });
+  return b;
+}
+
+// ผู้เล่นจริง: เซิร์ฟเวอร์รู้แค่ตำแหน่งหัว → สร้างลำตัวตามหัวแบบเดียวกับที่เกมวาดรถไฟคนอื่น (ใช้ตรวจว่าบอทชนลำตัวผู้เล่น)
+function syncPlayers(room) {
+  for (const p of room.players.values()) {
+    const st = p.st; if (!st || !(st.f & 4)) { p.body = null; continue; }
+    if (!p.body) p.body = { pid: p.id, human: true, alive: true, pts: mkPts(st.x, st.y, st.a, Math.max(10, st.m)), mass: Math.max(10, st.m) };
+    const b = p.body, h = b.pts[0], dx = st.x - h.x, dy = st.y - h.y;
+    if (dx * dx + dy * dy > 300 * 300) for (const q of b.pts) { q.x += dx; q.y += dy; } else { h.x = st.x; h.y = st.y; }
+    b.mass = Math.max(10, st.m); b.angle = st.a; b.team = p.team; b.ghost = st.f & 32 ? 1 : 0; b.safe = st.f & 16 ? 1 : 0; b.alive = true; follow(b);
+  }
+}
+const allTrains = room => { const t = []; for (const p of room.players.values()) if (p.body) t.push(p.body); for (const b of room.bots.values()) if (b.alive) t.push(b); return t; };
+const ally = (a, b) => !!(a.team && a.team === b.team);
+
+function buildGrid(trains) { const g = new Map(); for (const w of trains) { const p = w.pts; for (let i = 0; i < p.length; i += 2) { const k = key(Math.floor(p[i].x / CS), Math.floor(p[i].y / CS)); let a = g.get(k); if (!a) g.set(k, a = []); a.push(w, i); } } return g; }
+function bodyNear(S, room, x, y, rad, self) {
+  const AR = arenaR(room); if (x * x + y * y > (AR - 30) ** 2) return true;
+  const cx = Math.floor(x / CS), cy = Math.floor(y / CS);
+  for (let gx = cx - 1; gx <= cx + 1; gx++) for (let gy = cy - 1; gy <= cy + 1; gy++) { const a = S.bgrid.get(key(gx, gy)); if (!a) continue;
+    for (let k = 0; k < a.length; k += 2) { const o = a[k]; if (!o.alive || (o === self && a[k + 1] < SELF_IDX)) continue; const q = o.pts[a[k + 1]]; if (!q) continue; const rr = rad + rOf(o.mass), dx = q.x - x, dy = q.y - y; if (dx * dx + dy * dy < rr * rr) return true; } }
+  return false;
+}
+
+// ---------- AI (เหมือน aiThink ในเกม ระดับ Normal) ----------
+function aiThink(S, room, w, f, trains) {
+  const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
+  if (ai.t <= 0) {
+    ai.t = rnd(D.think[0], D.think[1]); ai.hunt = null;
+    let bh = null, bd0 = 1500;
+    if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
+    if (bh) ai.hunt = bh;
+    else if (w.mass > 22) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human;
+      if (!(hu && (o.safe || o.ghost)) && d < (hu ? D.huntR : 380) && d < bd && Math.random() < (hu ? D.huntP : D.others)) { bd = d; ai.hunt = o; } } }
+    if (!ai.hunt) {
+      let best = null, bs = 0; const cx = Math.floor(h.x / CS), cy = Math.floor(h.y / CS);
+      for (let gx = cx - 4; gx <= cx + 4; gx++) for (let gy = cy - 4; gy <= cy + 4; gy++) { const a = S.fgrid.get(key(gx, gy)); if (!a) continue;
+        for (const fd of a) { const s = fd[3] / (Math.hypot(fd[1] - h.x, fd[2] - h.y) + 40); if (s > bs) { bs = s; best = { x: fd[1], y: fd[2], v: fd[3] }; } } }
+      if (w.energy < 4) for (const wd of room.whites.values()) { const s = 6 / (Math.hypot(wd[1] - h.x, wd[2] - h.y) + 40); if (s > bs) { bs = s; best = { x: wd[1], y: wd[2], v: 0 }; } }
+      if (best) { ai.tx = best.x; ai.ty = best.y; ai.boostT = best.v > 1.5 && w.mass > 25 ? 40 : 0; } else [ai.tx, ai.ty] = randIn(room, 500);
+    }
+  }
+  let tx = ai.tx, ty = ai.ty, boost = false;
+  if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
+    if (d > (w.isBoss ? 1600 : 850)) ai.hunt = null;
+    else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 && w.mass > 18; } }
+  else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
+  if (Math.hypot(h.x, h.y) > arenaR(room) - 350) { tx = 0; ty = 0; boost = false; }
+  const want = Math.atan2(ty - h.y, tx - h.x), lk = w.isBoss ? 1.3 : D.look, near = (r * 1.4 + 25) * lk, look = (r * 3 + 65) * lk;
+  const blocked = a => bodyNear(S, room, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r + 12, w) || bodyNear(S, room, h.x + Math.cos(a) * look, h.y + Math.sin(a) * look, r + 18, w);
+  let pk = want;
+  if (blocked(want)) { pk = null; const side = Math.sign(Math.atan2(Math.sin(want - w.angle), Math.cos(want - w.angle))) || 1;
+    for (const o of [0, .6, -.6, 1.2, -1.2, 1.9, -1.9, 2.6, -2.6]) { const a = w.angle + o * side; if (!blocked(a)) { pk = a; break; } }
+    if (pk === null) pk = w.angle + Math.PI * side; boost = boost || (w.mass > 30 && Math.random() < .4); }
+  w.target = pk; w.boost = boost;
+}
+
+function portalOpen(room, p) { const q = room.sim.world.portals[p.pair], AR = arenaR(room); return Math.hypot(q.x, q.y) < AR - PORTAL_EDGE && Math.hypot(p.x, p.y) < AR - 60; }
+function moveBot(S, room, w, f, dt) {
+  const r = rOf(w.mass); let d = w.target - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d));
+  const tr = .12 / (1 + r / 30) * f; w.angle += Math.max(-tr, Math.min(tr, d));
+  let sp = 2.7; if (onRail(S.world, w.pts[0], w.angle)) sp *= 1.6; if (w.slow > 0) { w.slow -= dt; sp *= .45; }
+  if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
+  const h = w.pts[0]; h.x += Math.cos(w.angle) * sp * f; h.y += Math.sin(w.angle) * sp * f; follow(w);
+  if (w.safe > 0) w.safe -= dt; if (w.ghost > 0) w.ghost -= dt; if (w.selfCD > 0) w.selfCD -= dt;
+  if (w.tunCD > 0) w.tunCD -= dt; else for (const p of S.world.portals) if ((h.x - p.x) ** 2 + (h.y - p.y) ** 2 < 38 * 38) { if (!portalOpen(room, p)) break;
+    const q = S.world.portals[p.pair], dx = q.x + Math.cos(w.angle) * 75 - h.x, dy = q.y + Math.sin(w.angle) * 75 - h.y; for (const pt of w.pts) { pt.x += dx; pt.y += dy; } w.tunCD = 1.5; w.safe = Math.max(w.safe, TUNNEL_SAFE); break; }
+  if (w.mass > w.maxLen) w.maxLen = w.mass;
+  if (w.isBoss && w.energy < 20) w.energy += dt * .5;
+  if (h.x * h.x + h.y * h.y > (arenaR(room) - r * .5) ** 2) killBot(room, w, null);
+}
+
+// ---------- ตาย / ขาด ----------
+function killBot(room, w, killer, how) {
+  if (!w.alive) return; w.alive = false; const S = room.sim;
+  if (how !== 'trim') { const m = w.mass * .8, cnt = Math.max(6, Math.min(160, Math.floor(w.pts.length / 2))), drop = [];
+    for (let i = 0; i < cnt; i++) { const q = w.pts[Math.floor(i / cnt * w.pts.length)]; drop.push([Math.round(q.x + rnd(-10, 10)), Math.round(q.y + rnd(-10, 10))]); }
+    S.drop(room, drop, m / cnt, DROP_TTL); }
+  let kid = null;
+  if (killer && killer.human) { const p = room.players.get(killer.pid); if (p && (room.ffa || p.team !== w.team)) { p.kills++; kid = p.id; } }
+  else if (killer && killer.bot && killer !== w) { if (!ally(killer, w)) killer.kills++; kid = killer.id; }
+  if (room.ffa) room.bots.delete(w.id); else { w.st = null; w.dead = true; }
+  if (w.isBoss) { S.boss = null; S.bossT = 150; }
+  const msg = { t: 'kill', v: w.id, k: kid }; if (how === 'bomb') msg.b = 1; S.bcast(room, msg);
+}
+function cutBot(room, w, idx) {
+  const p = w.pts; if (idx >= p.length) return; const removed = p.slice(idx), old = w.mass;
+  w.mass = Math.max(10, (idx - 14) / .45); p.length = Math.min(p.length, nOf(w.mass));
+  const lost = Math.max(0, old - w.mass); if (lost > 0) { const cnt = Math.max(3, Math.min(80, Math.floor(removed.length / 3))), drop = [];
+    for (let i = 0; i < cnt; i++) { const q = removed[Math.floor(i / cnt * removed.length)]; drop.push([Math.round(q.x + rnd(-8, 8)), Math.round(q.y + rnd(-8, 8))]); }
+    room.sim.drop(room, drop, lost * .5 / cnt); }
+  w.selfCD = .8;
+}
+const nearestIdx = (w, x, y) => { let bi = 8, bd = 1e18; w.pts.forEach((q, i) => { const d = (q.x - x) ** 2 + (q.y - y) ** 2; if (d < bd) { bd = d; bi = i; } }); return Math.max(bi, 8); };
+function hurtBoss(room, b, dmg, by) { if (!b || !b.alive || !b.isBoss) return; b.hp -= dmg; if (b.hp <= 0) { b.hp = 0; killBot(room, b, by); } }
+
+function collide(S, room) {
+  for (const w of room.bots.values()) {
+    if (!w.alive || w.safe > 0) continue; const h = w.pts[0], r = rOf(w.mass), cx = Math.floor(h.x / CS), cy = Math.floor(h.y / CS);
+    let hit = null, hitIdx = 0, cut = -1;
+    for (let gx = cx - 1; gx <= cx + 1 && !hit; gx++) for (let gy = cy - 1; gy <= cy + 1 && !hit; gy++) { const a = S.bgrid.get(key(gx, gy)); if (!a) continue;
+      for (let k = 0; k < a.length; k += 2) { const o = a[k], idx = a[k + 1]; if (!o.alive) continue;
+        if (o === w && (idx < SELF_IDX || w.selfCD > 0)) continue; if (o !== w && (ally(o, w) || o.ghost > 0)) continue;
+        const q = o.pts[idx]; if (!q) continue; const rr = r * .7 + rOf(o.mass) * .9, dx = q.x - h.x, dy = q.y - h.y;
+        if (dx * dx + dy * dy < rr * rr) { if (o === w) { if (cut < 0 || idx < cut) cut = idx; } else { hit = o; hitIdx = idx; break; } } } }
+    if (hit && w.isBoss) {   // บอสชนใคร → ขบวนนั้นขาด (บอสไม่ตาย)
+      w.safe = .8;
+      if (hit.human) S.bcast(room, { t: 'cut', by: 0, v: hit.pid, x: Math.round(h.x), y: Math.round(h.y) }); else cutBot(room, hit, Math.max(hitIdx, 8));
+    } else if (hit) killBot(room, w, hit);
+    else if (cut > 0) cutBot(room, w, cut);
+  }
+}
+
+function eat(S, room) {
+  const gone = [], wgone = [];
+  for (const w of room.bots.values()) {
+    if (!w.alive) continue; const h = w.pts[0], r = rOf(w.mass), lb = (LOCO_PERK[w.loco] || LOCO_PERK.classic).pick, reach = r + 14 + lb + 12;
+    const x0 = Math.floor((h.x - reach) / CS), x1 = Math.floor((h.x + reach) / CS), y0 = Math.floor((h.y - reach) / CS), y1 = Math.floor((h.y + reach) / CS);
+    for (let gx = x0; gx <= x1; gx++) for (let gy = y0; gy <= y1; gy++) { const a = S.fgrid.get(key(gx, gy)); if (!a) continue;
+      for (const fd of a) { if (fd.eaten) continue; const fr = 3 + Math.sqrt(fd[3]) * 2.4, er = r + fr + 6 + lb, dx = fd[1] - h.x, dy = fd[2] - h.y;
+        if (dx * dx + dy * dy < er * er && room.foods.delete(fd[0])) { fd.eaten = true; room.exp.delete(fd[0]); w.mass += fd[3] * GROW; gone.push(fd[0]); } } }
+    for (const wd of room.whites.values()) if (Math.hypot(wd[1] - h.x, wd[2] - h.y) < r + 20 + lb) { room.whites.delete(wd[0]); wgone.push(wd[0]); w.energy = Math.min((LOCO_PERK[w.loco] || LOCO_PERK.classic).en, w.energy + 5); }
+  }
+  if (gone.length) S.bcast(room, { t: 'fr', f: gone });
+  for (const id of wgone) S.bcast(room, { t: 'wr', id });
+}
+
+function fill(S, room, dt) {
+  const live = [...room.bots.values()].filter(b => b.alive && !b.isBoss);
+  if (room.ffa) {
+    const want = Math.max(0, FFA_MAX - room.players.size); let n = live.length;
+    if (n < want) { const add = n < want - 2 ? want - n - 2 : (Math.random() < .03 ? 1 : 0); for (let i = 0; i < add; i++) spawnBot(room); }
+    else if (n > want && (S.trimT -= dt) <= 0) { S.trimT = .4;   // คนจริงเข้ามา → เอาบอทที่ไกลคนที่สุดออกทีละตัว
+      const hs = [...room.players.values()].filter(p => p.body).map(p => p.body.pts[0]); let far = null, fd = -1;
+      for (const b of live) { const h = b.pts[0]; let d = 1e9; for (const q of hs) d = Math.min(d, Math.hypot(q.x - h.x, q.y - h.y)); if (d > fd) { fd = d; far = b; } }
+      if (far) killBot(room, far, null, 'trim'); }
+    if (!S.boss || !S.boss.alive) { S.boss = null; S.bossT -= dt; if (S.bossT <= 0 && room.players.size) { S.bossT = D.boss; spawnBot(room, { boss: true }); } }
+  } else if (room.phase === 'play') {
+    const hum = { A: 0, B: 0 }; for (const p of room.players.values()) if (hum[p.team] !== undefined) hum[p.team]++;
+    for (const t of ['A', 'B']) { const mine = live.filter(b => b.team === t), want = Math.max(0, TEAM_MAX - hum[t]);
+      if (mine.length > want) killBot(room, mine[0], null, 'trim');
+      else if (mine.length < want) { S.vsT[t] -= dt; if (S.vsT[t] <= 0) { for (let i = mine.length; i < want; i++) spawnBot(room, { team: t }); S.vsT[t] = 3; } } else S.vsT[t] = 3; }
+  }
+}
+
+// ---------- เรียกจาก server.js ----------
+function ensure(room, bcast, drop) {
+  if (!room.sim || room.sim.R !== room.cfg.R) room.sim = { R: room.cfg.R, world: buildWorld(room.cfg.R), bossT: D.boss, boss: null, trimT: 0, vsT: { A: 0, B: 0 }, bgrid: new Map(), fgrid: new Map() };
+  room.sim.bcast = bcast; room.sim.drop = drop; return room.sim;
+}
+function step(room, dt, bcast, drop) {
+  if (!room.ffa && room.phase !== 'play') return;
+  const S = ensure(room, bcast, drop);
+  syncPlayers(room); fill(S, room, dt);
+  if (!room.bots.size) return;
+  S.fgrid = new Map(); for (const fd of room.foods.values()) { const k = key(Math.floor(fd[1] / CS), Math.floor(fd[2] / CS)); let a = S.fgrid.get(k); if (!a) S.fgrid.set(k, a = []); a.push(fd); }
+  const SUB = 3, f = dt * 60 / SUB, sdt = dt / SUB;   // คำนวณ 60 ครั้ง/วิ (3 รอบย่อยต่อ tick) ให้ชนแม่นเหมือนในเกม
+  for (let s = 0; s < SUB; s++) {
+    const trains = allTrains(room); S.bgrid = buildGrid(trains);
+    for (const w of room.bots.values()) if (w.alive) aiThink(S, room, w, f, trains);
+    for (const w of room.bots.values()) if (w.alive) moveBot(S, room, w, f, sdt);
+    S.bgrid = buildGrid(allTrains(room)); collide(S, room);
+  }
+  eat(S, room);
+  const ts = Date.now();
+  for (const w of room.bots.values()) { if (!w.alive) continue; const h = w.pts[0];
+    w.st = [w.id, Math.round(h.x), Math.round(h.y), +w.angle.toFixed(2), +w.mass.toFixed(1), (w.boost && w.energy > 0 ? 1 : 0) | 4 | (w.slow > 0 ? 8 : 0) | (w.safe > 0 ? 16 : 0) | (w.ghost > 0 ? 32 : 0), ts];
+    if (w.isBoss) w.st.push(Math.ceil(w.hp)); }
+}
+// การกระทำของผู้เล่นที่มีผลกับบอท
+function onBomb(room, by, x, y) { if (!room.sim) return;
+  for (const w of [...room.bots.values()]) { if (!w.alive || (by.team && w.team === by.team)) continue;
+    if (w.pts.some((q, i) => i % 3 === 0 && (q.x - x) ** 2 + (q.y - y) ** 2 < BOMB_R * BOMB_R)) { if (w.isBoss) hurtBoss(room, w, BOSS_DMG_BOMB, by.body || { human: true, pid: by.id }); else killBot(room, w, by.body || { human: true, pid: by.id }, 'bomb'); } } }
+function onFreeze(room, by, x, y) { for (const w of room.bots.values()) if (w.alive && !(by.team && w.team === by.team) && Math.hypot(w.pts[0].x - x, w.pts[0].y - y) < FREEZE_R) w.slow = FREEZE_T; }
+function onCut(room, by, v, x, y) { const w = room.bots.get(v); if (!w || !w.alive || (by.team && w.team === by.team)) return; cutBot(room, w, nearestIdx(w, x, y)); }
+function onBossHit(room, by, id, d) { const w = room.bots.get(id); if (w && w.isBoss) hurtBoss(room, w, Math.max(0, Math.min(60, +d || 0)), by.body || { human: true, pid: by.id }); }
+function clear(room) { room.bots.clear(); if (room.sim) { room.sim.boss = null; room.sim.vsT = { A: 0, B: 0 }; } }
+
+module.exports = { step, onBomb, onFreeze, onCut, onBossHit, clear, buildWorld };
