@@ -106,6 +106,27 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .rankbox .rk1{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
 .rankbox b{font-size:16px}.rankbox span{font-size:12px;color:#aab3e6;white-space:nowrap}.rankbox i{font-style:normal}
 .rankbox small{display:block;font-size:11px;color:#8891c4;margin-top:3px}
+/* หน้าแรก: จัดกลุ่มให้อ่านง่าย */
+.card{background:#151a36;border:1px solid #2a3264;border-radius:16px;padding:12px 12px 6px;margin-top:4px}
+.card .gnote{margin:8px 0 0}
+.lbl{font-size:12px;color:#8891c4;text-align:left;margin:10px 2px 0;font-weight:600;letter-spacing:.3px}
+.card .skins{margin:6px -4px 4px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:5px 6px;touch-action:pan-x;scrollbar-width:none}
+.card .skins::-webkit-scrollbar{display:none}.card .skin{flex:0 0 32px}
+#rankMenu .rankbox{margin-top:12px}
+@media (max-height:720px){#menu h1{font-size:32px}#menu .sub{margin-bottom:8px}.btn.play{padding:8px 10px 7px}.btn.play .bt{font-size:16px}}
+.btn.play{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 12px 9px;margin-top:8px}
+.btn.play .bt{font-size:17px;line-height:1.25}
+.btn.play small{font-size:11.5px;font-weight:400;opacity:.82;line-height:1.3}
+.btn.team.play small{opacity:.92}
+.row4.four{grid-template-columns:repeat(4,1fr);margin-top:14px}
+.row4.four .mbtn{padding:8px 2px 7px;font-size:12px}
+.row4.four .mbtn b{display:block;font-size:20px;line-height:1.2;font-weight:400}
+.best{font-size:12.5px;color:#ffd23f;margin-top:10px;min-height:0}
+.best:empty{display:none}
+#menu .help{margin-top:6px;font-size:11.5px}
+.hlist{text-align:left;font-size:13.5px;line-height:1.6;margin:0;padding:0;list-style:none}
+.hlist li{background:#0f1330;border-radius:10px;padding:7px 10px;margin-bottom:6px}
+.hlist li b{color:#ffd23f}
 .tabs.wrap{flex-wrap:wrap;gap:5px}.tabs.wrap .tab{flex:1 0 21%;font-size:12px;padding:6px 2px}
 .item.deal{border:2px solid #ffd23f}.item .old{text-decoration:line-through;color:#8891c4;margin-right:4px}
 .tag{display:inline-block;font-size:10px;font-weight:600;border-radius:6px;padding:1px 6px;margin-left:4px;background:#ff5e5e;color:#fff;vertical-align:1px}
@@ -123,20 +144,25 @@ input.locked{opacity:.75;border-color:#7cfc9a}
     <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button></span></div>
     <h1>รถไฟซ่า.io</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
-    <input id="name" maxlength="14" placeholder="ตั้งชื่อรถไฟของคุณ">
-    <div id="rankMenu"></div>
-    <div class="gnote hidden" id="guestNote">👻 โหมด Guest: เหรียญ แรงก์ และของในร้านจะ<b>ไม่ถูกบันทึก</b> · <u id="guestReg">ลงทะเบียน</u></div>
-    <div class="skins" id="skins"></div>
-    <button class="btn" id="playInf">🌍 เล่นออนไลน์ (สูงสุด 30 คน)</button>
-    <button class="btn alt" id="playBot">🤖 เล่นกับบอท (เลือกความยากได้)</button>
-    <button class="btn team" id="playOnline">🌐 ออนไลน์ 2v2 กับเพื่อน</button>
-    <div class="row4">
-      <button class="mbtn" id="bShop">🛒<br>ร้านค้า</button>
-      <button class="mbtn" id="bMis">📋<br>ภารกิจ<span class="dot hidden" id="misDot"></span></button>
-      <button class="mbtn" id="bAch">🏅<br>เหรียญตรา</button>
+    <div class="card">
+      <input id="name" maxlength="14" placeholder="ตั้งชื่อรถไฟของคุณ">
+      <div class="gnote hidden" id="guestNote">👻 เล่นแบบ Guest — เหรียญ แรงก์ และของในร้าน<b>จะไม่ถูกบันทึก</b> · <u id="guestReg">ลงทะเบียน</u></div>
+      <div class="lbl">🎨 สีรถไฟ <span style="font-weight:400">(เลื่อนดูได้ ›)</span></div>
+      <div class="skins" id="skins"></div>
     </div>
+    <div class="lbl" style="margin-top:12px">เลือกโหมด</div>
+    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>เจอผู้เล่นจริง · สูงสุด 30 ขบวน (คนไม่ครบเติมบอท)</small></button>
+    <button class="btn alt play" id="playBot"><span class="bt">🤖 เล่นกับบอท</span><small>เล่นคนเดียว · เลือกความยาก Easy / Normal / Hard</small></button>
+    <button class="btn team play" id="playOnline"><span class="bt">🌐 2v2 กับเพื่อน</span><small>สร้างห้องแข่งทีม · คนไม่ครบเติมบอทให้</small></button>
+    <div id="rankMenu"></div>
+    <div class="row4 four">
+      <button class="mbtn" id="bShop"><b>🛒</b>ร้านค้า</button>
+      <button class="mbtn" id="bMis"><b>📋</b>ภารกิจ<span class="dot hidden" id="misDot"></span></button>
+      <button class="mbtn" id="bAch"><b>🏅</b>เหรียญตรา</button>
+      <button class="mbtn" id="bHelp"><b>❓</b>วิธีเล่น</button>
+    </div>
+    <div class="best" id="best"></div>
     <div class="help" id="help"></div>
-    <div class="help" id="best"></div>
   </div>
 </div>
 
@@ -217,7 +243,7 @@ const GROW=.7,FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=480,FREEZE_R=650;
 const ICON_HTML={G:'<svg viewBox="0 0 24 18" width="1.35em" height="1em" style="vertical-align:-.15em"><g fill="#ffd23f" stroke="#8a5a00" stroke-width="1.2"><path d="M1 17h10l-2-5H3z"/><path d="M13 17h10l-2-5h-6z"/><path d="M7 11h10l-2-5H9z"/></g></svg>',
   B:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" style="vertical-align:-.2em"><circle cx="10" cy="14" r="8" fill="#22252f" stroke="#7a82a8" stroke-width="1.2"/><circle cx="7" cy="11" r="2.2" fill="#fff" opacity=".55"/><rect x="13" y="4.5" width="4" height="4" fill="#8a6a3a" transform="rotate(35 15 6.5)"/><path d="M16.5 5q2.5-4 5.5-2" stroke="#c9a36a" fill="none" stroke-width="1.6"/><circle cx="22" cy="3" r="2" fill="#ffd23f"/></svg>'};
 const iconize=h=>h.replace(/\{([GB])\}/g,(_,k)=>ICON_HTML[k]);
-const BOMB_LIFE=60;
+const BOMB_LIFE=30,GOLD_LIFE=30;   // ระเบิดต้องใช้ใน 30 วิ · ร่างทองอยู่ได้ 30 วิ (ไม่ชนใครก็หมดไป)
 const GOLD_SKIN=['#ffd23f','#ffb000','#fff1a8'],BOSS_SKIN=['#3a0d0d','#ff3b3b','#1a1a1a'];
 
 // =====================================================================
@@ -755,8 +781,8 @@ function step(f,dt){
     if(ate&&w.isP)sfx('eat');
     for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
       if(NET)netSend({t:'white',id:wd.id});if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites')}}}
-    if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'{G} ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
-    if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(BOMB_LIFE);tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน 1 นาที',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
+    if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;w.goldT=GOLD_LIFE;goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'{G} ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง ภายใน 30 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
+    if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(BOMB_LIFE);tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน 30 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
     if(!(NET&&w.isBot))for(const p of pups){if(p.dead)continue;if(Math.hypot(p.x-h.x,p.y-h.y)<r+20){p.dead=true;if(w.isP)track('pups');
       if(NET&&w.isP)netSend({t:'pu',id:p.id});
       if(p.type==='freeze'){const n=!NET||NET.host?freezeAround(w,h.x,h.y):0;if(NET){netSend({t:'frz',x:Math.round(h.x),y:Math.round(h.y)});booms.push({x:h.x,y:h.y,t:0,ice:1})}
@@ -793,6 +819,7 @@ function step(f,dt){
   for(const e of booms)e.t+=dt;booms=booms.filter(e=>e.t<1.1);if(shake>0)shake-=dt;
   if(player&&player.bombT.length){for(let i=0;i<player.bombT.length;i++)player.bombT[i]-=dt;
     while(player.bombT.length&&player.bombT[0]<=0){player.bombT.shift();player.tgs=Math.max(0,player.tgs-1);if(player.alive){announce('{B} ระเบิดหมดเวลา หายไปแล้ว!');sfx('die')}}}
+  if(player&&player.gold&&player.goldT!==undefined){player.goldT-=dt;if(player.goldT<=0){player.gold=false;player.goldT=undefined;if(player.alive){announce('{G} ร่างทองหมดเวลาแล้ว!');sfx('die')}}}
   if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);trackMax('maxLen',player.mass)}}
   if(hornCD>0)hornCD-=dt;
   for(const t of texts){t.t-=dt;t.y-=30*dt}texts=texts.filter(t=>t.t>0);
@@ -1028,7 +1055,7 @@ function drawHUD2(){
   const chip=(txt,col,frac)=>{ctx.font='13px Mitr,sans-serif';const cw=Math.max(160,textW(txt)+18);ctx.fillStyle='rgba(15,19,48,.7)';roundRect(pad,py,cw,26,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(pad,py,cw*Math.min(1,frac),26,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
     ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';fillTextIcons(txt,pad+8,py+18);py+=30};
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/MAX_EN);
-  if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง','#ffd23f',1);
+  if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/GOLD_LIFE);
   if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=10?'#ff5e5e':'#ff8c42',player.bombT[0]/BOMB_LIFE);
   if(player.onRail&&player.alive)chip('🛤️ วิ่งบนราง เร็ว x1.6','#ffb35e',1);
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
@@ -1175,8 +1202,18 @@ function renderBotSheet(b){
 }
 $('again').onclick=()=>{if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
-$('help').innerHTML=iconize((IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง')+
-  '<br>🌍 ออนไลน์ = โลกเดียวกันสูงสุด 30 ขบวน คนไม่ครบเติมบอท (Normal) · 🤖 เล่นกับบอท = เลือกความยากเอง<br>💎 เพชรขาว = เร่ง 5 วิ · 🛤️ ราง = เร็วฟรี · 🚇 อุโมงค์ = วาร์ป<br>🚉 สถานี = แลกตู้เป็นเหรียญ · ❄️ แช่แข็งศัตรู · {G} ร่างทอง · {B} ระเบิด (ใช้ใน 1 นาที)<br>👑 บอสยักษ์มีพลัง ชนลำตัว/ชนหัวบอสเพื่อลดพลัง ล้มได้ 500 🪙 · ชนขบวนตัวเอง = ขบวนขาด');
+$('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง';
+const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
+  ['🎮 บังคับ',IS_TOUCH?'แตะค้างแล้วลากเพื่อเลี้ยว · ปุ่ม <b>เร่ง!</b> พุ่ง · 💣 ระเบิด · 📯 หวูด':'เมาส์เลี้ยว · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง'],
+  ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ถึง 20 วิ)'],
+  ['🛤️ ราง / 🚇 อุโมงค์','วิ่งบนรางเร็วขึ้น ×1.6 · ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
+  ['🚉 สถานี','ขับผ่านสถานีเพื่อแลกตู้เป็นเหรียญ'],
+  ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ'],
+  ['{B} ระเบิด','กำจัดทุกขบวนรอบตัว ต้องใช้ภายใน 30 วิ'],
+  ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
+  ['👑 บอสยักษ์','มีพลังชีวิต ชนลำตัว/หัวบอสเพื่อลดพลัง ล้มได้ 500 🪙'],
+  ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย']];
+$('bHelp').onclick=()=>openSheet('❓ วิธีเล่น',b=>{b.innerHTML='<ul class="hlist">'+HOWTO.map(([t,d])=>`<li><b>${t}</b><br>${d}</li>`).join('')+'</ul>';b.innerHTML=iconize(b.innerHTML)});
 function renderSkins(){const sk=$('skins');sk.innerHTML='';const list=allSkins();if(!list[selSkin]||!list[selSkin].own)selSkin=0;
   list.forEach((s,i)=>{const d=document.createElement('div');d.className='skin'+(i===selSkin?' sel':'')+(s.own?'':' lock');
     d.style.background=s.c.length>2?`conic-gradient(${s.c.join(',')},${s.c[0]})`:`linear-gradient(135deg,${s.c[0]} 50%,${s.c[1]} 50%)`;
@@ -1334,11 +1371,12 @@ function playEndless(room){
   autoFS();
   audioInit();try{localStorage.setItem('wormName',playerName())}catch(e){}
   if(!/^https?:$/.test(location.protocol)){startGame('inf');return}
-  $('playInf').disabled=true;$('playInf').textContent='กำลังเข้าโลกออนไลน์...';
+  $('playInf').disabled=true;$('playInf').innerHTML='<span class="bt">⏳ กำลังเข้าโลกออนไลน์...</span><small>รอสักครู่ (เซิร์ฟเวอร์อาจกำลังตื่น)</small>';
   netConnect(room||'','', 'ffa');
 }
 function endlessFallback(){resetPlayBtn();startGame('inf');announce('📴 ต่อเซิร์ฟเวอร์ไม่ได้ เล่นออฟไลน์กับบอทแทน')}
-function resetPlayBtn(){$('playInf').disabled=false;$('playInf').textContent='🌍 เล่นออนไลน์ (สูงสุด 30 คน)'}
+const PLAY_INF_HTML=$('playInf').innerHTML;
+function resetPlayBtn(){$('playInf').disabled=false;$('playInf').innerHTML=PLAY_INF_HTML}
 function resetItemsKeep(){booms=[];shrinkWarned=false}
 function renderInvite(b,code){
   b.innerHTML=`<div class="help" style="margin:0 0 10px">เพื่อนชวนเข้าโลก <b style="color:#ffd23f;letter-spacing:2px">${code}</b><br>ทุกคนอยู่ในสนามเดียวกันกับบอท (ชนกันได้ แข่งกันยาว!) · คนจริงเข้ามา บอทจะหายไปแทน</div>
