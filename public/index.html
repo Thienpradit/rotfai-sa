@@ -329,7 +329,7 @@ for(const c of[...FOOD_COLORS,'#ffffff']){
 const GK=Object.keys(GEMS);
 // เครื่องประดับ (เจ้าของขอ 6 พ.ย. 2026): 💍 แหวน / 📿 สร้อย / ต่างหู — เก็บ 1 ชิ้น = พลอย 5 เม็ด (JEWEL_V) · เกิดนาน ๆ ที (JEWEL_P ของพลอยที่เกิดเอง)
 // ออนไลน์ใช้ช่องสีพลอย index 7/8/9 (เซิร์ฟเวอร์ส่งมา) · ภาพวาดเองลง canvas
-const JEWEL_V=5,JEWEL_P=.015,JEWEL_NAME=['💍 แหวน','📿 สร้อยคอ','✨ ต่างหู'],JEWELS=[];
+const JEWEL_V=5,JEWEL_P=.06,JEWEL_CLEAR=110,JEWEL_NAME=['💍 แหวน','📿 สร้อยคอ','✨ ต่างหู'],JEWELS=[];
 for(let j=0;j<3;j++){const S=96,g=document.createElement('canvas');g.width=g.height=S;const x=g.getContext('2d');x.translate(S/2,S/2);x.lineCap='round';
   const gold=(w,col)=>{x.lineWidth=w+3;x.strokeStyle='#8a5a00';x.stroke();x.lineWidth=w;x.strokeStyle=col||'#ffd23f';x.stroke();x.lineWidth=w*.35;x.strokeStyle='rgba(255,250,210,.9)';x.stroke()};
   const gem=(cx,cy,r,col)=>x.drawImage(GEMS[col],cx-r,cy-r,r*2,r*2);
@@ -763,7 +763,13 @@ function gemInWorld(m){const a=Math.random()*TAU,r=Math.pow(Math.random(),.8)*Ma
 function randInWorld(m){const a=Math.random()*TAU,r=Math.sqrt(Math.random())*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
 function mkFood(x,y,v,id,ci,ttl){const j=ci>=7&&ci<=9?ci-7:undefined;return{id,x,y,v,ttl:+ttl||0,r:3+Math.sqrt(v)*2.4,c:FOOD_COLORS[j!==undefined?0:ci??((Math.random()*FOOD_COLORS.length)|0)],j,ph:Math.random()*TAU,dead:false}}
 const DROP_TTL=30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วิ ถ้าไม่มีใครเก็บจะหายไป
-function addFood(x,y,v,ttl){if(NET)return;let ci;if(x===undefined){[x,y]=gemInWorld(40);if(!v&&Math.random()<JEWEL_P){v=JEWEL_V;ci=7+((Math.random()*3)|0)}}foods.push(mkFood(x,y,v||1,undefined,ci,ttl))}
+// 💍 เกิดเครื่องประดับ 6% · รอบ ๆ ไม่มีพลอย (JEWEL_CLEAR) · เพดานพลอยนับเครื่องประดับเป็น 5 เม็ด (foodW) — ตรงกับ server.js
+const nearJewel=(x,y)=>foods.some(f=>f.j!==undefined&&!f.dead&&(f.x-x)**2+(f.y-y)**2<JEWEL_CLEAR*JEWEL_CLEAR);
+const foodW=()=>{let n=0;for(const f of foods)if(!f.dead)n+=f.j!==undefined?JEWEL_V:1;return n};
+function addFood(x,y,v,ttl){if(NET)return;let ci;
+  if(x===undefined){if(!v&&Math.random()<JEWEL_P){v=JEWEL_V;ci=7+((Math.random()*3)|0);[x,y]=gemInWorld(40);for(const f of foods)if(f.j===undefined&&!f.ttl&&(f.x-x)**2+(f.y-y)**2<JEWEL_CLEAR*JEWEL_CLEAR)f.dead=true}
+    else for(let k=0;k<6;k++){[x,y]=gemInWorld(40);if(!nearJewel(x,y))break}}
+  foods.push(mkFood(x,y,v||1,undefined,ci,ttl));return v===JEWEL_V&&ci?JEWEL_V:1}
 function addPu(){const[x,y]=randInWorld(150),k=Object.keys(PU_TYPES);pups.push({x,y,type:k[(Math.random()*k.length)|0],dead:false,ph:Math.random()*TAU})}
 function addWhite(){const[x,y]=gemInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
 const key=(cx,cy)=>(cx+500)*1000+(cy+500);
@@ -1083,7 +1089,7 @@ function step(f,dt){
     if(goldItem&&goldItem.x**2+goldItem.y**2>(AR-60)**2)goldItem=null;
     if(tgsItem&&tgsItem.x**2+tgsItem.y**2>(AR-60)**2)tgsItem=null;
     if(state==='play'&&!bossActive){bossTimer-=dt;if(bossTimer<=0)spawnBoss()}
-    for(let i=0;i<12&&foods.length<FOOD_N;i++)addFood();
+    {let fw=foodW();for(let i=0;i<12&&fw<FOOD_N;i++)fw+=addFood()}
     if(pups.length<PU_N&&Math.random()<.02)addPu();
     worms=worms.filter(w=>w.alive||w.isP);
     const ai=worms.filter(w=>!w.isP&&!w.isBoss).length;if(ai<D().ai&&Math.random()<.03)spawnAI();
@@ -1441,7 +1447,7 @@ function startGame(m){
   audioInit();
   if(NET)netLeave(true);
   WR=AR=3000;buildWorld(WR);
-  if(!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let i=0;i<FOOD_N;i++)addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_N;i++)addWhite()}
+  if(!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let w=0;w<FOOD_N;)w+=addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_N;i++)addWhite()}
   worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBoss);bossActive=null;bossTimer=D().boss;
   {let ais=worms.filter(w=>w.alive);while(ais.length>D().ai){const k=(Math.random()*ais.length)|0;ais[k].alive=false;ais.splice(k,1)}worms=worms.filter(w=>w.alive);while(ais.length<D().ai){spawnAI();ais.push(1)}}
   mode=m;timeLeft=300;resetItems();roundCoins=0;roundRP=0;
@@ -1906,7 +1912,7 @@ function netEnd(m){
 //  init + loop
 // =====================================================================
 buildWorld(WR);
-for(let i=0;i<FOOD_N;i++)addFood();
+for(let w=0;w<FOOD_N;)w+=addFood();
 for(let i=0;i<PU_N;i++)addPu();
 for(let i=0;i<WHITE_N;i++)addWhite();
 for(let i=0;i<D().ai;i++)spawnAI();

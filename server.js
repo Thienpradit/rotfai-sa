@@ -50,10 +50,18 @@ function bcast(room, o, except) { const s = JSON.stringify(o); for (const p of r
 const clean = (s, n) => String(s || '').replace(/[<>&]/g, '').slice(0, n);
 
 const DROP_TTL = 30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วินาที ถ้าไม่มีใครเก็บจะหายไป
-const JEWEL_V = 5, JEWEL_P = .015;   // 💍📿 เครื่องประดับ (สีพลอย index 7/8/9) = พลอย 5 เม็ด เกิดนาน ๆ ที — ต้องตรงกับ index.html
-function newFood(room, x, y, v, ttl) {
+// 💍📿 เครื่องประดับ (สีพลอย index 7/8/9) = พลอย 5 เม็ด — ต้องตรงกับ index.html
+// 6% ของของที่เกิดเอง · รอบ ๆ เครื่องประดับ (JEWEL_CLEAR) ไม่มีพลอย · นับเป็นพลอย 5 เม็ดในเพดานจำนวนพลอย (foodWeight) → พลอยรวมน้อยลง
+const JEWEL_V = 5, JEWEL_P = .06, JEWEL_CLEAR = 110;
+const isJewel = f => f[4] >= 7;
+const nearJewel = (room, x, y) => { for (const f of room.foods.values()) if (isJewel(f) && (f[1] - x) ** 2 + (f[2] - y) ** 2 < JEWEL_CLEAR * JEWEL_CLEAR) return true; return false; };
+function foodWeight(room) { let n = 0; for (const f of room.foods.values()) n += isJewel(f) ? JEWEL_V : 1; return n; }
+function newFood(room, x, y, v, ttl, gone) {
   let ci = (Math.random() * 7) | 0;
-  if (x === undefined) { [x, y] = gemIn(room, 40); if (!v && Math.random() < JEWEL_P) { v = JEWEL_V; ci = 7 + ((Math.random() * 3) | 0); } }
+  if (x === undefined) {
+    if (!v && Math.random() < JEWEL_P) { v = JEWEL_V; ci = 7 + ((Math.random() * 3) | 0); [x, y] = gemIn(room, 40);
+      for (const f of room.foods.values()) if (!isJewel(f) && !room.exp.has(f[0]) && (f[1] - x) ** 2 + (f[2] - y) ** 2 < JEWEL_CLEAR * JEWEL_CLEAR) { room.foods.delete(f[0]); if (gone) gone.push(f[0]); } }   // เคลียร์พลอยรอบ ๆ
+    else for (let k = 0; k < 6; k++) { [x, y] = gemIn(room, 40); if (!nearJewel(room, x, y)) break; } }
   const f = [room.nid++, Math.round(x), Math.round(y), Math.round((v || 1) * 100) / 100, ci];
   if (ttl) { f.push(ttl); room.exp.set(f[0], Date.now() + ttl * 1000); }
   room.foods.set(f[0], f); return f;
@@ -70,7 +78,7 @@ function getRoom(code, ffa) {
     const cfg = ffa ? CFG.ffa : CFG.vs;
     r = { key, code, ffa, diff: 'normal', cfg, players: new Map(), foods: new Map(), whites: new Map(), pups: new Map(), items: { tgs: null, gold: null },
       timers: { tgs: 30, gold: 50 }, phase: ffa ? 'play' : 'lobby', timeLeft: MATCH, nid: 1, bots: new Map(), exp: new Map() };
-    for (let i = 0; i < cfg.food; i++) newFood(r);
+    for (let w = 0; w < cfg.food;) w += isJewel(newFood(r)) ? JEWEL_V : 1;
     for (let i = 0; i < cfg.white; i++) newWhite(r);
     for (let i = 0; i < cfg.pu; i++) newPu(r);
     rooms.set(key, r);
@@ -221,7 +229,9 @@ setInterval(() => {
       if (gone.length) bcast(room, { t: 'fr', f: gone }); }
     // top up world
     const fa = [], cfg = room.cfg;
-    for (let i = 0; i < 10 && room.foods.size < cfg.food; i++) fa.push(newFood(room));
+    const fgone = []; let fw = foodWeight(room);
+    for (let i = 0; i < 10 && fw < cfg.food; i++) { const f = newFood(room, undefined, undefined, undefined, undefined, fgone); fa.push(f); fw += isJewel(f) ? JEWEL_V : 1; }
+    if (fgone.length) bcast(room, { t: 'fr', f: fgone });
     if (fa.length) bcast(room, { t: 'fa', f: fa });
     if (room.whites.size < cfg.white && Math.random() < .1) bcast(room, { t: 'wa', w: [newWhite(room)] });
     if (room.pups.size < cfg.pu && Math.random() < .03) bcast(room, { t: 'pa', p: [newPu(room)] });
