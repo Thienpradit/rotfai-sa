@@ -576,6 +576,13 @@ const MUS={on:true,bus:null,nb:null,mood:'main',bar:0,step:0,t:0,timer:null};
 const CH={F:[53,57,60],Dm:[50,53,57],Bb:[46,50,53],C:[48,52,55],Am:[45,48,52],A:[45,49,52],G:[43,47,50],D:[50,54,57],Em:[52,55,59],F2:[41,45,48],B:[47,51,54]};
 // หวูดรถไฟในเพลง (ปู๊น ปู๊น) / กระดิ่งสถานี (ติ๊ง)
 function mToot(t,len,vol){for(const m of[74,78,81]){mNote(m,t,len,'square',vol*.5,.02,1800);mNote(m,t,len,'sine',vol*.4,.03)}}
+// ไซเรน: pts=[[เวลา,ความถี่]...] ไล่ขึ้นลงแบบนุ่ม (หวอ) หรือ step=true สลับเสียงทันที (วี้-หว่อ) · sine + square กรองให้มีเนื้อเสียงแต่ไม่แสบหู
+function mSiren(t,dur,pts,vol,step){const c=SND.ctx,g=c.createGain(),f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=2600;
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.06);g.gain.setValueAtTime(vol,t+dur-.08);g.gain.linearRampToValueAtTime(0,t+dur);
+  for(const[type,v]of[['sine',1],['square',.22]]){const o=c.createOscillator(),og=c.createGain();o.type=type;og.gain.value=v;
+    o.frequency.setValueAtTime(pts[0][1],t);for(const[dt,fr]of pts.slice(1)){if(step)o.frequency.setValueAtTime(fr,t+dt);else o.frequency.linearRampToValueAtTime(fr,t+dt)}
+    o.connect(og);og.connect(f);o.start(t);o.stop(t+dur+.02)}
+  f.connect(g);g.connect(MUS.bus)}
 function mBell(t,vol){mNote(96,t,.9,'sine',vol,.002);mNote(100,t,.6,'sine',vol*.5,.002)}
 function mWhistle(m,t,dur,vol){const c=SND.ctx,o=c.createOscillator(),g=c.createGain(),l=c.createOscillator(),lg=c.createGain(),f=mtof(m);
   o.type='sine';o.frequency.setValueAtTime(f*.94,t);o.frequency.exponentialRampToValueAtTime(f,t+.05);l.frequency.value=6;lg.gain.value=f*.012;l.connect(lg);lg.connect(o.frequency);
@@ -644,7 +651,7 @@ const THEMES={
       if(st%2===0)mKick(t,.13);if(st===2||st===6){mPerc(t,.14,.06,1600);mNote(50,t,.08,'triangle',.05)}
       mPerc(t,.03,.01,8000);mPerc(t+e/2,.03,.006,8000);
       melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.95,'square',.022,.005,3200);mNote(m-12,t,e*l*.95,'triangle',.03)});chugga(t,e,.02)}},
-  // 👑 บอส (ใหม่ ระทึกกว่า): E minor 140 BPM (เดิม 172 เจ้าของว่าเร็วไป) เบส 16 ส่วน กลองรัว ไซเรน คอร์ดกระแทก ห้องสุดท้ายรัวกลองเร่งขึ้น
+  // 👑 บอส: E minor 140 BPM (เดิม 172 เร็วไป) · มีไซเรนหวอดังตลอดเพลง (mSiren) เบส 16 ส่วน กลองรัว ไซเรน คอร์ดกระแทก ห้องสุดท้ายรัวกลองเร่งขึ้น
   boss:{e:60/140/2,chords:['Em','Em','C','D','Em','Em','C','B'],
     mel:[[[0,76,1],[1,79,1],[2,83,1],[3,79,1],[4,88,2],[6,86,1],[7,83,1]],[[0,84,2],[2,83,1],[3,79,1],[4,76,2],[6,78,2]],
       [[0,79,1],[1,84,1],[2,88,1],[3,84,1],[4,91,2],[6,88,2]],[[0,86,1],[1,85,1],[2,86,1],[3,90,1],[4,93,2],[6,90,1],[7,86,1]],
@@ -657,11 +664,11 @@ const THEMES={
       mKick(t,.15);if(st===3||st===7||bar===7)mKick(t+h,.12);                                          // กลองกระเดื่องรัว
       if(bar===7&&st>=4){for(let k=0;k<2;k++)mPerc(t+k*h,.07,.03+.012*(st-4)+k*.006,1500)}else if(st===2||st===6)mPerc(t,.16,.075,1500);   // สแนร์ (ห้องสุดท้ายรัว)
       mPerc(t,.02,.012,9000);mPerc(t+h,.02,.008,9000);
-      if((bar===0||bar===4)&&st===0){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.type='sine';o.frequency.setValueAtTime(700,t);   // ไซเรนเตือนภัย
-        o.frequency.linearRampToValueAtTime(1150,t+e*2);o.frequency.linearRampToValueAtTime(700,t+e*4);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.025,t+.05);g.gain.linearRampToValueAtTime(0,t+e*4);
-        o.connect(g);g.connect(MUS.bus);o.start(t);o.stop(t+e*4+.05)}
+      // 🚨 ไซเรนหวอ (เจ้าของขอ): ห้อง 0–3 เสียงหวอขึ้น-ลงยาวทั้งห้อง · ห้อง 4–7 สลับสองเสียง "วี้-หว่อ" ทุกครึ่งจังหวะ
+      if(st===0){if(bar<4)mSiren(t,e*8,[[0,620],[e*4,1350],[e*8,620]],.05);
+        else{const pts=[];for(let k=0;k<=8;k++)pts.push([k*e,k%2?760:980]);mSiren(t,e*8,pts,.045,true)}}
       if(bar===7&&st===0)mPerc(t,e*8,.03,400);
-      melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.9,'square',.026,.003,3800);mNote(m-12,t,e*l*.9,'sawtooth',.016,.003,2000)})}}};
+      melAt(T,bar,st,(m,l)=>{mNote(m,t,e*l*.9,'square',.016,.003,3000);mNote(m-12,t,e*l*.9,'sawtooth',.012,.003,1800)})}}};
 const TRACKS=['main','country','chip','electro','calm'];
 {let v='main';try{v=localStorage.getItem('trainMus2')||'main'}catch(e){}MUS.track=v==='off'||TRACKS.includes(v)?v:'main';MUS.on=MUS.track!=='off'}
 function mNote(m,t0,dur,type,vol,att,lp){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(mtof(m),t0);
