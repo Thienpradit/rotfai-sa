@@ -1021,7 +1021,7 @@ function drawHUD2(){
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
   // minimap
-  const mr=Math.min(64,VW*.15),mx=pad+mr,my=py+mr+6,S=mr/WR;
+  const mr=Math.min(64,VW*.15),mx=pad+mr,my=py+mr+6,S=mr/WR;MINI_R=mr;
   ctx.fillStyle='rgba(15,19,48,.75)';ctx.beginPath();ctx.arc(mx,my,mr,0,TAU);ctx.fill();
   ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
@@ -1076,13 +1076,19 @@ function fillTextIcons(str,x,y){   // ข้อความที่มี {G}=�
   for(const p of parts){if(p==='{G}'){drawGoldIcon(cx+iw/2,y-fs*.32,fs*.8);cx+=iw}else if(p==='{B}'){drawBombIcon(cx+iw/2,y-fs*.32,fs*.95);cx+=iw}else if(p){ctx.fillStyle=col;ctx.fillText(p,cx,y);cx+=ctx.measureText(p).width}}
   ctx.fillStyle=col;ctx.textAlign=al}
 // มินิแมป: ตำแหน่งตัวเองให้เห็นชัด = เส้นขบวนสีเหลือง + วงกระพริบ + ลูกศรชี้ทิศ + ป้าย "คุณ"
+let MINI_R=64;const mr0=()=>MINI_R;
 function drawMiniMe(mx,my,S){const P=player.pts,h=P[0],hx=mx+h.x*S,hy=my+h.y*S,pl=Math.sin(frame*.15);
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   ctx.strokeStyle='rgba(255,210,63,.85)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(hx,hy);for(let i=6;i<P.length;i+=6)ctx.lineTo(mx+P[i].x*S,my+P[i].y*S);ctx.stroke();
   ctx.strokeStyle='rgba(255,210,63,'+(.55+.35*pl)+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(hx,hy,8+2.5*pl,0,TAU);ctx.stroke();
   ctx.translate(hx,hy);ctx.rotate(player.angle);ctx.fillStyle='#ffd23f';ctx.strokeStyle='#1a1f3d';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-4.5,4.5);ctx.lineTo(-2,0);ctx.lineTo(-4.5,-4.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
-  ctx.font='600 10px Mitr,sans-serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(15,19,48,.9)';ctx.strokeText('คุณ',hx,hy-12);ctx.fillStyle='#ffd23f';ctx.fillText('คุณ',hx,hy-12);ctx.textAlign='left'}
+  // ป้าย YOU: กล่องสีเหลืองตัวหนังสือเข้ม มีหางชี้ลงที่หัวรถไฟ · อยู่ในกรอบมินิแมปเสมอ (ถ้าอยู่ขอบบน ป้ายจะย้ายไปอยู่ใต้หัว)
+  ctx.font='700 11px Mitr,sans-serif';const tw=ctx.measureText('YOU').width+10,th=15,up=hy-th-14>=my-mr0();
+  const lx=Math.max(mx-mr0()+2,Math.min(mx+mr0()-tw-2,hx-tw/2)),ly=up?hy-12-th:hy+12;
+  ctx.fillStyle='#ffd23f';roundRect(lx,ly,tw,th,5);ctx.fill();ctx.strokeStyle='#1a1f3d';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.beginPath();if(up){ctx.moveTo(hx-4,ly+th);ctx.lineTo(hx+4,ly+th);ctx.lineTo(hx,ly+th+5)}else{ctx.moveTo(hx-4,ly);ctx.lineTo(hx+4,ly);ctx.lineTo(hx,ly-5)}ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();
+  ctx.fillStyle='#1a1f3d';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU',lx+tw/2,ly+th/2+1);ctx.textBaseline='alphabetic';ctx.textAlign='left'}
 function hpBar(x,y,w,h,f){f=Math.max(0,Math.min(1,f||0));ctx.fillStyle='rgba(0,0,0,.6)';roundRect(x-2,y-2,w+4,h+4,5);ctx.fill();ctx.fillStyle=f>.5?'#ff5e5e':f>.25?'#ff8c42':'#ffd23f';roundRect(x,y,w*f,h,4);ctx.fill()}
 function clip(s,w){if(ctx.measureText(s).width<=w)return s;while(s.length&&ctx.measureText(s+'…').width>w)s=s.slice(0,-1);return s+'…'}
 function roundRect(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h)}
