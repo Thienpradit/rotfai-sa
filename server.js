@@ -50,9 +50,11 @@ function bcast(room, o, except) { const s = JSON.stringify(o); for (const p of r
 const clean = (s, n) => String(s || '').replace(/[<>&]/g, '').slice(0, n);
 
 const DROP_TTL = 30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วินาที ถ้าไม่มีใครเก็บจะหายไป
+const JEWEL_V = 5, JEWEL_P = .015;   // 💍📿 เครื่องประดับ (สีพลอย index 7/8/9) = พลอย 5 เม็ด เกิดนาน ๆ ที — ต้องตรงกับ index.html
 function newFood(room, x, y, v, ttl) {
-  if (x === undefined) [x, y] = gemIn(room, 40);
-  const f = [room.nid++, Math.round(x), Math.round(y), Math.round((v || 1) * 100) / 100, (Math.random() * 7) | 0];
+  let ci = (Math.random() * 7) | 0;
+  if (x === undefined) { [x, y] = gemIn(room, 40); if (!v && Math.random() < JEWEL_P) { v = JEWEL_V; ci = 7 + ((Math.random() * 3) | 0); } }
+  const f = [room.nid++, Math.round(x), Math.round(y), Math.round((v || 1) * 100) / 100, ci];
   if (ttl) { f.push(ttl); room.exp.set(f[0], Date.now() + ttl * 1000); }
   room.foods.set(f[0], f); return f;
 }

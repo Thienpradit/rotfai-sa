@@ -326,6 +326,18 @@ for(const c of[...FOOD_COLORS,'#ffffff']){
   GEMS[c]=g;
 }
 const GK=Object.keys(GEMS);
+// เครื่องประดับ (เจ้าของขอ 6 พ.ย. 2026): 💍 แหวน / 📿 สร้อย / ต่างหู — เก็บ 1 ชิ้น = พลอย 5 เม็ด (JEWEL_V) · เกิดนาน ๆ ที (JEWEL_P ของพลอยที่เกิดเอง)
+// ออนไลน์ใช้ช่องสีพลอย index 7/8/9 (เซิร์ฟเวอร์ส่งมา) · ภาพวาดเองลง canvas
+const JEWEL_V=5,JEWEL_P=.015,JEWEL_NAME=['💍 แหวน','📿 สร้อยคอ','✨ ต่างหู'],JEWELS=[];
+for(let j=0;j<3;j++){const S=96,g=document.createElement('canvas');g.width=g.height=S;const x=g.getContext('2d');x.translate(S/2,S/2);x.lineCap='round';
+  const gold=(w,col)=>{x.lineWidth=w+3;x.strokeStyle='#8a5a00';x.stroke();x.lineWidth=w;x.strokeStyle=col||'#ffd23f';x.stroke();x.lineWidth=w*.35;x.strokeStyle='rgba(255,250,210,.9)';x.stroke()};
+  const gem=(cx,cy,r,col)=>x.drawImage(GEMS[col],cx-r,cy-r,r*2,r*2);
+  if(j===0){x.beginPath();x.ellipse(0,12,25,23,0,0,TAU);gold(8);gem(0,-17,19,'#77ccff')}                                    // แหวน: วงทอง + เพชรสีฟ้าบนหัว
+  else if(j===1){x.beginPath();x.moveTo(-34,-34);x.quadraticCurveTo(-30,22,0,24);x.quadraticCurveTo(30,22,34,-34);x.setLineDash([1,7]);gold(6);x.setLineDash([]);   // สร้อย: โซ่ทอง + จี้
+    x.beginPath();x.moveTo(0,22);x.lineTo(0,28);gold(3);gem(0,36,13,'#ff6b9a')}
+  else for(const sx of[-1,1]){const cx=sx*20;x.beginPath();x.arc(cx,-28,9,Math.PI*1.1,Math.PI*.15,false);gold(4);              // ต่างหู: ตะขอทอง + หยดพลอยห้อย
+    x.beginPath();x.moveTo(cx,-19);x.lineTo(cx,-6);gold(3);x.beginPath();x.arc(cx,-4,5,0,TAU);x.fillStyle='#ffd23f';x.fill();gem(cx,14,15,'#7cfc9a')}
+  JEWELS.push(g)}
 const PU_TYPES={magnet:{icon:'🧲',col:'#ff5e5e',label:'แม่เหล็ก'},x3:{icon:'⭐',col:'#ffd23f',label:'โต x3'},speed:{icon:'⚡',col:'#77ccff',label:'ความเร็ว'},freeze:{icon:'❄️',col:'#9be7ff',label:'แช่แข็ง'}};
 const GROW=.7,FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=480,FREEZE_R=650;
 const ICON_HTML={G:'<svg viewBox="0 0 24 18" width="1.35em" height="1em" style="vertical-align:-.15em"><g fill="#ffd23f" stroke="#8a5a00" stroke-width="1.2"><path d="M1 17h10l-2-5H3z"/><path d="M13 17h10l-2-5h-6z"/><path d="M7 11h10l-2-5H9z"/></g></svg>',
@@ -682,9 +694,9 @@ loadBest();
 // พลอย/เพชรขาว กระจุกกลางสนามมากกว่าขอบ (เหมือน gemIn ใน server.js)
 function gemInWorld(m){const a=Math.random()*TAU,r=Math.pow(Math.random(),.8)*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
 function randInWorld(m){const a=Math.random()*TAU,r=Math.sqrt(Math.random())*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
-function mkFood(x,y,v,id,ci,ttl){return{id,x,y,v,ttl:+ttl||0,r:3+Math.sqrt(v)*2.4,c:FOOD_COLORS[ci??((Math.random()*FOOD_COLORS.length)|0)],ph:Math.random()*TAU,dead:false}}
+function mkFood(x,y,v,id,ci,ttl){const j=ci>=7&&ci<=9?ci-7:undefined;return{id,x,y,v,ttl:+ttl||0,r:3+Math.sqrt(v)*2.4,c:FOOD_COLORS[j!==undefined?0:ci??((Math.random()*FOOD_COLORS.length)|0)],j,ph:Math.random()*TAU,dead:false}}
 const DROP_TTL=30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วิ ถ้าไม่มีใครเก็บจะหายไป
-function addFood(x,y,v,ttl){if(NET)return;if(x===undefined)[x,y]=gemInWorld(40);foods.push(mkFood(x,y,v||1,undefined,undefined,ttl))}
+function addFood(x,y,v,ttl){if(NET)return;let ci;if(x===undefined){[x,y]=gemInWorld(40);if(!v&&Math.random()<JEWEL_P){v=JEWEL_V;ci=7+((Math.random()*3)|0)}}foods.push(mkFood(x,y,v||1,undefined,ci,ttl))}
 function addPu(){const[x,y]=randInWorld(150),k=Object.keys(PU_TYPES);pups.push({x,y,type:k[(Math.random()*k.length)|0],dead:false,ph:Math.random()*TAU})}
 function addWhite(){const[x,y]=gemInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
 const key=(cx,cy)=>(cx+500)*1000+(cy+500);
@@ -980,7 +992,8 @@ function step(f,dt){
     let ate=false;
     for(let gx=x0;gx<=x1;gx++)for(let gy=y0;gy<=y1;gy++){const a=fgrid.get(key(gx,gy));if(!a)continue;
       for(const fd of a){if(fd.dead)continue;const dx=fd.x-h.x,dy=fd.y-h.y,d2=dx*dx+dy*dy,er=r+fd.r+6+lb;
-        if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult*GROW;ate=true;if(NET)NET.q.eat.push(fd.id)}
+        if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult*GROW;ate=true;if(NET)NET.q.eat.push(fd.id);
+          if(fd.j!==undefined&&w.isP){texts.push({x:fd.x,y:fd.y-30,txt:JEWEL_NAME[fd.j]+' = พลอย ×'+JEWEL_V+'!',t:1.6,c:'#ffd23f'});sfx('gold');track('jewels')}}
         else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f}}}
     if(ate&&w.isP)sfx('eat');
     for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20+lb){wd.dead=true;w.energy=Math.min(maxEn(w),w.energy+5);
@@ -1219,6 +1232,8 @@ function render(){
   ctx.strokeStyle=AR<WR&&frame%20<10?'#ffd23f':'#ff4d6d';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,0,AR,0,TAU);ctx.stroke();
   for(const fd of foods){if(fd.x<vx0-20||fd.x>vx1+20||fd.y<vy0-20||fd.y>vy1+20)continue;const pulse=Math.sin(frame*.08+fd.ph),rr=fd.r*1.25*(1+.1*pulse);
     const fa=fd.ttl&&fd.ttl<6?(Math.sin(frame*(fd.ttl<2.5?.6:.3))>0?.9:.3):1;
+    if(fd.j!==undefined){const js=22*(1+.08*pulse),bob=Math.sin(frame*.06+fd.ph)*3;ctx.fillStyle='rgba(255,215,90,.22)';ctx.beginPath();ctx.arc(fd.x,fd.y+bob,js*1.5,0,TAU);ctx.fill();
+      ctx.drawImage(JEWELS[fd.j],fd.x-js,fd.y+bob-js,js*2,js*2);const sk=(frame*.06+fd.ph)%TAU;ctx.fillStyle='#fff';star4(fd.x+Math.cos(sk)*js*.9,fd.y+bob+Math.sin(sk)*js*.9,4+2*pulse);continue}
     if(QUAL>0){ctx.fillStyle=fd.c;ctx.globalAlpha=.18*fa;ctx.beginPath();ctx.arc(fd.x,fd.y,rr*1.9,0,TAU);ctx.fill()}ctx.globalAlpha=fa;
     ctx.drawImage(GEMS[fd.c],fd.x-rr,fd.y-rr,rr*2,rr*2);ctx.globalAlpha=1;
     if(QUAL>1&&pulse>.85){ctx.fillStyle='#fff';star4(fd.x+rr*.35,fd.y-rr*.45,rr*.55*(pulse-.85)/.15)}}
@@ -1418,6 +1433,7 @@ $('again').onclick=()=>{autoFS();if(NET&&NET.ffa){$('over').classList.add('hidde
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
+  ['💍 เครื่องประดับ','แหวน / สร้อยคอ / ต่างหู โผล่นาน ๆ ที เก็บ 1 ชิ้น = ได้เท่าพลอย 5 เม็ด'],
   ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ 20 วิ · หัวจักรที่ดีกว่าสะสมได้ถึง 50 วิ)'],
   ['🛤️ ราง / 🚇 อุโมงค์','วิ่งบนรางเร็วขึ้น ×1.6 · ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
   ['🚉 สถานี','ขับผ่านสถานีเพื่อแลกตู้เป็นเหรียญ'],
