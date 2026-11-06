@@ -60,6 +60,10 @@ input:focus{border-color:#77ccff}
 .sbtn:disabled{background:#3a4470;color:#7c86b5}
 #coinEarn{color:#ffd23f;font-weight:600;margin-top:6px}
 .sheetHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+/* หน้าต่างเลื่อน (ร้านค้า ฯลฯ): หัว + ปุ่ม ✕ ติดอยู่ด้านบนเสมอ แม้รายการยาวเต็มจอ · สูงไม่เกินจอที่เห็นจริง (dvh ไม่นับแถบ Safari) */
+#sheet .panel{max-height:92vh;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+#sheet .sheetHead{position:sticky;top:-18px;z-index:3;background:#1a1f3d;margin:-18px -18px 8px;padding:14px 18px 8px;border-bottom:1px solid #2f3870}
+#sheet{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);box-sizing:border-box}
 .sheetHead h3{margin:0;font-size:20px}
 .tabs{display:flex;gap:6px;margin-bottom:10px}
 .tab{flex:1;padding:7px;border-radius:10px;background:#0f1330;cursor:pointer;color:#9aa6d8;font-size:14px}
@@ -1445,7 +1449,7 @@ $('guestReg').onclick=$('guestReg2').onclick=()=>{acctTab='register';openAccount
 //  sheets: shop, missions, achievements, compare, online
 // =====================================================================
 let sheetRender=null;
-function openSheet(title,fn){sheetRender=fn;$('sheetTitle').textContent=title;fn($('sheetBody'));$('sheet').classList.remove('hidden')}
+function openSheet(title,fn){sheetRender=fn;$('sheetTitle').textContent=title;fn($('sheetBody'));$('sheet').classList.remove('hidden');const pn=$('sheet').querySelector('.panel');if(pn)pn.scrollTop=0}
 function refreshSheet(){if(sheetRender&&!$('sheet').classList.contains('hidden'))sheetRender($('sheetBody'))}
 $('sheetClose').onclick=()=>{$('sheet').classList.add('hidden');if(NET&&state==='lobby')netLeave();showBest();renderSkins()};
 let shopTab='deal';
