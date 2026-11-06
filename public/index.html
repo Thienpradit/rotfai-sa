@@ -144,7 +144,8 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .tabs.wrap{flex-wrap:wrap;gap:5px}.tabs.wrap .tab{flex:1 0 21%;font-size:12px;padding:6px 2px}
 .item.deal{border:2px solid #ffd23f}.item.tap{cursor:pointer}.item.tap:active{background:#18204a}
 .item .perk{display:block;font-style:normal;font-size:11.5px;color:#7cfc9a}
-.item .ic{position:relative}.item .zoom{position:absolute;right:-5px;bottom:-5px;font-size:12px;background:#2f3870;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+.item .ic{position:relative}.item .ic.real{background:radial-gradient(circle,#2a3466,#141a3a);width:46px;height:46px}.item .ic canvas.lic{position:static;width:100%;height:100%;display:block}
+.perkbox .perks{display:grid;gap:3px;margin:6px 0 4px}.perkbox .perks div{color:#aab3e6}.perkbox .perks div.up{color:#cfffdc}.perkbox .perks b{color:#7cfc9a}.perkbox .perks i{font-style:normal;color:#8891c4;font-size:12px}.item .zoom{position:absolute;right:-5px;bottom:-5px;font-size:12px;background:#2f3870;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
 canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14px;border:1px solid #2f3870}
 .perkbox{background:rgba(124,252,154,.1);border:1px solid rgba(124,252,154,.4);border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:#cfffdc;margin:6px 0}
 .perkbox small{color:#9fd9b0;font-size:12px}.item .old{text-decoration:line-through;color:#8891c4;margin-right:4px}
@@ -280,7 +281,12 @@ const SHOP={
   title:[{id:'speed',n:'สายซิ่ง',p:10000,ic:'⚡'},{id:'gemking',n:'ราชาพลอย',p:25000,ic:'💎'},{id:'rich',n:'เศรษฐีรางเหล็ก',p:60000,ic:'🤑'}],
 };
 // หัวจักรแต่ละแบบ: เก็บพลอย/เพชรขาวได้ไกลขึ้น (px เพิ่มจากรัศมีปกติ) + คำอธิบายในร้าน
-const LOCO_PICK={classic:0,diesel:15,bullet:30,tram:45,metro:60,comet:80};
+// ความสามารถของหัวจักร: pick = เก็บพลอยไกลขึ้น (px) · bomb/gold = เวลาระเบิด/ร่างทองเพิ่ม (วิ) · en = พลังเร่งเก็บได้สูงสุด (วิ, ปกติ 20)
+const LOCO_PERK={classic:{pick:0,bomb:0,gold:0,en:20},diesel:{pick:15,bomb:3,gold:5,en:24},bullet:{pick:30,bomb:5,gold:10,en:28},
+  tram:{pick:45,bomb:8,gold:15,en:32},metro:{pick:60,bomb:10,gold:20,en:40},comet:{pick:80,bomb:15,gold:30,en:50}};
+const LOCO_PICK=Object.fromEntries(Object.entries(LOCO_PERK).map(([k,v])=>[k,v.pick]));
+const perkOf=w=>LOCO_PERK[w&&w.loco]||LOCO_PERK.classic;
+const maxEn=w=>perkOf(w).en,bombLife=w=>BOMB_LIFE+perkOf(w).bomb,goldLife=w=>GOLD_LIFE+perkOf(w).gold;
 const ITEM_DESC={classic:'หัวจักรไอน้ำคลาสสิก หม้อน้ำทรงกลม พ่นควันขาวตลอดทาง',diesel:'หัวดีเซลทรงกล่อง แข็งแรง มีแถบสีคาดกลางและไฟหน้าคู่',bullet:'หัวลู่ลมทรงกระสุน วิ่งเงียบไม่มีควัน',
   tram:'รถรางไฟฟ้าในเมือง มีเสารับไฟบนหลังคา',metro:'รถไฟใต้ดินตัวยาว แถบสีกลางลำและประตูข้าง',comet:'หัวจรวดดาวหาง มีครีบสองข้าง ลากหางประกายไฟสีส้ม',
   gem:'ตู้เปิดโล่งบรรทุกพลอยหลากสี',cargo:'ตู้สินค้าไม้ บรรทุกลังพัสดุ',coach:'ตู้โดยสาร มีหน้าต่างเรียงสองข้าง',glass:'ตู้กระจกใส มองเห็นพลอยวาววับข้างใน'};
@@ -595,7 +601,7 @@ class Worm{
     if(this.safe>0)this.safe-=dt;if(this.ghost>0)this.ghost-=dt;if(this.selfCD>0)this.selfCD-=dt;
     if(this.tunCD>0)this.tunCD-=dt;else checkTunnel(this);
     if(this.mass>this.maxMass)this.maxMass=this.mass;
-    if(this.isBoss&&this.energy<MAX_EN)this.energy+=dt*.5;
+    if(this.isBoss&&this.energy<maxEn(this))this.energy+=dt*.5;
     if(h.x*h.x+h.y*h.y>(AR-r*.5)**2)this.die(null);
   }
   die(killer){
@@ -642,7 +648,7 @@ const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
 function aiThink(w,f){
   const h=w.pts[0],r=w.r(),ai=w.ai;ai.t-=f;
   if(ai.t<=0){
-    ai.t=rnd(D().think[0],D().think[1]);ai.hunt=null;if(D().regen)w.energy=Math.min(MAX_EN,w.energy+D().regen*ai.t/60);
+    ai.t=rnd(D().think[0],D().think[1]);ai.hunt=null;if(D().regen)w.energy=Math.min(maxEn(w),w.energy+D().regen*ai.t/60);
     let bh=null,bd0=1500;if(w.isBoss)for(const o of worms){if(!o.alive||!isHum(o)||o.safe>0)continue;const d=Math.hypot(o.pts[0].x-h.x,o.pts[0].y-h.y);if(d<bd0){bd0=d;bh=o}}
     if(bh)ai.hunt=bh;
     else if(w.mass>22){let bd=1e9;for(const o of worms){if(o===w||!o.alive||ally(o,w))continue;const oh=o.pts[0],d=Math.hypot(oh.x-h.x,oh.y-h.y);
@@ -828,10 +834,10 @@ function step(f,dt){
         if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult*GROW;ate=true;if(NET)NET.q.eat.push(fd.id)}
         else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f}}}
     if(ate&&w.isP)sfx('eat');
-    for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20+lb){wd.dead=true;w.energy=Math.min(MAX_EN,w.energy+5);
+    for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20+lb){wd.dead=true;w.energy=Math.min(maxEn(w),w.energy+5);
       if(NET)netSend({t:'white',id:wd.id});if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites')}}}
-    if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;w.goldT=GOLD_LIFE;goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'{G} ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง ภายใน 30 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
-    if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(BOMB_LIFE);tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน 15 วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
+    if(w.isP&&goldItem&&Math.hypot(goldItem.x-h.x,goldItem.y-h.y)<r+30){w.gold=true;w.goldT=goldLife(w);goldItem=null;goldTimer=rnd(60,90);sfx('gold');texts.push({x:h.x,y:h.y-40,txt:'{G} ร่างทอง! พุ่งชนศัตรูได้ 1 ครั้ง ภายใน '+goldLife(w)+' วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'gold'})}
+    if(w.isP&&tgsItem&&Math.hypot(tgsItem.x-h.x,tgsItem.y-h.y)<r+30){w.tgs++;w.bombT.push(bombLife(w));tgsItem=null;tgsTimer=rnd(45,75);sfx('item');texts.push({x:h.x,y:h.y-40,txt:'{B} ได้ระเบิด! ต้องใช้ใน '+bombLife(w)+' วิ',t:2.2,c:'#ffd23f'});if(NET)netSend({t:'item',k:'tgs'})}
     if(!(NET&&w.isBot))for(const p of pups){if(p.dead)continue;if(Math.hypot(p.x-h.x,p.y-h.y)<r+20){p.dead=true;if(w.isP)track('pups');
       if(NET&&w.isP)netSend({t:'pu',id:p.id});
       if(p.type==='freeze'){const n=!NET||NET.host?freezeAround(w,h.x,h.y):0;if(NET){netSend({t:'frz',x:Math.round(h.x),y:Math.round(h.y)});booms.push({x:h.x,y:h.y,t:0,ice:1})}
@@ -1103,9 +1109,9 @@ function drawHUD2(){
   let py=pad+74;
   const chip=(txt,col,frac)=>{ctx.font='13px Mitr,sans-serif';const cw=Math.max(160,textW(txt)+18);ctx.fillStyle='rgba(15,19,48,.7)';roundRect(pad,py,cw,26,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(pad,py,cw*Math.min(1,frac),26,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
     ctx.fillStyle='#fff';ctx.font='13px Mitr,sans-serif';fillTextIcons(txt,pad+8,py+18);py+=30};
-  chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/MAX_EN);
-  if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/GOLD_LIFE);
-  if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/BOMB_LIFE);
+  chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/maxEn(player));
+  if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/goldLife(player));
+  if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/bombLife(player));
   if(player.onRail&&player.alive)chip('🛤️ วิ่งบนราง เร็ว x1.6','#ffb35e',1);
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
@@ -1253,11 +1259,12 @@ $('again').onclick=()=>{autoFS();if(NET&&NET.ffa){$('over').classList.add('hidde
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
-  ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ถึง 20 วิ)'],
+  ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ 20 วิ · หัวจักรที่ดีกว่าสะสมได้ถึง 50 วิ)'],
   ['🛤️ ราง / 🚇 อุโมงค์','วิ่งบนรางเร็วขึ้น ×1.6 · ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
   ['🚉 สถานี','ขับผ่านสถานีเพื่อแลกตู้เป็นเหรียญ'],
-  ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ'],
-  ['{B} ระเบิด','กำจัดทุกขบวนรอบตัว ต้องใช้ภายใน 15 วิ'],
+  ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ (หัวจักรที่ดีกว่าได้นานถึง 60 วิ)'],
+  ['{B} ระเบิด','กำจัดทุกขบวนรอบตัว ต้องใช้ภายใน 15 วิ (หัวจักรที่ดีกว่าได้นานถึง 30 วิ)'],
+  ['🚂 หัวจักร','หัวที่ดีกว่าในร้านค้า: เก็บพลอยได้ไกลขึ้น · ระเบิดและร่างทองอยู่ได้นานขึ้น · พลังเร่งเก็บได้มากกว่า 20 วิ'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','มีพลังชีวิต ชนลำตัว/หัวบอสเพื่อลดพลัง ล้มได้ 500 🪙'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย']];
@@ -1362,7 +1369,7 @@ function refreshSheet(){if(sheetRender&&!$('sheet').classList.contains('hidden')
 $('sheetClose').onclick=()=>{$('sheet').classList.add('hidden');if(NET&&state==='lobby')netLeave();showBest();renderSkins()};
 let shopTab='deal';
 const SHOP_TABS=[['deal','⭐ วันนี้'],['loco','🚂 หัวจักร'],['wagon','🚃 ตู้รถ'],['smoke','💨 ควัน'],['skin','🎨 สี'],['kfx','🎆 กำจัด'],['horn','📯 หวูด'],['title','🏷️ ฉายา']];
-const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปและรายละเอียด · ความเร็วเท่ากันทุกหัว แต่หัวที่แพงกว่าเก็บพลอยได้กว้างกว่า',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'กดปุ่ม 📯 (หรือ H) ระหว่างเล่น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
+const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปใหญ่และรายละเอียด · ความเร็วเท่ากันทุกหัว · หัวที่ดีกว่า: เก็บพลอยไกลขึ้น 🧲, ระเบิดใช้ได้นานขึ้น {B}, ร่างทองนานขึ้น {G}, พลังเร่งเก็บได้มากขึ้น 💎',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'กดปุ่ม 📯 (หรือ H) ระหว่างเล่น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
 function openShop(tab){if(tab)shopTab=tab;openSheet('🛒 ร้านค้า',renderShop)}
 const isOwned=(cat,id)=>cat==='title'&&id.startsWith('a:')?!!prof.ach[id.slice(2)]:prof.owned[cat].includes(id);
 const isEq=(cat,id)=>cat==='skin'?allSkins()[selSkin]?.id===id:prof.eq[cat]===id;
@@ -1384,11 +1391,27 @@ function drawPreview(cv2,o){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.heig
       for(const[gx,gy,ci]of[[hx+rr+pk-8,cy-26,0],[hx+18,cy+rr+pk-6,3],[hx-10,cy-rr-pk+8,1]])c2.drawImage(GEMS[FOOD_COLORS[ci]],gx-9,gy-9,18,18)}
     drawWorm(w,-1e4,-1e4,1e4,1e4)}
   finally{ctx=old;smoke.length=sl}}
+// ไอคอนในร้าน = รูปหัวจักร/ตู้รถที่ใช้ในเกมจริง (วาดด้วยโค้ดวาดเกมเดียวกัน)
+function drawItemIcon(cv2,cat,id){const c2=cv2.getContext('2d'),S=cv2.width;
+  {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
+  const old=ctx,sl=smoke.length;ctx=c2;
+  try{c2.setTransform(1,0,0,1,0,0);c2.clearRect(0,0,S,S);const sk=curSkin();
+    if(cat==='wagon'){const r=13,L=r*2.05,W=r*1.75,sc=S/40;c2.setTransform(sc,0,0,sc,S/2,S/2);c2.rotate(-.35);drawCar(id,0,sk[0],L,W,r,3)}
+    else{const w=new Worm('',sk,0,0,true,{loco:id,a:0});w.safe=0;w.ghost=0;const s=w.r()*.42,L=(id==='comet'?3.6:id==='bullet'?3.5:id==='metro'?3.4:3)*w.r();
+      w.pts=[];for(let i=0;i<9;i++)w.pts.push({x:3.5*s-i*s,y:0});const sc=S/(L*1.18);c2.setTransform(sc,0,0,sc,S/2,S/2);c2.rotate(-.35);drawWorm(w,-1e4,-1e4,1e4,1e4)}}
+  finally{ctx=old;smoke.length=sl}}
+function perkBox(id){const P=LOCO_PERK[id]||LOCO_PERK.classic,B=LOCO_PERK.classic,up=(v,b)=>v>b?' class="up"':'';
+  return iconize(`<div class="perkbox"><b>ความสามารถของหัวจักรนี้</b><div class="perks">
+    <div${up(P.pick,0)}>🧲 เก็บพลอย/เพชรขาวไกลขึ้น <b>${P.pick?'+'+P.pick:'ระยะปกติ'}</b></div>
+    <div${up(P.bomb,0)}>{B} ระเบิดใช้ได้นาน <b>${BOMB_LIFE+P.bomb} วิ</b>${P.bomb?' <i>(ปกติ '+BOMB_LIFE+')</i>':''}</div>
+    <div${up(P.gold,0)}>{G} ร่างทองอยู่ได้ <b>${GOLD_LIFE+P.gold} วิ</b>${P.gold?' <i>(ปกติ '+GOLD_LIFE+')</i>':''}</div>
+    <div${up(P.en,B.en)}>💎 พลังเร่งเก็บได้สูงสุด <b>${P.en} วิ</b>${P.en>B.en?' <i>(ปกติ '+B.en+')</i>':''}</div></div>
+    <small>ในภาพ: วงสีเขียว = ระยะเก็บพลอยของหัวนี้ · วงสีเทา = ระยะปกติ</small></div>`)}
 function openItem(cat,it,o={}){openSheet((it.ic||'🎨')+' '+it.n,b=>{
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p,pk=cat==='loco'?LOCO_PICK[it.id]||0:0;
   b.innerHTML=`<canvas class="pv" width="760" height="${cat==='loco'?420:220}"></canvas>
     <div class="help" style="text-align:left;font-size:14px;color:#dfe4ff;margin:10px 2px 4px">${ITEM_DESC[it.id]||(cat==='skin'?'สีพิเศษสำหรับทั้งขบวน (หัวจักรและตู้)':'')}</div>
-    ${cat==='loco'?`<div class="perkbox">🧲 <b>เก็บพลอยกว้างขึ้น ${pk?'+'+pk:'— (ระยะปกติ)'}</b><br><small>${pk?'ขับผ่านใกล้ ๆ ก็ดูดพลอยและเพชรขาวเข้าขบวนได้ไกลกว่าหัวปกติ (วงสีเขียวในภาพ = ระยะเก็บใหม่ · วงสีเทา = ระยะปกติ)':'หัวเริ่มต้น เก็บพลอยในระยะปกติ (วงสีเทาในภาพ)'}</small></div>`:''}
+    ${cat==='loco'?perkBox(it.id):''}
     <div class="help" style="margin:6px 0 0">${own?(eq?'✅ กำลังใช้อยู่':'✅ มีแล้ว'):'ราคา '+price.toLocaleString()+' 🪙 · คุณมี '+prof.coins.toLocaleString()+' 🪙'}</div>
     <button class="btn" id="itGo"></button><button class="btn gray" id="itBack">← กลับร้านค้า</button>`;
   const sk=cat==='skin'?it.c:curSkin();
@@ -1400,10 +1423,11 @@ function openItem(cat,it,o={}){openSheet((it.ic||'🎨')+' '+it.n,b=>{
 function shopRow(L,cat,it,o={}){
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p;
   const d=document.createElement('div');d.className='item'+(o.deal?' deal':'');
-  const icon=it.c?`<div class="ic" style="background:conic-gradient(${it.c.join(',')},${it.c[0]})"></div>`:`<div class="ic" style="background:#1f2650">${it.ic||'🏷️'}</div>`;
-  const pk=cat==='loco'&&LOCO_PICK[it.id]?`<em class="perk">🧲 เก็บพลอย +${LOCO_PICK[it.id]}</em>`:'',canView=PREVIEW_CATS.includes(cat);
+  const real=cat==='loco'||cat==='wagon',icon=it.c?`<div class="ic" style="background:conic-gradient(${it.c.join(',')},${it.c[0]})"></div>`:real?`<div class="ic real"><canvas class="lic" width="96" height="96"></canvas></div>`:`<div class="ic" style="background:#1f2650">${it.ic||'🏷️'}</div>`;
+  const P=LOCO_PERK[it.id],pk=cat==='loco'&&P&&P.pick?iconize(`<em class="perk">🧲+${P.pick} · {B}${BOMB_LIFE+P.bomb}วิ · {G}${GOLD_LIFE+P.gold}วิ · 💎${P.en}วิ</em>`):'',canView=PREVIEW_CATS.includes(cat);
   if(canView){d.classList.add('tap');d.onclick=e=>{if(!e.target.closest('button'))openItem(cat,it,o)}}
   d.innerHTML=`${icon}<div class="tx">${it.n}${o.tag?'<span class="tag">'+o.tag+'</span>':''}${pk}<small>${own?(eq?'กำลังใช้อยู่':'มีแล้ว'):o.lock?o.lock:(o.price!==undefined&&o.price!==it.p?'<span class="old">'+it.p.toLocaleString()+'</span>':'')+'ราคา '+price.toLocaleString()+' 🪙'}</small></div>`;if(canView)d.querySelector('.ic').insertAdjacentHTML('beforeend','<span class="zoom">🔍</span>');
+  if(real)drawItemIcon(d.querySelector('.lic'),cat,it.id);
   const btn=document.createElement('button');btn.className='sbtn';
   if(!own){if(o.lock){btn.textContent='🔒';btn.disabled=true}else{btn.textContent='ซื้อ '+price.toLocaleString()+'🪙';btn.disabled=prof.coins<price;btn.onclick=()=>{buy(cat,it,price);refreshSheet()}}}
   else{btn.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';btn.disabled=eq;btn.onclick=()=>{equip(cat,it.id);saveProf();refreshSheet()}}
@@ -1423,7 +1447,7 @@ function renderShop(b){
   if(shopTab==='title'){
     for(const id of prof.owned.title.filter(x=>x.startsWith('S:')))shopRow(L,'title',{id,n:titleText(id),ic:'🏁'},{tag:'ฤดูกาล'});
     for(const a of ACH)shopRow(L,'title',{id:'a:'+a.id,n:a.t,ic:a.ic.startsWith('<')?'🌟':a.ic},{lock:'ปลดล็อกเหรียญตรา: '+a.n})}
-  if(SHOP_NOTE[shopTab])L.insertAdjacentHTML('beforeend','<div class="help">'+SHOP_NOTE[shopTab]+'</div>');
+  if(SHOP_NOTE[shopTab])L.insertAdjacentHTML('beforeend','<div class="help">'+iconize(SHOP_NOTE[shopTab])+'</div>');
 }
 function equip(cat,id){if(cat==='skin'){const i=allSkins().findIndex(s=>s.id===id);if(i>=0){selSkin=i;try{localStorage.setItem('trainSkin',id)}catch(e){}}}else prof.eq[cat]=id;
   if(player&&cat==='title')player.title=myTitle();renderSkins()}
