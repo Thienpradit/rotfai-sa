@@ -282,10 +282,10 @@ let VW,VH,DPR;
 // กราฟิกปรับอัตโนมัติ: 2 = สวยสุด · 1 = กลาง · 0 = ประหยัด (เครื่องช้า) — วัด FPS ตอนเล่น ถ้าต่ำต่อเนื่องจะลดระดับเอง (ไม่เพิ่มกลางเกม)
 // จำระดับไว้ใน localStorage trainQual · เปิดเกมครั้งถัดไปเริ่มสูงกว่าเดิม 1 ขั้น เผื่อครั้งก่อนช้าเพราะอย่างอื่น
 let QUAL=2;try{const q=localStorage.getItem('trainQual');if(q!==null)QUAL=Math.min(2,(+q|0)+1)}catch(e){}
-const QDPR=[1,1.5,2],QSMOKE=[3,2,1],QSMOKE_MAX=[120,300,600],FPS={n:0,t:0,cd:3};
+const QDPR=[1.25,1.5,2],QSMOKE=[3,2,1],QSMOKE_MAX=[120,300,600],FPS={n:0,t:0,cd:3};
 function fpsWatch(ms){if(state!=='play'||document.hidden||QUAL<=0)return;if(FPS.cd>0){FPS.cd-=ms/1000;return}
   if(ms>250)return;FPS.n++;FPS.t+=ms;if(FPS.t<3000)return;const fps=FPS.n*1000/FPS.t;FPS.n=0;FPS.t=0;
-  if(fps<45){QUAL--;FPS.cd=4;resize();try{localStorage.setItem('trainQual',QUAL)}catch(e){}}}
+  if(fps<38){QUAL--;FPS.cd=4;resize();try{localStorage.setItem('trainQual',QUAL)}catch(e){}}}
 const SAFE={t:0,r:0,b:0,l:0};
 function readSafe(){const e=document.getElementById('safeProbe');if(!e)return;const c=getComputedStyle(e);SAFE.t=parseFloat(c.paddingTop)||0;SAFE.r=parseFloat(c.paddingRight)||0;SAFE.b=parseFloat(c.paddingBottom)||0;SAFE.l=parseFloat(c.paddingLeft)||0}
 function resize(){DPR=Math.min(window.devicePixelRatio||1,QDPR[QUAL]);const vv=window.visualViewport;VW=Math.round(Math.max(innerWidth,vv?vv.width:0));VH=Math.round(Math.max(innerHeight,vv?vv.height:0));cv.width=VW*DPR;cv.height=VH*DPR;readSafe()}
@@ -893,6 +893,11 @@ function step(f,dt){
     else if(hit&&hit.isBoss&&w.isP)rammedBoss(w,hit,hitIdx);
     else if(hit)w.die(hit);else if(cut>0)cutSelf(w,cut);
   }
+  // ออนไลน์: บอส (รันบนเซิร์ฟเวอร์) เอาหัวชนลำตัวเรา → ตรวจในเครื่องเราจากภาพที่เห็นจริง ขาดเฉพาะตอนแตะกันจริง · หลังโดนกันซ้ำ 1.5 วิ
+  if(NET&&player&&player.alive){if(player.bossCD>0)player.bossCD-=dt;
+    const b=bossActive;if(b&&b.isRemote&&b.alive&&!(player.bossCD>0)&&!(player.safe>0)&&!(player.ghost>0)){const bh=b.pts[0],rr=b.r()*.7+player.r()*.9;
+      for(let i=8;i<player.pts.length;i+=2){const q=player.pts[i];if((q.x-bh.x)**2+(q.y-bh.y)**2<rr*rr){player.bossCD=1.5;cutSelf(player,i,true);shake=.4;booms.push({x:bh.x,y:bh.y,t:.6});
+        texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:'👑 โดนบอสชนขาด!',t:2,c:'#ff5e5e'});break}}}}
   // eating
   for(const w of worms){
     if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,lb=LOCO_PICK[w.loco]||0,reach=r+mr+14+lb,mult=w.pu.x3>0?3:1;
@@ -1615,7 +1620,7 @@ function netMsg(m){
     case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
-      for(const a of m.p){const[id,x,y,an,ms,fl,ts,hp]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;if(id<0&&Math.floor(-id/10000)===NET.id)continue;
+      for(const a of m.p){const[id,x,y,an,ms,fl,ts,hp]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;
         const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
         if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||100;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}

@@ -52,11 +52,11 @@ botsim.onBossHit(room, p7, boss.id, 35); ok(boss.hp === 85, 'ชนหัวบ�
 room.msgs = []; for (let i = 0; i < 3; i++) botsim.onBossHit(room, p7, boss.id, 50);
 ok(!boss.alive && room.msgs.some(m => m.t === 'kill' && m.v === boss.id && m.k === 7), 'ล้มบอส → kill ให้ผู้เล่น');
 
-// 6) บอสชนลำตัวผู้เล่น → ส่ง cut ให้ผู้เล่น (ผู้เล่นไม่ตาย บอสไม่ตาย)
+// 6) บอสชนลำตัวผู้เล่น → เซิร์ฟเวอร์ไม่ตัด (client ตรวจเอง)
 room.sim.bossT = 0; step(room, 1); const boss2 = [...room.bots.values()].find(x => x.isBoss && x.alive);
 const q3 = p7.body.pts[25]; for (const pt of boss2.pts) { pt.x += q3.x - boss2.pts[0].x; pt.y += q3.y - boss2.pts[0].y; } boss2.safe = boss2.ghost = 0;
 room.msgs = []; step(room, 1);
-ok(boss2.alive && room.msgs.some(m => m.t === 'cut' && m.v === 7 && m.by === 0), 'บอสชนผู้เล่น → ส่ง cut{v:ผู้เล่น,by:0}');
+ok(boss2.alive && !room.msgs.some(m => m.t === 'cut' && m.v === 7), 'บอสชนผู้เล่น → เซิร์ฟเวอร์ไม่สั่งตัด (ให้เครื่องผู้เล่นตรวจเองจากภาพจริง)');
 
 // 7) 2v2: คน 2 คนทีม A → บอท 2 ตัวทีม B, ทีม A ไม่มีบอท
 room = mkRoom(false); room.arena = () => 2200;

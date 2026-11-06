@@ -100,7 +100,7 @@ function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
   if (ai.t <= 0) {
     ai.t = rnd(D.think[0], D.think[1]); ai.hunt = null;
-    let bh = null, bd0 = 1500;
+    let bh = null, bd0 = 1100;
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
     else if (w.mass > 22) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human;
@@ -115,7 +115,7 @@ function aiThink(S, room, w, f, trains) {
   }
   let tx = ai.tx, ty = ai.ty, boost = false;
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
-    if (d > (w.isBoss ? 1600 : 850)) ai.hunt = null;
+    if (d > (w.isBoss ? 1300 : 850)) ai.hunt = null;
     else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 && w.mass > 18; } }
   else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
   if (Math.hypot(h.x, h.y) > arenaR(room) - 350) { tx = 0; ty = 0; boost = false; }
@@ -174,11 +174,11 @@ function collide(S, room) {
     for (let gx = cx - 1; gx <= cx + 1 && !hit; gx++) for (let gy = cy - 1; gy <= cy + 1 && !hit; gy++) { const a = S.bgrid.get(key(gx, gy)); if (!a) continue;
       for (let k = 0; k < a.length; k += 2) { const o = a[k], idx = a[k + 1]; if (!o.alive) continue;
         if (o === w && (idx < SELF_IDX || w.selfCD > 0)) continue; if (o !== w && (ally(o, w) || o.ghost > 0)) continue;
+        if (w.isBoss && o.human) continue;   // บอสชนผู้เล่น → เครื่องผู้เล่นตัดสินเองจากภาพที่เห็น (เซิร์ฟเวอร์เห็นตำแหน่งช้ากว่า เลยขาดทั้งที่ยังไม่แตะ)
         const q = o.pts[idx]; if (!q) continue; const rr = r * .7 + rOf(o.mass) * .9, dx = q.x - h.x, dy = q.y - h.y;
         if (dx * dx + dy * dy < rr * rr) { if (o === w) { if (cut < 0 || idx < cut) cut = idx; } else { hit = o; hitIdx = idx; break; } } } }
-    if (hit && w.isBoss) {   // บอสชนใคร → ขบวนนั้นขาด (บอสไม่ตาย)
-      w.safe = .8;
-      if (hit.human) S.bcast(room, { t: 'cut', by: 0, v: hit.pid, x: Math.round(h.x), y: Math.round(h.y) }); else cutBot(room, hit, Math.max(hitIdx, 8));
+    if (hit && w.isBoss) {   // บอสชนบอทตัวอื่น → บอทขาด (บอสไม่ตาย) · ชนผู้เล่นจริง client ตรวจเอง
+      w.safe = .8; cutBot(room, hit, Math.max(hitIdx, 8));
     } else if (hit) killBot(room, w, hit);
     else if (cut > 0) cutBot(room, w, cut);
   }
