@@ -713,12 +713,9 @@ function bodyNear(x,y,rad,self){
 //  AI
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
-// ระบบหัวใจบอท (เจ้าของสั่ง 6 พ.ย. 2026): บอทชนกันเองไม่เป็นไร · หัวบอทชนลำตัว "ผู้เล่น" = เสียหัวใจ 1 ดวง (มี 3) เด้งกลับ + เกราะ 1 วิ · หมด 3 ดวงถึงตาย
-const BOT_HEARTS=3,BOT_HIT_SAFE=1;
-function botHurt(w,by){w.hearts=(w.hearts??BOT_HEARTS)-1;const h=w.pts[0];
-  if(w.hearts<=0){w.die(by);return}
-  w.angle+=Math.PI;w.target=w.angle;w.safe=Math.max(w.safe,BOT_HIT_SAFE);booms.push({x:h.x,y:h.y,t:.45});
-  texts.push({x:h.x,y:h.y-50,txt:'💔 เหลือ '+w.hearts,t:1.2,c:'#ff7b9a'});if(by&&by.isP)sfx('cut')}
+// บอส 👑 มีหัวใจ 3 ดวง (เจ้าของสั่ง 6 พ.ย. 2026): บอสเสียหัวใจ "เฉพาะตอนบอสเอาหัวมาชนตัวเรา" (ชนแล้วบอสเด้งกลับ เราไม่ขาด) ครบ 3 ครั้งบอสตาย
+// เราพุ่งชนบอส / ระเบิด / ร่างทอง ไม่ลดหัวใจบอส · บอทธรรมดาเหมือนเดิม (ชนตัวเราครั้งเดียวตาย)
+const BOSS_HEARTS=3,BOSS_HIT_CD=1.5;
 function aiThink(w,f){
   const h=w.pts[0],r=w.r(),ai=w.ai;ai.t-=f;
   if(ai.t<=0){
@@ -757,15 +754,14 @@ function aiThink(w,f){
 const LOCOS=['classic','classic','diesel','bullet'];
 // ---------- บอสมีพลังชีวิต (HP) ----------
 const BOSS_COINS=500,BOSS_DMG={body:12,head:35,gold:25,bomb:50};
-function bossHurt(b,dmg,by){if(!b||!b.alive||!b.isBoss)return;const h=b.pts[0];texts.push({x:h.x,y:h.y-80,txt:'👑 -'+dmg,t:1.2,c:'#ff7b7b'});b.hitFx=.35;
-  if(b.isRemote){netSend({t:'bhit',id:b.netId,d:dmg});b.hp=Math.max(1,(b.hp||1)-dmg);return}
-  b.hp-=dmg;if(b.hp<=0){b.hp=0;b.die(by)}}
-function rammedBoss(w,b,idx){   // ผู้เล่นพุ่งชนบอส: ชนลำตัว = บอสเสียพลังนิดหน่อย, ชนหัว = เสียเยอะ · เราเด้งกลับและเสียความยาว 10%
-  const head=idx<8,dmg=head?BOSS_DMG.head:BOSS_DMG.body;bossHurt(b,dmg,w);
+function bossHurt(b,by){if(!b||!b.alive||!b.isBoss)return;const h=b.pts[0];b.hitFx=.35;const left=Math.max(0,(b.hp??BOSS_HEARTS)-1);
+  texts.push({x:h.x,y:h.y-80,txt:left?'💔 บอสเหลือ '+left+' หัวใจ':'💔 บอสหมดหัวใจ!',t:1.6,c:'#ff7b9a'});
+  if(b.isRemote){netSend({t:'bhit',id:b.netId});b.hp=Math.max(1,left);return}   // ออนไลน์: เซิร์ฟเวอร์ลดหัวใจจริงแล้วส่งกลับมา
+  b.hp=left;b.angle+=Math.PI;b.target=b.angle;b.safe=Math.max(b.safe,BOSS_HIT_CD);if(b.hp<=0)b.die(by)}
+function rammedBoss(w,b,idx){   // เราพุ่งชนบอส: ไม่ตาย ไม่ขาด แค่เด้งกลับ + เกราะ 1.5 วิ (บอสไม่เสียหัวใจ ต้องรอให้บอสชนเรา)
   w.angle+=Math.PI;w.target=w.angle;if(w.isP)input.angle=w.angle;w.safe=1.5;
-  const keep=Math.max(16,Math.floor(w.pts.length*.9));if(keep<w.pts.length-2)cutSelf(w,keep,true);
   const h=w.pts[0];booms.push({x:h.x,y:h.y,t:.5});
-  if(w.isP){track('bossHits');shake=.35;sfx('cut');texts.push({x:h.x,y:h.y-40,txt:head?'💥 ชนหัวบอส! -'+dmg:'💥 ชนลำตัวบอส -'+dmg,t:1.6,c:'#ffd23f'})}}
+  if(w.isP){shake=.25;texts.push({x:h.x,y:h.y-40,txt:'🛡️ ชนบอส เด้งกลับ! ล่อให้บอสชนเรา',t:1.6,c:'#ffd23f'})}}
 // ที่เกิดใหม่: สุ่มหลายจุด เลือกจุดที่ไกลจากขบวนทุกคัน (หัว+ตัว) มากที่สุด ไม่ให้เกิดมาทับหน้าใคร
 // bd เริ่ม -Infinity: ถ้าทุกจุดใกล้หัวขบวนอื่น ก็ยังได้จุดที่ดีที่สุด (เดิม -1 → คืน null → หน้าแรกค้างหลังจบ 2v2)
 function farSpot(margin,minD,side){let best=null,bd=-Infinity;const ts=worms.filter(w=>w.alive);
@@ -778,11 +774,11 @@ function spawnAI(){
   const[x,y]=farSpot(400,650);
   const w=new Worm(NAMES[(Math.random()*NAMES.length)|0],SKINS[(Math.random()*SKINS.length)|0],x,y,false,{loco:LOCOS[(Math.random()*4)|0]});
   w.mass=rnd(25,120);if(Math.random()<D().big)w.mass=rnd(150,450);w.maxMass=w.mass;w.ghost=SPAWN_GHOST;w.safe=Math.max(w.safe,SPAWN_GHOST);
-  w.isBot=true;w.hearts=BOT_HEARTS;worms.push(w);
+  worms.push(w);
 }
 function spawnBoss(){
   const[x,y]=farSpot(500,1100);
-  const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.ghost=w.safe=SPAWN_GHOST;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=D().bossHp;
+  const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.ghost=w.safe=SPAWN_GHOST;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=BOSS_HEARTS;
   worms.push(w);bossActive=w;announce('👑 บอสรถไฟยักษ์ปรากฏแล้ว! ระวังให้ดี');sfx('boss');
 }
 
@@ -866,7 +862,7 @@ function useBomb(){
   player.tgs--;player.bombT.shift();track('bombsUsed');const h=player.pts[0];booms.push({x:h.x,y:h.y,t:0});shake=.5;sfx('bomb');
   if(NET){netSend({t:'bomb',x:Math.round(h.x),y:Math.round(h.y)});NET.bombAt=performance.now();texts.push({x:h.x,y:h.y-60,txt:'💥 ระเบิด!',t:2,c:'#ffd23f'});updBtns();return}
   bombing=true;bombHits=0;
-  for(const w of worms){if(w===player||!w.alive)continue;let hit=false;for(let i=0;i<w.pts.length;i+=3){const q=w.pts[i];if((q.x-h.x)**2+(q.y-h.y)**2<BOMB_R*BOMB_R){hit=true;break}}if(hit){if(w.isBoss)bossHurt(w,BOSS_DMG.bomb,player);else w.die(player)}}
+  for(const w of worms){if(w===player||!w.alive)continue;let hit=false;for(let i=0;i<w.pts.length;i+=3){const q=w.pts[i];if((q.x-h.x)**2+(q.y-h.y)**2<BOMB_R*BOMB_R){hit=true;break}}if(hit){if(!w.isBoss)w.die(player)}}
   bombing=false;track('bombKills',bombHits);trackMax('bestBomb',bombHits);
   texts.push({x:h.x,y:h.y-60,txt:'💥 ระเบิด! กำจัด '+bombHits+' ขบวน',t:2,c:'#ffd23f'});updBtns();
 }
@@ -903,23 +899,19 @@ function step(f,dt){
       for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(o!==w&&(ally(o,w)||o.ghost>0))continue;
         const q=o.pts[idx];if(!q)continue;const rr=r*.7+o.r()*.9,dx=q.x-h.x,dy=q.y-h.y;
         if(dx*dx+dy*dy<rr*rr){if(o===w){if(cut<0||idx<cut)cut=idx}else{hit=o;hitIdx=idx;break}}}}
-    if(hit&&w.isBoss){   // บอสพุ่งชนใคร → ขบวนนั้นขาดตรงจุดชน (บอสไม่ตาย)
-      const h2=w.pts[0];w.safe=.8;booms.push({x:h2.x,y:h2.y,t:.6});
-      if(NET&&hit.isRemote)netSend({t:'cut',v:hit.netId,x:Math.round(h2.x),y:Math.round(h2.y)});else cutSelf(hit,Math.max(hitIdx,8),true);
-      if(hit.isP){shake=.4;texts.push({x:hit.pts[0].x,y:hit.pts[0].y-40,txt:'💥 โดนบอสชนขาด!',t:2,c:'#ff5e5e'})}}
-    else if(hit&&w.gold){w.gold=false;const lost0=Math.floor(hit.mass);w.safe=1;const h2=w.pts[0];booms.push({x:h2.x,y:h2.y,t:.6});if(hit.isBoss)bossHurt(hit,BOSS_DMG.gold,w);
+    if(hit&&w.isBoss&&hit.isP){shake=.4;booms.push({x:w.pts[0].x,y:w.pts[0].y,t:.6});sfx('kill');bossHurt(w,hit)}   // บอสชนเรา → บอสเสียหัวใจ เด้งกลับ (เราไม่ขาด)
+    else if(hit&&w.isBoss){   // บอสชนบอทตัวอื่น → ขบวนนั้นขาด (บอสไม่ตาย)
+      const h2=w.pts[0];w.safe=.8;booms.push({x:h2.x,y:h2.y,t:.6});cutSelf(hit,Math.max(hitIdx,8),true)}
+    else if(hit&&w.gold){w.gold=false;const lost0=Math.floor(hit.mass);w.safe=1;const h2=w.pts[0];booms.push({x:h2.x,y:h2.y,t:.6});
       if(NET&&hit.isRemote)netSend({t:'cut',v:hit.netId,x:Math.round(h2.x),y:Math.round(h2.y)});else cutSelf(hit,Math.max(hitIdx,8),true);
       if(w.isP){sfx('cut');track('golds');texts.push({x:h2.x,y:h2.y-40,txt:'{G} ชนขาด! '+hit.name+(NET?'':' สั้นลง '+(lost0-Math.floor(hit.mass))),t:2,c:'#ffd23f'})}}
-    else if(hit&&w.isBot&&!w.isBoss&&!isHum(hit))continue;   // บอทชนบอท: ผ่านกันได้ ไม่มีใครเป็นอะไร
-    else if(hit&&w.isBot&&!w.isBoss)botHurt(w,hit);            // บอทชนผู้เล่น: เสียหัวใจ (ครบ 3 ครั้งตาย)
     else if(hit&&hit.isBoss&&w.isP)rammedBoss(w,hit,hitIdx);
     else if(hit)w.die(hit);else if(cut>0)cutSelf(w,cut);
   }
   // ออนไลน์: บอส (รันบนเซิร์ฟเวอร์) เอาหัวชนลำตัวเรา → ตรวจในเครื่องเราจากภาพที่เห็นจริง ขาดเฉพาะตอนแตะกันจริง · หลังโดนกันซ้ำ 1.5 วิ
   if(NET&&player&&player.alive){if(player.bossCD>0)player.bossCD-=dt;
     const b=bossActive;if(b&&b.isRemote&&b.alive&&!(player.bossCD>0)&&!(player.safe>0)&&!(player.ghost>0)){const bh=b.pts[0],rr=b.r()*.7+player.r()*.9;
-      for(let i=8;i<player.pts.length;i+=2){const q=player.pts[i];if((q.x-bh.x)**2+(q.y-bh.y)**2<rr*rr){player.bossCD=1.5;cutSelf(player,i,true);shake=.4;booms.push({x:bh.x,y:bh.y,t:.6});
-        texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:'👑 โดนบอสชนขาด!',t:2,c:'#ff5e5e'});break}}}}
+      for(let i=8;i<player.pts.length;i+=2){const q=player.pts[i];if((q.x-bh.x)**2+(q.y-bh.y)**2<rr*rr){player.bossCD=BOSS_HIT_CD;shake=.4;booms.push({x:bh.x,y:bh.y,t:.6});sfx('kill');bossHurt(b,player);break}}}}
   // eating
   for(const w of worms){
     if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,lb=LOCO_PICK[w.loco]||0,reach=r+mr+14+lb,mult=w.pu.x3>0?3:1;
@@ -1078,9 +1070,8 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   ctx.globalAlpha=1;
   ctx.font=`600 ${Math.max(13,r*.75)}px Mitr,sans-serif`;ctx.textAlign='center';
   ctx.fillStyle=NET&&NET.ffa?(w.isP?'#ffd23f':w.isBoss?'#ff5e5e':w.rk!==undefined?'#9be7ff':'rgba(255,255,255,.8)'):w.team?TEAM_COL[w.team]:w.isBoss?'#ff5e5e':w.isP?'#ffd23f':'rgba(255,255,255,.8)';
-  if(w.isBoss&&w.maxHp)hpBar(c.x-55,c.y-W-44,110,9,w.hp/w.maxHp);
-  if(w.isBot&&!w.isBoss&&w.alive){const hs=Math.max(7,Math.min(11,r*.42)),hy=c.y-W-16-Math.max(13,r*.75)-hs,hv=w.hearts??BOT_HEARTS,fs0=ctx.fillStyle;   // หัวใจเหนือชื่อบอท ❤❤❤
-    for(let i=0;i<BOT_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.22)';heart(c.x+(i-1)*hs*2.4,hy,hs)}ctx.fillStyle=fs0}
+  if(w.isBoss&&w.alive){const hs=13,hy=c.y-W-24-Math.max(13,r*.75)-hs,hv=w.hp??BOSS_HEARTS,fs0=ctx.fillStyle;   // หัวใจบอส ❤❤❤ เหนือชื่อ
+    for(let i=0;i<BOSS_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.25)';heart(c.x+(i-1)*hs*2.5,hy,hs)}ctx.fillStyle=fs0}
   const fs=Math.max(13,r*.75);ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+(w.rk!==undefined?rankIcon(w.rk)+' ':'')+w.name,c.x,c.y-W-12);
   if(w.title){ctx.font=`600 ${Math.max(10,r*.5)}px Mitr,sans-serif`;ctx.fillStyle='#ffe9a8';ctx.fillText('« '+w.title+' »',c.x,c.y-W-14-fs)}
 }
@@ -1248,7 +1239,8 @@ function drawHUD2(){
     ctx.textAlign='center';ctx.font='600 26px Mitr,sans-serif';ctx.fillStyle=tl<30?'#ff5e5e':'#fff';ctx.fillText('⏱ '+txt,VW/2,VW<560?VH-40:pad+28);ctx.textAlign='left'}
   if(NET&&!player.alive&&NET.respawnT>0){ctx.textAlign='center';ctx.font='600 28px Mitr,sans-serif';ctx.fillStyle='#fff';ctx.fillText('เกิดใหม่ใน '+Math.ceil(NET.respawnT)+'...',VW/2,VH/2);ctx.textAlign='left'}
   if(bossActive&&bossActive.alive&&bossActive.maxHp){const bw=Math.min(190,VW*.46),bx=VW/2-bw/2,by=VH-74-(NET&&NET.ffa?0:-20);
-    ctx.textAlign='center';ctx.font='600 13px Mitr,sans-serif';ctx.fillStyle='#ff9b9b';ctx.fillText('👑 บอสยักษ์ '+Math.ceil(bossActive.hp)+'/'+bossActive.maxHp+'  ล้มได้ '+BOSS_COINS+' 🪙',VW/2,by-6);ctx.textAlign='left';hpBar(bx,by,bw,10,bossActive.hp/bossActive.maxHp)}
+    ctx.textAlign='center';ctx.font='600 13px Mitr,sans-serif';ctx.fillStyle='#ff9b9b';ctx.fillText('👑 บอสยักษ์ · ล่อให้บอสชนเรา 3 ครั้ง · ล้มได้ '+BOSS_COINS+' 🪙',VW/2,by-6);ctx.textAlign='left';
+    const hv=bossActive.hp??BOSS_HEARTS;for(let i=0;i<BOSS_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.25)';heart(VW/2+(i-1)*26,by+8,9)}}
   if(input.joy){const j={...input.joy,ox:input.joy.ox-SAFE.l,oy:input.joy.oy-SAFE.t,x:input.joy.x-SAFE.l,y:input.joy.y-SAFE.t};ctx.fillStyle='rgba(255,255,255,.12)';ctx.beginPath();ctx.arc(j.ox,j.oy,65,0,TAU);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.35)';ctx.lineWidth=2;ctx.stroke();
     ctx.fillStyle='rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(j.x,j.y,26,0,TAU);ctx.fill()}
 }
@@ -1653,9 +1645,9 @@ function netMsg(m){
       for(const a of m.p){const[id,x,y,an,ms,fl,ts,hp]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;
         const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
-        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||100;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
+        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||BOSS_HEARTS;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
-        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;if(hp!==undefined){if(w.isBoss)w.hp=hp;else{if(w.hearts!==undefined&&hp<w.hearts){const h=w.pts[0];texts.push({x:h.x,y:h.y-50,txt:'💔 เหลือ '+hp,t:1.2,c:'#ff7b9a'})}w.hearts=hp}}}
+        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;if(hp!==undefined&&w.isBoss)w.hp=hp}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;

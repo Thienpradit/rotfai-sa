@@ -3,9 +3,9 @@
 // กติกาการเคลื่อนที่/AI/ชน/กิน ลอกมาจาก public/index.html (class Worm, aiThink, step) — ถ้าแก้กติกาที่นั่น ให้แก้ที่นี่ด้วย
 const TAU = Math.PI * 2, CS = 100, SELF_IDX = 20, GROW = .7, BOMB_R = 480, FREEZE_R = 650, FREEZE_T = 6, PORTAL_EDGE = 260;
 const LAG_STEPS = 12;
-const BOT_HEARTS = 3, BOT_HIT_SAFE = 1;   // หัวบอทชนลำตัวผู้เล่น = เสียหัวใจ 1 (มี 3) เด้งกลับ + เกราะ 1 วิ · บอทชนบอทผ่านกันได้ (เจ้าของสั่ง)   // 12 รอบย่อย × 1/60 วิ = 0.2 วิ
-const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, BOSS_DMG_BOMB = 50, DROP_TTL = 30;
-const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: 120 };   // ระดับ Normal
+const BOSS_HEARTS = 3, BOSS_HIT_CD = 1.5;   // บอส 👑 มีหัวใจ 3 ดวง เสียเฉพาะตอนบอสเอาหัวชนตัวผู้เล่น (เครื่องผู้เล่นส่ง bhit มา) · บอทธรรมดาชนครั้งเดียวตายเหมือนเดิม
+const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, DROP_TTL = 30;
+const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: BOSS_HEARTS };   // ระดับ Normal
 const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
 const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
 const NAMES = ['ไส้เดือนสายซิ่ง', 'น้องหนอนน้อย', 'Wiggle', 'Noodle', 'ต้มยำกุ้ง', 'SlimJim', 'หนอนชาเขียว', 'กัปตันหนอน', 'มะม่วงสุก', 'Zigzag', 'ข้าวเหนียว', 'Spaghetti', 'หนอนหิว', 'Bubbles', 'Doodle', 'ลูกชิ้นปิ้ง', 'Mochi', 'Sneaky', 'Turbo', 'ปลาทูทอด', 'Pixel', 'Squiggle', 'Banana', 'ส้มตำ', 'Ninja', 'Gummy', 'ขนมครก', 'Shadow', 'หนอนบุ้ง', 'Lucky', 'ชาไทย', 'Bobo'];
@@ -68,7 +68,7 @@ function spawnBot(room, o = {}) {
   const id = -(100000000 + (nextBot++ % 90000000));
   const b = { id, bot: true, name: o.boss ? '👑 บอสยักษ์' : (o.team ? '🤖 ' : '') + freeName(room), skin: o.boss ? BOSS_SKIN : pick(SKINS), loco: o.boss ? 'diesel' : pick(LOCOS), team: o.team,
     mass, maxLen: mass, pts: mkPts(x, y, a, mass), angle: a, target: a, boost: false, energy: o.boss ? 10 : 5, alive: true, safe: SPAWN_GHOST, ghost: SPAWN_GHOST, slow: 0, selfCD: 0, tunCD: 0,
-    kills: 0, hearts: BOT_HEARTS, isBoss: !!o.boss, hp: o.boss ? D.bossHp : 0, maxHp: o.boss ? D.bossHp : 0, ai: { t: 0, tx: x, ty: y, boostT: 0, hunt: null } };
+    kills: 0, isBoss: !!o.boss, hp: o.boss ? D.bossHp : 0, maxHp: o.boss ? D.bossHp : 0, ai: { t: 0, tx: x, ty: y, boostT: 0, hunt: null } };
   b.info = { id, name: b.name, skin: b.skin, loco: b.loco, boss: b.isBoss, mhp: b.maxHp }; if (b.team) b.info.team = b.team;
   room.bots.set(id, b); if (b.isBoss) S.boss = b;
   S.bcast(room, { t: 'binfo', b: [b.info] });
@@ -138,7 +138,7 @@ function moveBot(S, room, w, f, dt) {
   if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
   const h = w.pts[0]; h.x += Math.cos(w.angle) * sp * f; h.y += Math.sin(w.angle) * sp * f; follow(w);
   (w.hist || (w.hist = [])).push(h.x, h.y); if (w.hist.length > LAG_STEPS * 2 + 2) w.hist.splice(0, 2);   // ตำแหน่งหัวย้อนหลัง (ไว้ชดเชยดีเลย์)
-  if (w.safe > 0) w.safe -= dt; if (w.ghost > 0) w.ghost -= dt; if (w.selfCD > 0) w.selfCD -= dt;
+  if (w.safe > 0) w.safe -= dt; if (w.hitCD > 0) w.hitCD -= dt; if (w.ghost > 0) w.ghost -= dt; if (w.selfCD > 0) w.selfCD -= dt;
   if (w.tunCD > 0) w.tunCD -= dt; else for (const p of S.world.portals) if ((h.x - p.x) ** 2 + (h.y - p.y) ** 2 < 38 * 38) { if (!portalOpen(room, p)) break;
     const q = S.world.portals[p.pair], dx = q.x + Math.cos(w.angle) * 75 - h.x, dy = q.y + Math.sin(w.angle) * 75 - h.y; for (const pt of w.pts) { pt.x += dx; pt.y += dy; } w.hist = null; w.tunCD = 1.5; w.safe = Math.max(w.safe, TUNNEL_SAFE); break; }
   if (w.mass > w.maxLen) w.maxLen = w.mass;
@@ -168,7 +168,8 @@ function cutBot(room, w, idx) {
   w.selfCD = .8;
 }
 const nearestIdx = (w, x, y) => { let bi = 8, bd = 1e18; w.pts.forEach((q, i) => { const d = (q.x - x) ** 2 + (q.y - y) ** 2; if (d < bd) { bd = d; bi = i; } }); return Math.max(bi, 8); };
-function hurtBoss(room, b, dmg, by) { if (!b || !b.alive || !b.isBoss) return; b.hp -= dmg; if (b.hp <= 0) { b.hp = 0; killBot(room, b, by); } }
+function hurtBoss(room, b, by) { if (!b || !b.alive || !b.isBoss || b.hitCD > 0) return; b.hitCD = BOSS_HIT_CD; b.hp -= 1;   // กันหลายเครื่องส่งซ้ำ: 1 ดวงต่อ 1.5 วิ
+  if (b.hp <= 0) { b.hp = 0; killBot(room, b, by); } else { b.angle += Math.PI; b.target = b.angle; b.safe = Math.max(b.safe, BOSS_HIT_CD); b.ai.t = 60; } }
 
 // ชดเชยดีเลย์: ผู้เล่นเห็นบอทช้ากว่าเซิร์ฟเวอร์ ~0.2 วิ (วาดย้อนหลัง 130ms + เน็ต) → บนจอผู้เล่นบอทวิ่งทะลุลำตัวเราได้
 // เลยเช็คหัวบอททั้ง "ตอนนี้" และ "เมื่อ ~0.2 วิก่อน" (= ตำแหน่งที่ผู้เล่นเห็นบนจอ) กับลำตัวผู้เล่นจริง แตะอันไหนก็ตาย
@@ -190,11 +191,7 @@ function collide(S, room) {
         for (let k = 0; k < a.length; k += 2) { const o = a[k]; if (!o.human || !o.alive || ally(o, w) || o.ghost > 0) continue; if (hitsHuman(w, o, a[k + 1], r)) { hit = o; break; } } } }
     if (hit && w.isBoss) {   // บอสชนบอทตัวอื่น → บอทขาด (บอสไม่ตาย) · ชนผู้เล่นจริง client ตรวจเอง
       w.safe = .8; cutBot(room, hit, Math.max(hitIdx, 8));
-    } else if (hit && hit.human) {
-      w.hearts = (w.hearts ?? BOT_HEARTS) - 1;
-      if (w.hearts <= 0) killBot(room, w, hit);
-      else { w.angle += Math.PI; w.target = w.angle; w.safe = Math.max(w.safe, BOT_HIT_SAFE); w.hist = null; w.ai.t = 30; }
-    }   // ชนบอทตัวอื่น: ผ่านกันไป ไม่มีใครเป็นอะไร
+    } else if (hit) killBot(room, w, hit);
     else if (cut > 0) cutBot(room, w, cut);
   }
 }
@@ -253,15 +250,15 @@ function step(room, dt, bcast, drop) {
   const ts = Date.now();
   for (const w of room.bots.values()) { if (!w.alive) continue; const h = w.pts[0];
     w.st = [w.id, Math.round(h.x), Math.round(h.y), +w.angle.toFixed(2), +w.mass.toFixed(1), (w.boost && w.energy > 0 ? 1 : 0) | 4 | (w.slow > 0 ? 8 : 0) | (w.safe > 0 ? 16 : 0) | (w.ghost > 0 ? 32 : 0), ts];
-    w.st.push(w.isBoss ? Math.ceil(w.hp) : w.hearts); }
+    if (w.isBoss) w.st.push(Math.ceil(w.hp)); }
 }
 // การกระทำของผู้เล่นที่มีผลกับบอท
 function onBomb(room, by, x, y) { if (!room.sim) return;
   for (const w of [...room.bots.values()]) { if (!w.alive || (by.team && w.team === by.team)) continue;
-    if (w.pts.some((q, i) => i % 3 === 0 && (q.x - x) ** 2 + (q.y - y) ** 2 < BOMB_R * BOMB_R)) { if (w.isBoss) hurtBoss(room, w, BOSS_DMG_BOMB, by.body || { human: true, pid: by.id }); else killBot(room, w, by.body || { human: true, pid: by.id }, 'bomb'); } } }
+    if (w.pts.some((q, i) => i % 3 === 0 && (q.x - x) ** 2 + (q.y - y) ** 2 < BOMB_R * BOMB_R)) { if (w.isBoss) continue; else killBot(room, w, by.body || { human: true, pid: by.id }, 'bomb'); } } }
 function onFreeze(room, by, x, y) { for (const w of room.bots.values()) if (w.alive && !(by.team && w.team === by.team) && Math.hypot(w.pts[0].x - x, w.pts[0].y - y) < FREEZE_R) w.slow = FREEZE_T; }
 function onCut(room, by, v, x, y) { const w = room.bots.get(v); if (!w || !w.alive || (by.team && w.team === by.team)) return; cutBot(room, w, nearestIdx(w, x, y)); }
-function onBossHit(room, by, id, d) { const w = room.bots.get(id); if (w && w.isBoss) hurtBoss(room, w, Math.max(0, Math.min(60, +d || 0)), by.body || { human: true, pid: by.id }); }
+function onBossHit(room, by, id) { const w = room.bots.get(id); if (w && w.isBoss) hurtBoss(room, w, by.body || { human: true, pid: by.id }); }
 function clear(room) { room.bots.clear(); if (room.sim) { room.sim.boss = null; room.sim.vsT = { A: 0, B: 0 }; } }
 
 module.exports = { step, onBomb, onFreeze, onCut, onBossHit, clear, buildWorld };

@@ -27,19 +27,12 @@ step(room, 1); const p7 = room.players.get(7);
 for (let i = 0; i < 40; i++) { p7.st.x += 8; step(room, 1); }
 const b = live(room)[0]; const q = p7.body.pts[30];
 for (const pt of b.pts) { pt.x += q.x - b.pts[0].x; pt.y += q.y - b.pts[0].y; }
-const putOn = (bt, i) => { const qq = p7.body.pts[i]; for (const pt of bt.pts) { pt.x += qq.x - bt.pts[0].x; pt.y += qq.y - bt.pts[0].y; } bt.safe = bt.ghost = 0; bt.ai.t = 999; bt.hist = null; };
 b.safe = b.ghost = 0; b.ai.t = 999; room.msgs = []; step(room, 1);
-ok(b.alive && b.hearts === 2 && b.safe > 0 && b.st[7] === 2, 'บอทชนลำตัวผู้เล่นครั้งที่ 1 → ไม่ตาย เหลือหัวใจ 2 + เกราะ 1 วิ (ส่ง hearts ในสถานะ)');
-putOn(b, 30); step(room, 1); ok(b.alive && b.hearts === 1, 'ชนครั้งที่ 2 → เหลือหัวใจ 1');
-putOn(b, 30); room.msgs = []; step(room, 1);
-ok(!b.alive && p7.kills === 1, 'ชนครั้งที่ 3 → บอทตาย ผู้เล่นได้ +1 กำจัด');
+ok(!b.alive && p7.kills === 1, 'บอทชนลำตัวผู้เล่น → บอทตาย ผู้เล่นได้ +1 กำจัด');
 ok(room.msgs.some(m => m.t === 'kill' && m.v === b.id && m.k === 7), 'ส่ง kill{v:บอท,k:ผู้เล่น}');
 ok(drops.some(d => d.ttl === 30), 'บอทตายทิ้งพลอยที่หายใน 30 วิ');
 
-// 2b) บอทชนบอท → ผ่านกันได้ ไม่มีใครตายหรือเสียหัวใจ
-{ const [x1, x2] = live(room).filter(x => x.pts.length > 30); const qq = x2.pts[20];
-  for (const pt of x1.pts) { pt.x += qq.x - x1.pts[0].x; pt.y += qq.y - x1.pts[0].y; } x1.safe = x1.ghost = 0; x1.hist = null; x1.ai.t = 999; const hh = x1.hearts;
-  step(room, 1); ok(x1.alive && x1.hearts === hh && x2.alive, 'บอทชนบอท → ผ่านกันได้ ไม่ตาย ไม่เสียหัวใจ'); }
+// (บอทชนบอท → ตายตามปกติ)
 
 // 3) ผู้เล่นผี (flag 32) → บอทชนทะลุ
 const b2 = live(room)[0]; p7.st.f = 4 | 32; step(room, 1); const q2 = p7.body.pts[30];
@@ -56,10 +49,13 @@ ok(!t.alive && p7.kills > k0 && room.msgs.some(m => m.t === 'kill' && m.b === 1 
 
 // 5) บอส: ชนลด HP ล้มได้ → kill ให้ผู้ชน
 room.sim.bossT = 0; step(room, 1); const boss = [...room.bots.values()].find(x => x.isBoss);
-ok(boss && boss.hp === 120 && boss.st.length === 8, 'บอสเกิด HP 120 และส่ง hp ในสถานะ');
-botsim.onBossHit(room, p7, boss.id, 35); ok(boss.hp === 85, 'ชนหัวบอส −35');
-room.msgs = []; for (let i = 0; i < 3; i++) botsim.onBossHit(room, p7, boss.id, 50);
-ok(!boss.alive && room.msgs.some(m => m.t === 'kill' && m.v === boss.id && m.k === 7), 'ล้มบอส → kill ให้ผู้เล่น');
+ok(boss && boss.hp === 3 && boss.st.length === 8 && boss.st[7] === 3, 'บอสเกิดมีหัวใจ 3 ดวง และส่งในสถานะ');
+botsim.onBossHit(room, p7, boss.id); ok(boss.hp === 2 && boss.alive, 'บอสชนผู้เล่น (bhit) → บอสเหลือ 2 ดวง');
+botsim.onBossHit(room, p7, boss.id); ok(boss.hp === 2, 'ส่งซ้ำทันที (ภายใน 1.5 วิ) ไม่ลดซ้ำ');
+botsim.onBomb(room, p7, boss.pts[0].x, boss.pts[0].y); ok(boss.hp === 2 && boss.alive, 'ระเบิดไม่ลดหัวใจบอส');
+boss.hitCD = 0; botsim.onBossHit(room, p7, boss.id); ok(boss.hp === 1, 'ครั้งที่ 2 → เหลือ 1');
+boss.hitCD = 0; room.msgs = []; botsim.onBossHit(room, p7, boss.id);
+ok(!boss.alive && room.msgs.some(m => m.t === 'kill' && m.v === boss.id && m.k === 7), 'ครั้งที่ 3 → บอสตาย kill ให้ผู้เล่น');
 
 // 6) บอสชนลำตัวผู้เล่น → เซิร์ฟเวอร์ไม่ตัด (client ตรวจเอง)
 room.sim.bossT = 0; step(room, 1); const boss2 = [...room.bots.values()].find(x => x.isBoss && x.alive);
@@ -73,7 +69,7 @@ ok(boss2.alive && !room.msgs.some(m => m.t === 'cut' && m.v === 7), 'บอส�
   const bb = live(r2).find(b => Math.hypot(b.pts[0].x - p9.st.x, b.pts[0].y) > 600); bb.safe = bb.ghost = 0; bb.ai.t = 999;
   const q = p9.body.pts[30]; bb.hist = []; for (let i = 0; i < 13; i++) bb.hist.push(q.x, q.y);   // เมื่อ 0.2 วิก่อนอยู่บนลำตัว
   for (const pt of bb.pts) { pt.x += q.x + 400 - bb.pts[0].x; pt.y += q.y + 400 - bb.pts[0].y; }  // ตอนนี้อยู่ห่างแล้ว
-  bb.hearts = 1; r2.msgs = []; botsim.step(r2, 1 / 20, bc(r2), drop);
+  r2.msgs = []; botsim.step(r2, 1 / 20, bc(r2), drop);
   ok(!bb.alive && p9.kills === 1, 'ชดเชยดีเลย์: บอทที่ผู้เล่นเห็นวิ่งทะลุลำตัว → ตาย ผู้เล่นได้แต้ม'); }
 
 // 7) 2v2: คน 2 คนทีม A → บอท 2 ตัวทีม B, ทีม A ไม่มีบอท
