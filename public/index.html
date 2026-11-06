@@ -338,7 +338,7 @@ const GOLD_SKIN=['#ffd23f','#ffb000','#fff1a8'],BOSS_SKIN=['#3a0d0d','#ff3b3b','
 //  profile: coins, shop, missions, achievements
 // =====================================================================
 const SHOP={
-  loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:25000,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:50000,ic:'🚄'},{id:'tram',n:'รถรางไฟฟ้า',p:90000,ic:'🚋'},{id:'metro',n:'รถไฟใต้ดิน',p:150000,ic:'🚇'},{id:'comet',n:'หัวจักรดาวหาง',p:300000,ic:'☄️'}],
+  loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:25000,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:60000,ic:'🚄'},{id:'tram',n:'รถรางไฟฟ้า',p:120000,ic:'🚋'},{id:'metro',n:'รถไฟใต้ดิน',p:250000,ic:'🚇'},{id:'comet',n:'หัวจักรดาวหาง',p:500000,ic:'☄️'}],
   wagon:[{id:'gem',n:'ตู้ขนพลอย',p:0,ic:'💎'},{id:'cargo',n:'ตู้สินค้า',p:12000,ic:'📦'},{id:'coach',n:'ตู้โดยสาร',p:18000,ic:'🚃'},{id:'glass',n:'ตู้กระจกใส',p:30000,ic:'🔮'}],
   smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:10000,ic:'✨'},{id:'rainbow',n:'ควันสีรุ้ง',p:20000,ic:'🌈'}],
   skin:[{id:'candy',n:'สีลูกกวาด',p:10000,c:['#ff9ecb','#ffffff','#9ef0ff']},{id:'galaxy',n:'สีกาแล็กซี',p:15000,c:['#2b1055','#7597de','#d6e0ff']},{id:'lava',n:'สีลาวา',p:15000,c:['#ff4e00','#2b0a00','#ffb300']},{id:'neon',n:'สีนีออน',p:25000,c:['#39ff14','#ff00e6','#00e5ff']}],
@@ -552,14 +552,61 @@ function hornSfx(k,vol){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime,
   default:for(const[d,l]of[[0,.45],[.55,.35]]){tone(587,t+d,l,'square',.06*v);tone(740,t+d,l,'square',.05*v);tone(880,t+d,l,'sine',.04*v)}}}catch(e){}}
 function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornCD=2.5;audioInit();hornSfx(prof.eq.horn,1);
   const h=player.pts[0];texts.push({x:h.x,y:h.y-55,txt:'📯 ปู๊น ๆ!',t:1.2,c:'#9be7ff'});if(NET)netSend({t:'horn',k:prof.eq.horn})}
-// background music: simple original arpeggio loop (generic I-V-vi-IV in C)
-const PROG=[[48,52,55],[43,47,50],[45,48,52],[41,45,48]];let musT=0,musStep=0,musTimer=null;
+// =====================================================================
+//  เพลงประกอบ — แต่งเองทั้งหมด สังเคราะห์ด้วย WebAudio (ไม่มีไฟล์เพลง)
+//  'calm' = เดินทางสบาย ๆ F major 96 BPM 16 ห้องวนลูป มีจังหวะ "ฉึกฉัก" แบบล้อรถไฟ
+//  'boss' = D minor 150 BPM เบสวิ่ง กลองแน่น ตื่นเต้น — เล่นตอนบอส 👑 อยู่ในสนาม แล้วกลับเป็นเพลงสบายเมื่อบอสตาย
+//  เปลี่ยนเพลงตรงต้นห้อง · หน้าเมนูเบาลง · เปิด/ปิดเพลงแยกได้ใน ⚙️ ตั้งค่า (localStorage trainMus)
+// =====================================================================
 const mtof=m=>440*Math.pow(2,(m-69)/12);
-function startMusic(){if(musTimer||!SND.ctx)return;musT=SND.ctx.currentTime+.1;
-  musTimer=setInterval(()=>{const c=SND.ctx;if(!c)return;if(musT<c.currentTime)musT=c.currentTime+.05;
-    while(musT<c.currentTime+.35){const ch=PROG[Math.floor(musStep/8)%4],st=musStep%8,e=.27;
-      if(SND.on&&state!=='menu'){if(st%4===0)tone(mtof(ch[0]-12),musT,e*1.9,'triangle',.07);tone(mtof(ch[[0,1,2,1,0,2,1,2][st]]+12),musT,e*.85,'sine',.022)}
-      musT+=e;musStep++}},100)}
+const MUS={on:true,bus:null,nb:null,mood:'calm',bar:0,step:0,t:0,timer:null};
+try{MUS.on=localStorage.getItem('trainMus')!=='0'}catch(e){}
+const CH={F:[53,57,60],Dm:[50,53,57],Bb:[46,50,53],C:[48,52,55],Am:[45,48,52],A:[45,49,52]};
+const THEMES={
+  calm:{e:60/96/2,chords:['F','Dm','Bb','C','F','Am','Bb','C','F','Dm','Bb','C','F','Am','Bb','C'],
+    mel:[[[0,72,2],[2,69,1],[3,72,1],[4,74,2],[6,72,2]],[[0,69,3],[3,67,1],[4,65,2],[6,69,2]],[[0,70,2],[2,74,2],[4,77,3],[7,76,1]],[[0,74,2],[2,72,2],[4,67,4]],
+      [[0,72,1],[1,74,1],[2,72,1],[3,69,1],[4,65,2],[6,69,2]],[[0,72,3],[3,76,1],[4,74,2],[6,72,2]],[[0,74,2],[2,70,2],[4,72,2],[6,74,2]],[[0,76,3],[3,74,1],[4,72,4]],
+      [[0,77,4],[4,76,2],[6,74,2]],[[0,74,3],[3,72,1],[4,69,4]],[[0,70,2],[2,72,2],[4,74,4]],[[0,76,2],[2,74,2],[4,72,2],[6,67,2]],
+      [[0,69,2],[2,72,2],[4,77,3],[7,76,1]],[[0,76,2],[2,72,2],[4,69,4]],[[0,70,1],[1,72,1],[2,74,2],[4,72,2],[6,70,2]],[[0,67,2],[2,72,2],[4,65,4]]]},
+  boss:{e:60/150/2,chords:['Dm','Bb','C','A','Dm','Bb','C','A'],
+    mel:[[[0,74,1],[1,74,1],[2,77,1],[3,74,1],[4,81,2],[6,79,1],[7,77,1]],[[0,77,2],[2,74,1],[3,77,1],[4,82,2],[6,81,2]],
+      [[0,79,1],[1,79,1],[2,76,1],[3,79,1],[4,84,2],[6,82,1],[7,81,1]],[[0,81,3],[3,79,1],[4,77,2],[6,73,2]],
+      [[0,74,1],[1,74,1],[2,77,1],[3,74,1],[4,81,2],[6,79,1],[7,77,1]],[[0,77,2],[2,74,1],[3,77,1],[4,82,2],[6,81,2]],
+      [[0,79,1],[1,79,1],[2,76,1],[3,79,1],[4,84,2],[6,82,1],[7,81,1]],[[0,69,1],[1,73,1],[2,76,1],[3,79,1],[4,81,1],[5,84,1],[6,85,1],[7,86,1]]]}};
+function mNote(m,t0,dur,type,vol,att,lp){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(mtof(m),t0);
+  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+(att||.012));g.gain.exponentialRampToValueAtTime(.0008,t0+dur);
+  let n=o;if(lp){const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=lp;o.connect(f);n=f}n.connect(g);g.connect(MUS.bus);o.start(t0);o.stop(t0+dur+.05)}
+function mPerc(t0,dur,vol,freq,type){const c=SND.ctx,s=c.createBufferSource();s.buffer=MUS.nb;const f=c.createBiquadFilter();f.type=type||'highpass';f.frequency.value=freq;
+  const g=c.createGain();g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0008,t0+dur);s.connect(f);f.connect(g);g.connect(MUS.bus);s.start(t0,Math.random()*.3,dur+.02)}
+function mKick(t0,vol){const c=SND.ctx,o=c.createOscillator(),g=c.createGain();o.frequency.setValueAtTime(140,t0);o.frequency.exponentialRampToValueAtTime(45,t0+.12);
+  g.gain.setValueAtTime(vol,t0);g.gain.exponentialRampToValueAtTime(.0008,t0+.2);o.connect(g);g.connect(MUS.bus);o.start(t0);o.stop(t0+.25)}
+const musWant=()=>bossActive&&bossActive.alive&&state==='play'?'boss':'calm';
+function musStep(t){const st=MUS.step;
+  if(st===0){const w=musWant();if(w!==MUS.mood){MUS.mood=w;MUS.bar=0}}
+  const T=THEMES[MUS.mood],e=T.e,bar=MUS.bar%T.chords.length,ch=CH[T.chords[bar]],r=ch[0];
+  if(MUS.mood==='calm'){
+    if(st===0)for(const n of ch)mNote(n+12,t,e*8.2,'sine',.016,.35);                                // แพดคอร์ดนุ่ม ๆ
+    const bs={0:[r,2],3:[r,1],4:[ch[2],2],6:[r+12,1],7:[ch[1],1]}[st];if(bs)mNote(bs[0]-12,t,e*bs[1]*.95,'triangle',.085);   // เบสเดิน
+    mPerc(t,.04,st%2?.008:.014,7000);if(st%2===0)mPerc(t,.07,st%4===0?.03:.018,900,'lowpass');   // ฉึกฉัก ล้อรถไฟ
+    if(st===0||st===4)mKick(t,.07);
+    for(const[s0,m,l]of T.mel[bar])if(s0===st){mNote(m,t,e*l*1.1,'triangle',.065,.015);mNote(m+12,t,e*l*.6,'sine',.012)}   // ทำนอง (กล่องดนตรี)
+  }else{
+    mNote([r,r,r+12,r,r,r+12,r,r+7][st]-12,t,e*.9,'sawtooth',.05,.005,650);                        // เบสวิ่ง
+    if(st===0||st===3||st===6)for(const n of ch)mNote(n+12,t,e*.7,'square',.012,.004,2400);         // คอร์ดกระแทก
+    if(st%2===0)mKick(t,.13);if(st===2||st===6){mPerc(t,.14,.06,1600);mNote(50,t,.08,'triangle',.05)}   // กระเดื่อง + สแนร์
+    mPerc(t,.03,.01,8000);mPerc(t+e/2,.03,.006,8000);                                                // ไฮแฮท 16 ส่วน
+    for(const[s0,m,l]of T.mel[bar])if(s0===st){mNote(m,t,e*l*.95,'square',.022,.005,3200);mNote(m-12,t,e*l*.95,'triangle',.03)}
+  }
+  MUS.step=(st+1)%8;if(MUS.step===0)MUS.bar++;return e}
+function setMus(on){MUS.on=on;try{localStorage.setItem('trainMus',on?'1':'0')}catch(e){}}
+function startMusic(){if(MUS.timer||!SND.ctx)return;const c=SND.ctx;
+  MUS.bus=c.createGain();MUS.bus.gain.value=0;MUS.bus.connect(SND.master);
+  MUS.nb=c.createBuffer(1,Math.floor(c.sampleRate*.5),c.sampleRate);{const d=MUS.nb.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1}
+  MUS.t=c.currentTime+.1;
+  MUS.timer=setInterval(()=>{if(!SND.ctx)return;const now=c.currentTime,play=SND.on&&MUS.on;
+    MUS.bus.gain.setTargetAtTime(play?(state==='menu'||state==='lobby'?.5:.9):0,now,.4);
+    if(MUS.t<now)MUS.t=now+.05;if(!play){MUS.t=now+.1;return}
+    try{while(MUS.t<now+.3)MUS.t+=musStep(MUS.t)}catch(e){}},90)}
 
 // =====================================================================
 //  world features: rails, stations, tunnels (deterministic layout)
@@ -585,12 +632,23 @@ function onRail(h,ang){
 const TUNNEL_SAFE=2,PORTAL_EDGE=260;
 // อุโมงค์ที่ปลายทางอยู่ใกล้/นอกวงสนาม (วงหดแล้ว) = ปิด ไม่วาร์ป ไม่งั้นออกไปโผล่ในพื้นที่แดงแล้วตาย
 const portalOpen=p=>{const q=portals[p.pair];return Math.hypot(q.x,q.y)<AR-PORTAL_EDGE&&Math.hypot(p.x,p.y)<AR-60};
+// ลอดอุโมงค์แบบ "ค่อย ๆ โผล่" (เจ้าของขอ 6 พ.ย. 2026 — เดิมวาร์ปทั้งขบวนทีเดียว โผล่มาทั้งตัวทับหน้าคนอื่นแล้วชนตาย)
+// หัววาร์ปไปทางออกก่อน (เลื่อนเท่ากับระยะระหว่างอุโมงค์คู่ dx,dy) ตู้ที่เหลือยังวิ่งอยู่ฝั่งทางเข้า
+// จุด k = จุดแรกที่ยังอยู่ฝั่งทางเข้า → ตามจุด k-1 ที่เลื่อนกลับมาฝั่งทางเข้า · จุดไหนวิ่งถึงปากอุโมงค์ทางเข้า (MOUTH) ก็ย้ายไปฝั่งทางออก
+// ลำตัวที่อยู่ในปากอุโมงค์ (วงดำ) ชนแล้วไม่ตาย เพราะยังอยู่ "ในอุโมงค์" · ทางออกกะพริบเตือนก่อนมีรถไฟโผล่ (drawPortalWarn)
+const MOUTH=44;
+function chainFollow(P,s,T){for(let i=1;i<P.length;i++){let ax=P[i-1].x,ay=P[i-1].y;if(T&&i===T.k){ax-=T.dx;ay-=T.dy}
+  const b=P[i],dx=ax-b.x,dy=ay-b.y,dd=Math.hypot(dx,dy);if(dd>s){const k=(dd-s)/dd;b.x+=dx*k;b.y+=dy*k}}}
+// T.t = เวลาตั้งแต่จุดล่าสุดลอดผ่าน · ถ้าค้างเกิน 1.5 วิ (เลี้ยวกลับกะทันหัน) ย้ายที่เหลือทั้งหมด กันท้ายขบวนค้างฝั่งทางเข้า
+function tunFeed(P,T){while(T.k<P.length){const b=P[T.k];if(T.t>1.5||(b.x-T.ex)**2+(b.y-T.ey)**2<MOUTH*MOUTH){b.x+=T.dx;b.y+=T.dy;T.k++;if(T.t<=1.5)T.t=0}else break}return T.k>=P.length}
+function tunFlush(w){const T=w.tun;if(!T)return;for(let i=T.k;i<w.pts.length;i++){w.pts[i].x+=T.dx;w.pts[i].y+=T.dy}w.tun=null}
+function tunStart(w,p){if(w.tun)tunFlush(w);const q=portals[p.pair],dx=q.x-p.x,dy=q.y-p.y;w.pts[0].x+=dx;w.pts[0].y+=dy;w.tun={dx,dy,ex:p.x,ey:p.y,k:1,t:0,e:p.pair}}
+const inMouth=q=>{for(const p of portals)if((q.x-p.x)**2+(q.y-p.y)**2<MOUTH*MOUTH&&portalOpen(p))return true;return false};
 function checkTunnel(w){
   const h=w.pts[0];
   for(const p of portals){if((h.x-p.x)**2+(h.y-p.y)**2<38*38){
     if(!portalOpen(p)){if(w.isP&&!w.closedMsg){w.closedMsg=1;texts.push({x:p.x,y:p.y-50,txt:'🚫 อุโมงค์ปิด (ปลายทางอยู่นอกวง)',t:1.4,c:'#ff9b9b'});setTimeout(()=>w.closedMsg=0,1500)}return}
-    const q=portals[p.pair],dx=q.x+Math.cos(w.angle)*75-h.x,dy=q.y+Math.sin(w.angle)*75-h.y;
-    for(const pt of w.pts){pt.x+=dx;pt.y+=dy}w.tunCD=1.5;w.safe=Math.max(w.safe,TUNNEL_SAFE);   // ออกจากอุโมงค์แล้วอมตะ 2 วิ
+    const q=portals[p.pair];tunStart(w,p);w.tunCD=1.5;w.safe=Math.max(w.safe,TUNNEL_SAFE);   // ค่อย ๆ โผล่ออกจากอุโมงค์ + หัวอมตะ 2 วิ
     if(w.isP){sfx('tunnel');track('tunnels');texts.push({x:q.x,y:q.y-50,txt:'🚇 ลอดอุโมงค์! 🛡️ อมตะ 2 วิ',t:1.6,c:p.col})}
     return}}
 }
@@ -651,8 +709,8 @@ class Worm{
     const n=this.nPts();
     while(this.pts.length<n){const t=this.pts[this.pts.length-1];this.pts.push({x:t.x,y:t.y})}
     if(this.pts.length>n)this.pts.length=n;
-    const s=this.r()*.42;
-    for(let i=1;i<this.pts.length;i++){const a=this.pts[i-1],b=this.pts[i];const dx=a.x-b.x,dy=a.y-b.y,dd=Math.hypot(dx,dy);if(dd>s){const k=(dd-s)/dd;b.x+=dx*k;b.y+=dy*k}}
+    chainFollow(this.pts,this.r()*.42,this.tun);
+    if(this.tun&&tunFeed(this.pts,this.tun))this.tun=null;
   }
   update(f,dt){
     const r=this.r();
@@ -667,7 +725,7 @@ class Worm{
     this.follow();
     for(const k in this.pu)if(this.pu[k]>0)this.pu[k]-=dt;
     if(this.safe>0)this.safe-=dt;if(this.ghost>0)this.ghost-=dt;if(this.selfCD>0)this.selfCD-=dt;
-    if(this.tunCD>0)this.tunCD-=dt;else checkTunnel(this);
+    if(this.tun)this.tun.t+=dt;if(this.tunCD>0)this.tunCD-=dt;else checkTunnel(this);
     if(this.mass>this.maxMass)this.maxMass=this.mass;
     if(this.isBoss&&this.energy<maxEn(this))this.energy+=dt*.5;
     if(h.x*h.x+h.y*h.y>(AR-r*.5)**2)this.die(null);
@@ -815,11 +873,14 @@ function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
   <div class="seg" id="segGfx"><div data-v="hi" class="${GFX==='hi'?'on':''}">💎 สวยสุด<small>ภาพคม เพชรวิบวับ</small></div><div data-v="auto" class="${GFX==='auto'?'on':''}">⚡ อัตโนมัติ<small>ลดเองถ้าเครื่องกระตุก</small></div><div data-v="lo" class="${GFX==='lo'?'on':''}">🔋 ประหยัด<small>เครื่องช้า/ประหยัดแบต</small></div></div>
   <div class="lbl">🔊 เสียง</div>
   <div class="seg" id="segSnd"><div data-v="1" class="${SND.on?'on':''}">🔊 เปิด</div><div data-v="0" class="${SND.on?'':'on'}">🔇 ปิด</div></div>
+  <div class="lbl">🎵 เพลงประกอบ</div>
+  <div class="seg" id="segMus"><div data-v="1" class="${MUS.on?'on':''}">🎵 เปิด<small>บอสมาเพลงเร้าใจ</small></div><div data-v="0" class="${MUS.on?'':'on'}">🔕 ปิด<small>เหลือแค่เสียงเอฟเฟกต์</small></div></div>
   <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · ถ้าเครื่องกระตุก ลองเลือกกราฟิก "อัตโนมัติ" หรือ "ประหยัด"</div>
   <button class="btn" id="setDone">เสร็จแล้ว</button>`;
   b.querySelectorAll('#segSide div').forEach(d=>d.onclick=()=>{setSide(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segGfx div').forEach(d=>d.onclick=()=>{setGfx(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segSnd div').forEach(d=>d.onclick=()=>{audioInit();setSnd(d.dataset.v==='1');sheetRender&&sheetRender(b)});
+  b.querySelectorAll('#segMus div').forEach(d=>d.onclick=()=>{audioInit();setMus(d.dataset.v==='1');sheetRender&&sheetRender(b)});
   $('setDone').onclick=()=>$('sheet').classList.add('hidden')})}
 $('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();openSettings()};
 // ---------- เต็มหน้าจอ: ปุ่ม ⛶ + เข้าเต็มจออัตโนมัติเมื่อกดเริ่มเล่น ----------
@@ -898,7 +959,7 @@ function step(f,dt){
     for(let gx=cx-1;gx<=cx+1&&!hit;gx++)for(let gy=cy-1;gy<=cy+1&&!hit;gy++){const a=bgrid.get(key(gx,gy));if(!a)continue;
       for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(o!==w&&(ally(o,w)||o.ghost>0))continue;
         const q=o.pts[idx];if(!q)continue;const rr=r*.7+o.r()*.9,dx=q.x-h.x,dy=q.y-h.y;
-        if(dx*dx+dy*dy<rr*rr){if(o===w){if(cut<0||idx<cut)cut=idx}else{hit=o;hitIdx=idx;break}}}}
+        if(dx*dx+dy*dy<rr*rr){if(o===w){if(cut<0||idx<cut)cut=idx}else if(!(idx>0&&inMouth(q))){hit=o;hitIdx=idx;break}}}}
     if(hit&&w.isBoss&&hit.isP){shake=.4;booms.push({x:w.pts[0].x,y:w.pts[0].y,t:.6});sfx('kill');bossHurt(w,hit)}   // บอสชนเรา → บอสเสียหัวใจ เด้งกลับ (เราไม่ขาด)
     else if(hit&&w.isBoss){   // บอสชนบอทตัวอื่น → ขบวนนั้นขาด (บอสไม่ตาย)
       const h2=w.pts[0];w.safe=.8;booms.push({x:h2.x,y:h2.y,t:.6});cutSelf(hit,Math.max(hitIdx,8),true)}
@@ -993,10 +1054,11 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.ghost>0){const h0=p[0],pl=.5+.5*Math.sin(frame*.25);ctx.strokeStyle=`rgba(155,231,255,${.5+.4*pl})`;ctx.lineWidth=4;ctx.setLineDash([10,8]);ctx.beginPath();ctx.arc(h0.x,h0.y,r*2.6+8*pl,0,TAU);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle='#9be7ff';ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('✨ เกิดใหม่',h0.x,h0.y+r*2.6+24)}
   if(w.ghost>0)ctx.globalAlpha=.4;else if(w.safe>0&&Math.floor(frame/6)%2)ctx.globalAlpha=.45;
-  const loc=carPose(p,0,Math.min(7,n-1)),cars=[];
-  for(let j=0;;j++){const f=8+j*6,b=f+5;if(b>=n)break;cars.push([j,carPose(p,f,b)])}
+  const TK=w.tun?w.tun.k:1e9;   // กำลังลอดอุโมงค์: จุด < TK อยู่ฝั่งทางออก ที่เหลืออยู่ฝั่งทางเข้า → ไม่วาดตู้/ข้อต่อที่คร่อมสองฝั่ง
+  const loc=TK<=7?{x:p[0].x-Math.cos(w.angle)*r*1.4,y:p[0].y-Math.sin(w.angle)*r*1.4,a:w.angle}:carPose(p,0,Math.min(7,n-1)),cars=[];
+  for(let j=0;;j++){const f=8+j*6,b=f+5;if(b>=n)break;if(f<TK&&b>=TK)continue;cars.push([j,carPose(p,f,b),f])}
   ctx.strokeStyle='#4a4f66';ctx.lineWidth=r*.28;ctx.lineCap='round';ctx.beginPath();
-  let prev=loc;for(const[,c]of cars){ctx.moveTo(prev.x,prev.y);ctx.lineTo(c.x,c.y);prev=c}ctx.stroke();
+  let prev=loc,pf=0;for(const[,c,f]of cars){if((pf<TK)===(f<TK)){ctx.moveTo(prev.x,prev.y);ctx.lineTo(c.x,c.y)}prev=c;pf=f}ctx.stroke();
   const wheels=xs=>{ctx.fillStyle='#1c1f2b';for(const sx of xs)for(const sy of[-1,1])ctx.fillRect(sx-r*.3,sy>0?W/2-r*.08:-W/2-r*.18,r*.6,r*.26)};
   for(let k=cars.length-1;k>=0;k--){
     const[j,c]=cars[k];if(!vis(c))continue;const L=r*2.05,col=sk[j%sk.length];
@@ -1127,6 +1189,18 @@ function drawPortals(vx0,vy0,vx1,vy1){
     ctx.strokeStyle=p.col;ctx.lineWidth=4;ctx.setLineDash([12,9]);ctx.lineDashOffset=-frame*.8;ctx.beginPath();ctx.arc(p.x,p.y,52,0,TAU);ctx.stroke();ctx.setLineDash([]);
     ctx.fillStyle=p.col;ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('🚇 อุโมงค์',p.x,p.y-60)}
 }
+// ปากอุโมงค์วาดทับรถไฟ → เห็นเป็นรถไฟมุดเข้า/ค่อย ๆ โผล่ออก · ทางออกที่กำลังจะมีรถไฟโผล่ กะพริบแดง "⚠️ รถไฟกำลังออก"
+function portalWarn(e){const p=portals[e],ent=portals[p.pair];if(!portalOpen(ent))return false;
+  for(const w of worms){if(!w.alive)continue;if(w.tun&&w.tun.e===e)return true;const h=w.pts[0],dx=ent.x-h.x,dy=ent.y-h.y,d=Math.hypot(dx,dy);
+    if(d<320&&(d<60||(Math.cos(w.angle)*dx+Math.sin(w.angle)*dy)/d>.55))return true}
+  return false}
+function drawPortalMouths(vx0,vy0,vx1,vy1){
+  for(let e=0;e<portals.length;e++){const p=portals[e];if(p.x<vx0-120||p.x>vx1+120||p.y<vy0-120||p.y>vy1+120||!portalOpen(p))continue;
+    const g=ctx.createRadialGradient(p.x,p.y,4,p.x,p.y,MOUTH+2);g.addColorStop(0,'#000');g.addColorStop(.75,'rgba(5,6,16,.97)');g.addColorStop(1,'rgba(20,24,51,.85)');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,MOUTH+2,0,TAU);ctx.fill();
+    if(portalWarn(e)){const pl=.5+.5*Math.sin(frame*.35);ctx.strokeStyle=`rgba(255,70,70,${.55+.45*pl})`;ctx.lineWidth=6;ctx.beginPath();ctx.arc(p.x,p.y,62+10*pl,0,TAU);ctx.stroke();
+      ctx.fillStyle='#ff6b6b';ctx.font='700 15px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('⚠️ รถไฟกำลังออก!',p.x,p.y-98)}}
+}
 function render(){
   ctx.setTransform(DPR,0,0,DPR,0,0);ctx.fillStyle='#0d1020';ctx.fillRect(0,0,VW,VH);
   let tx,ty,tz;
@@ -1170,6 +1244,7 @@ function render(){
   const list=worms.filter(w=>w.alive).sort((a,b)=>(a.isP-b.isP)||(a.mass-b.mass));
   drawSmoke();
   for(const w of list)drawWorm(w,vx0,vy0,vx1,vy1);
+  drawPortalMouths(vx0,vy0,vx1,vy1);
   for(const e of booms){const R=e.ice?FREEZE_R:BOMB_R,p=Math.min(1,e.t/.45),a=Math.max(0,1-e.t/1.1);
     ctx.fillStyle=e.ice?`rgba(155,231,255,${.25*a})`:`rgba(255,220,120,${.35*a})`;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.fill();
     ctx.strokeStyle=e.ice?`rgba(200,245,255,${a})`:`rgba(255,140,40,${a})`;ctx.lineWidth=18*a+2;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.stroke();
@@ -1259,20 +1334,14 @@ function fillTextIcons(str,x,y){   // ข้อความที่มี {G}=�
   let cx=al==='center'?x-w/2:al==='right'?x-w:x;ctx.textAlign='left';
   for(const p of parts){if(p==='{G}'){drawGoldIcon(cx+iw/2,y-fs*.32,fs*.8);cx+=iw}else if(p==='{B}'){drawBombIcon(cx+iw/2,y-fs*.32,fs*.95);cx+=iw}else if(p){ctx.fillStyle=col;ctx.fillText(p,cx,y);cx+=ctx.measureText(p).width}}
   ctx.fillStyle=col;ctx.textAlign=al}
-// มินิแมป: ตำแหน่งตัวเองให้เห็นชัด = เส้นขบวนสีเหลือง + วงกระพริบ + ลูกศรชี้ทิศ + ป้าย "คุณ"
+// มินิแมป: ตำแหน่งตัวเองให้เห็นชัด = เส้นขบวนสีเหลือง + วงกระพริบ + ลูกศรชี้ทิศ
 let MINI_R=64;const mr0=()=>MINI_R;
 function drawMiniMe(mx,my,S){const P=player.pts,h=P[0],hx=mx+h.x*S,hy=my+h.y*S,pl=Math.sin(frame*.15);
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
-  ctx.strokeStyle='rgba(255,210,63,.85)';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(hx,hy);for(let i=6;i<P.length;i+=6)ctx.lineTo(mx+P[i].x*S,my+P[i].y*S);ctx.stroke();
+  ctx.strokeStyle='rgba(255,210,63,.85)';ctx.lineWidth=2.5;const TK=player.tun?player.tun.k:1e9;ctx.beginPath();ctx.moveTo(hx,hy);for(let i=6;i<P.length;i+=6)(i>=TK&&i-6<TK?ctx.moveTo:ctx.lineTo).call(ctx,mx+P[i].x*S,my+P[i].y*S);ctx.stroke();
   ctx.strokeStyle='rgba(255,210,63,'+(.55+.35*pl)+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(hx,hy,8+2.5*pl,0,TAU);ctx.stroke();
   ctx.translate(hx,hy);ctx.rotate(player.angle);ctx.fillStyle='#ffd23f';ctx.strokeStyle='#1a1f3d';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-4.5,4.5);ctx.lineTo(-2,0);ctx.lineTo(-4.5,-4.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
-  // ป้าย YOU: กล่องสีเหลืองตัวหนังสือเข้ม มีหางชี้ลงที่หัวรถไฟ · อยู่ในกรอบมินิแมปเสมอ (ถ้าอยู่ขอบบน ป้ายจะย้ายไปอยู่ใต้หัว)
-  ctx.font='700 11px Mitr,sans-serif';const tw=ctx.measureText('YOU').width+10,th=15,up=hy-th-14>=my-mr0();
-  const lx=Math.max(mx-mr0()+2,Math.min(mx+mr0()-tw-2,hx-tw/2)),ly=up?hy-12-th:hy+12;
-  ctx.fillStyle='#ffd23f';roundRect(lx,ly,tw,th,5);ctx.fill();ctx.strokeStyle='#1a1f3d';ctx.lineWidth=1.5;ctx.stroke();
-  ctx.beginPath();if(up){ctx.moveTo(hx-4,ly+th);ctx.lineTo(hx+4,ly+th);ctx.lineTo(hx,ly+th+5)}else{ctx.moveTo(hx-4,ly);ctx.lineTo(hx+4,ly);ctx.lineTo(hx,ly-5)}ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();
-  ctx.fillStyle='#1a1f3d';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('YOU',lx+tw/2,ly+th/2+1);ctx.textBaseline='alphabetic';ctx.textAlign='left'}
+  ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-4.5,4.5);ctx.lineTo(-2,0);ctx.lineTo(-4.5,-4.5);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}   // ป้าย YOU เอาออกแล้ว (เจ้าของสั่ง 6 พ.ย. 2026) เหลือเส้นเหลือง + วงกระพริบ + ลูกศร
 function hpBar(x,y,w,h,f){f=Math.max(0,Math.min(1,f||0));ctx.fillStyle='rgba(0,0,0,.6)';roundRect(x-2,y-2,w+4,h+4,5);ctx.fill();ctx.fillStyle=f>.5?'#ff5e5e':f>.25?'#ff8c42':'#ffd23f';roundRect(x,y,w*f,h,4);ctx.fill()}
 function clip(s,w){if(ctx.measureText(s).width<=w)return s;while(s.length&&ctx.measureText(s+'…').width>w)s=s.slice(0,-1);return s+'…'}
 function roundRect(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h)}
@@ -1715,11 +1784,16 @@ function netUpdate(w,dt){
   const s=w.snaps;if(!s||!s.length){w.follow();return}
   const rt=Date.now()-w.off-INTERP;while(s.length>2&&s[1].t<=rt)s.shift();
   let x,y,a,m;const A=s[0],B=s[1];
-  if(B&&rt>=A.t){const k=Math.min(1.25,(rt-A.t)/Math.max(1,B.t-A.t));   // เลยสถานะล่าสุดได้นิดหน่อย (เดาต่อ) ถ้าข้อมูลมาช้า
+  if(B&&rt>=A.t){let k=Math.min(1.25,(rt-A.t)/Math.max(1,B.t-A.t));   // เลยสถานะล่าสุดได้นิดหน่อย (เดาต่อ) ถ้าข้อมูลมาช้า
+    if((B.x-A.x)**2+(B.y-A.y)**2>300*300)k=k<1?0:1;   // วาร์ป (อุโมงค์/เกิดใหม่) ห้ามเลื่อนข้ามแมป
     x=A.x+(B.x-A.x)*k;y=A.y+(B.y-A.y)*k;let d=B.a-A.a;d=Math.atan2(Math.sin(d),Math.cos(d));a=A.a+d*Math.min(1,k);m=A.m+(B.m-A.m)*Math.min(1,k)}
   else{x=A.x;y=A.y;a=A.a;m=A.m}
   const h=w.pts[0],dx=x-h.x,dy=y-h.y;
-  if(dx*dx+dy*dy>300*300){for(const q of w.pts){q.x+=dx;q.y+=dy}}else{h.x=x;h.y=y}   // ลอดอุโมงค์/เกิดใหม่ → ย้ายทั้งขบวน
+  if(dx*dx+dy*dy>300*300){let ent=null;for(const p of portals){const q=portals[p.pair];if(Math.hypot(h.x-p.x,h.y-p.y)<170&&Math.hypot(x-q.x,y-q.y)<260){ent=p;break}}
+    if(ent){tunStart(w,ent);h.x=x;h.y=y}   // ลอดอุโมงค์ → ค่อย ๆ โผล่เหมือนเครื่องเจ้าของ
+    else{w.tun=null;for(const q of w.pts){q.x+=dx;q.y+=dy}}}   // เกิดใหม่ → ย้ายทั้งขบวน
+  else{h.x=x;h.y=y}
+  if(w.tun)w.tun.t+=dt;
   w.angle=a;if(m)w.mass=m;w.follow();
 }
 function netTick(dt){

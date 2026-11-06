@@ -72,6 +72,20 @@ ok(boss2.alive && !room.msgs.some(m => m.t === 'cut' && m.v === 7), 'บอส�
   r2.msgs = []; botsim.step(r2, 1 / 20, bc(r2), drop);
   ok(!bb.alive && p9.kills === 1, 'ชดเชยดีเลย์: บอทที่ผู้เล่นเห็นวิ่งทะลุลำตัว → ตาย ผู้เล่นได้แต้ม'); }
 
+
+// 6c) ลอดอุโมงค์แบบค่อย ๆ โผล่: หัวไปทางออกก่อน ท้ายยังอยู่ทางเข้า แล้วค่อย ๆ ตามออกมาจนครบ
+{ const r3 = mkRoom(true); r3.players.set(1, { id: 1, kills: 0, st: { x: 2500, y: 0, a: 0, m: 40, f: 4 } }); step(r3, 1);
+  const W = r3.sim.world, P0 = W.portals[0], Q0 = W.portals[P0.pair];
+  const tb = live(r3).sort((a, b) => b.pts.length - a.pts.length)[0]; tb.mass = 300; tb.ai.t = 1e9; tb.boost = false; tb.slow = 0;
+  const ang = 0.3; tb.angle = tb.target = ang; tb.pts = []; for (let i = 0; i < 150; i++) tb.pts.push({ x: P0.x - Math.cos(ang) * (30 + i * 8), y: P0.y - Math.sin(ang) * (30 + i * 8) });
+  tb.tunCD = 0; tb.safe = 99; let moved = false, maxGap = 0, frames = 0;
+  for (let i = 0; i < 300 && (tb.tun || !moved); i++) { botsim.step(r3, 1 / 20, bc(r3), drop); tb.target = tb.angle; tb.safe = 99; frames++;
+    if (tb.tun) { moved = true; const k = tb.tun.k; if (i === 0 || frames === 2) ok(Math.hypot(tb.pts[0].x - Q0.x, tb.pts[0].y - Q0.y) < 200 && Math.hypot(tb.pts[tb.pts.length - 1].x - P0.x, tb.pts[tb.pts.length - 1].y - P0.y) < 1400, 'ลอดอุโมงค์: หัวโผล่ทางออก ท้ายยังอยู่ฝั่งทางเข้า');
+      for (let j = 1; j < tb.pts.length; j++) if (j !== k) maxGap = Math.max(maxGap, Math.hypot(tb.pts[j].x - tb.pts[j - 1].x, tb.pts[j].y - tb.pts[j - 1].y)); } }
+  ok(moved && !tb.tun, 'ลอดอุโมงค์: ตู้ทั้งขบวนตามออกมาครบ (' + frames + ' tick)');
+  ok(maxGap < 30, 'ระหว่างลอด ตู้ติดกันไม่ขาดยืด (ห่างสุด ' + maxGap.toFixed(1) + ')');
+  ok(Math.hypot(tb.pts[tb.pts.length - 1].x - P0.x, tb.pts[tb.pts.length - 1].y - P0.y) > 400, 'ลอดเสร็จ ท้ายขบวนไม่ค้างฝั่งทางเข้า'); }
+
 // 7) 2v2: คน 2 คนทีม A → บอท 2 ตัวทีม B, ทีม A ไม่มีบอท
 room = mkRoom(false); room.arena = () => 2200;
 room.players.set(1, { id: 1, team: 'A', kills: 0, st: { x: -900, y: 0, a: 0, m: 30, f: 4 } });

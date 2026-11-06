@@ -38,9 +38,16 @@ function follow(t) {
   const n = nOf(t.mass), p = t.pts;
   while (p.length < n) { const q = p[p.length - 1]; p.push({ x: q.x, y: q.y }); }
   if (p.length > n) p.length = n;
-  const s = rOf(t.mass) * .42;
-  for (let i = 1; i < p.length; i++) { const a = p[i - 1], b = p[i], dx = a.x - b.x, dy = a.y - b.y, dd = Math.hypot(dx, dy); if (dd > s) { const k = (dd - s) / dd; b.x += dx * k; b.y += dy * k; } }
+  const s = rOf(t.mass) * .42, T = t.tun;
+  for (let i = 1; i < p.length; i++) { let ax = p[i - 1].x, ay = p[i - 1].y; if (T && i === T.k) { ax -= T.dx; ay -= T.dy; }
+    const b = p[i], dx = ax - b.x, dy = ay - b.y, dd = Math.hypot(dx, dy); if (dd > s) { const k = (dd - s) / dd; b.x += dx * k; b.y += dy * k; } }
+  if (T) { while (T.k < p.length) { const b = p[T.k]; if (T.t > 1.5 || (b.x - T.ex) ** 2 + (b.y - T.ey) ** 2 < MOUTH * MOUTH) { b.x += T.dx; b.y += T.dy; T.k++; if (T.t <= 1.5) T.t = 0; } else break; } if (T.k >= p.length) t.tun = null; }
 }
+// ลอดอุโมงค์แบบค่อย ๆ โผล่ (เหมือน index.html: tunStart/tunFeed) — หัววาร์ปก่อน ตู้ที่เหลือวิ่งตามเข้าปากอุโมงค์ทีละจุด
+const MOUTH = 44;
+function tunStart(world, t, p) { if (t.tun) { const T = t.tun; for (let i = T.k; i < t.pts.length; i++) { t.pts[i].x += T.dx; t.pts[i].y += T.dy; } }
+  const q = world.portals[p.pair], dx = q.x - p.x, dy = q.y - p.y; t.pts[0].x += dx; t.pts[0].y += dy; t.tun = { dx, dy, ex: p.x, ey: p.y, k: 1, t: 0 }; }
+function inMouth(room, q) { for (const p of room.sim.world.portals) if ((q.x - p.x) ** 2 + (q.y - p.y) ** 2 < MOUTH * MOUTH && portalOpen(room, p)) return true; return false; }
 function mkPts(x, y, a, mass) { const n = nOf(mass), s = rOf(mass) * .42, pts = []; for (let i = 0; i < n; i++) pts.push({ x: x - Math.cos(a) * i * s, y: y - Math.sin(a) * i * s }); return pts; }
 
 function arenaR(room) { return room.arena ? room.arena(room) : room.cfg.R; }
@@ -81,7 +88,11 @@ function syncPlayers(room) {
     const st = p.st; if (!st || !(st.f & 4)) { p.body = null; continue; }
     if (!p.body) p.body = { pid: p.id, human: true, alive: true, pts: mkPts(st.x, st.y, st.a, Math.max(10, st.m)), mass: Math.max(10, st.m) };
     const b = p.body, h = b.pts[0], dx = st.x - h.x, dy = st.y - h.y;
-    if (dx * dx + dy * dy > 300 * 300) for (const q of b.pts) { q.x += dx; q.y += dy; } else { h.x = st.x; h.y = st.y; }
+    if (dx * dx + dy * dy > 300 * 300) { let ent = null; const W = room.sim && room.sim.world;
+      if (W) for (const pp of W.portals) { const qq = W.portals[pp.pair]; if (Math.hypot(h.x - pp.x, h.y - pp.y) < 170 && Math.hypot(st.x - qq.x, st.y - qq.y) < 260) { ent = pp; break; } }
+      if (ent) { tunStart(W, b, ent); h.x = st.x; h.y = st.y; } else { b.tun = null; for (const q of b.pts) { q.x += dx; q.y += dy; } } }
+    else { h.x = st.x; h.y = st.y; }
+    if (b.tun) b.tun.t += 1 / 20;
     b.mass = Math.max(10, st.m); b.angle = st.a; b.team = p.team; b.ghost = st.f & 32 ? 1 : 0; b.safe = st.f & 16 ? 1 : 0; b.alive = true; follow(b);
   }
 }
@@ -138,9 +149,9 @@ function moveBot(S, room, w, f, dt) {
   if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
   const h = w.pts[0]; h.x += Math.cos(w.angle) * sp * f; h.y += Math.sin(w.angle) * sp * f; follow(w);
   (w.hist || (w.hist = [])).push(h.x, h.y); if (w.hist.length > LAG_STEPS * 2 + 2) w.hist.splice(0, 2);   // ตำแหน่งหัวย้อนหลัง (ไว้ชดเชยดีเลย์)
-  if (w.safe > 0) w.safe -= dt; if (w.hitCD > 0) w.hitCD -= dt; if (w.ghost > 0) w.ghost -= dt; if (w.selfCD > 0) w.selfCD -= dt;
+  if (w.tun) w.tun.t += dt; if (w.safe > 0) w.safe -= dt; if (w.hitCD > 0) w.hitCD -= dt; if (w.ghost > 0) w.ghost -= dt; if (w.selfCD > 0) w.selfCD -= dt;
   if (w.tunCD > 0) w.tunCD -= dt; else for (const p of S.world.portals) if ((h.x - p.x) ** 2 + (h.y - p.y) ** 2 < 38 * 38) { if (!portalOpen(room, p)) break;
-    const q = S.world.portals[p.pair], dx = q.x + Math.cos(w.angle) * 75 - h.x, dy = q.y + Math.sin(w.angle) * 75 - h.y; for (const pt of w.pts) { pt.x += dx; pt.y += dy; } w.hist = null; w.tunCD = 1.5; w.safe = Math.max(w.safe, TUNNEL_SAFE); break; }
+    tunStart(S.world, w, p); w.hist = null; w.tunCD = 1.5; w.safe = Math.max(w.safe, TUNNEL_SAFE); break; }
   if (w.mass > w.maxLen) w.maxLen = w.mass;
   if (w.isBoss && w.energy < 20) w.energy += dt * .5;
   if (h.x * h.x + h.y * h.y > (arenaR(room) - r * .5) ** 2) killBot(room, w, null);
@@ -184,11 +195,11 @@ function collide(S, room) {
         if (o === w && (idx < SELF_IDX || w.selfCD > 0)) continue; if (o !== w && (ally(o, w) || o.ghost > 0)) continue;
         if (w.isBoss && o.human) continue;   // บอสชนผู้เล่น → เครื่องผู้เล่นตัดสินเองจากภาพที่เห็น (เซิร์ฟเวอร์เห็นตำแหน่งช้ากว่า เลยขาดทั้งที่ยังไม่แตะ)
         const q = o.pts[idx]; if (!q) continue; const rr = r * .7 + rOf(o.mass) * .9, dx = q.x - h.x, dy = q.y - h.y;
-        if (dx * dx + dy * dy < rr * rr) { if (o === w) { if (cut < 0 || idx < cut) cut = idx; } else { hit = o; hitIdx = idx; break; } } } }
+        if (dx * dx + dy * dy < rr * rr) { if (o === w) { if (cut < 0 || idx < cut) cut = idx; } else if (!(idx > 0 && inMouth(room, q))) { hit = o; hitIdx = idx; break; } } } }
     if (!hit && !w.isBoss && w.hist) {   // หัวบอทเมื่อ ~0.2 วิก่อน (ที่ผู้เล่นเห็นบนจอ) แตะลำตัวผู้เล่น → ตายเหมือนกัน
       const hs = w.hist, px = hs[0], py = hs[1], pcx = Math.floor(px / CS), pcy = Math.floor(py / CS);
       for (let gx = pcx - 1; gx <= pcx + 1 && !hit; gx++) for (let gy = pcy - 1; gy <= pcy + 1 && !hit; gy++) { const a = S.bgrid.get(key(gx, gy)); if (!a) continue;
-        for (let k = 0; k < a.length; k += 2) { const o = a[k]; if (!o.human || !o.alive || ally(o, w) || o.ghost > 0) continue; if (hitsHuman(w, o, a[k + 1], r)) { hit = o; break; } } } }
+        for (let k = 0; k < a.length; k += 2) { const o = a[k]; if (!o.human || !o.alive || ally(o, w) || o.ghost > 0) continue; if (hitsHuman(w, o, a[k + 1], r) && !inMouth(room, o.pts[a[k + 1]])) { hit = o; break; } } } }
     if (hit && w.isBoss) {   // บอสชนบอทตัวอื่น → บอทขาด (บอสไม่ตาย) · ชนผู้เล่นจริง client ตรวจเอง
       w.safe = .8; cutBot(room, hit, Math.max(hitIdx, 8));
     } else if (hit) killBot(room, w, hit);
