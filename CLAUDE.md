@@ -158,10 +158,11 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
 - ก่อนรันเซิร์ฟเวอร์ทดสอบ ให้ปิดตัวเก่าด้วย `pkill -f '[n]ode server.js'` (มีวงเล็บ [n] กันฆ่าเชลล์ตัวเอง) ไม่งั้นพอร์ตชนแล้วเทสต์จะไปโดนโค้ดเก่า
 
 ## 9. สถานะการขึ้นคลาวด์ (เสร็จแล้ว — 5 พ.ย. 2026)
-- **เว็บเกมจริง (ตั้งแต่ 5 พ.ย. 2026 21:10): https://rotfai-sa-sg.onrender.com** — service `rotfai-sa-sg` (id srv-dbm8njt6e07s73bg6bi0) **region Singapore** branch `main` แผนฟรี · ping จากเครื่องเจ้าของ ~72ms (Oregon เดิม ~243ms)
+- **เว็บเกมจริง: https://www.rotfaisa.com** (ลิงก์เดิม https://rotfai-sa-sg.onrender.com ยังใช้ได้) — service `rotfai-sa-sg` (id srv-dbm8njt6e07s73bg6bi0) **region Singapore** branch `main` แผนฟรี · ping จากเครื่องเจ้าของ ~72ms (Oregon เดิม ~243ms)
   - **deploy ขึ้นเว็บจริง = Manual Deploy ที่ `rotfai-sa-sg`** (service นี้สร้างจาก Public Git Repo ไม่ใช่ Blueprint)
 - **โดเมน www.rotfaisa.com (6 พ.ย. 2026)** — ซื้อผ่าน Shopify ร้าน "Manita Store" (บัญชี manitabeauty131@gmail.com, $17/ปี ต่ออายุอัตโนมัติ) · DNS อยู่ที่ Shopify: CNAME `www` → `rotfai-sa-sg.onrender.com` (ทำงานแล้ว HTTPS ได้) · Render มี custom domain `www.rotfaisa.com` (หลัก) + `rotfaisa.com` redirect ไป www
-  - **ยังค้าง:** `rotfaisa.com` (ไม่มี www) ยังชี้ Shopify (A record ล็อกเป็น Shopify IP แก้ไม่ได้) → พาไปร้าน manitabeauty.com · ทางแก้: ย้าย nameserver ไป Cloudflare (ฟรี) แล้วตั้ง CNAME `@` และ `www` → `rotfai-sa-sg.onrender.com` (Shopify → Domains → rotfaisa.com → DNS settings → Shopify's Nameservers → Change) · ย้ายโดเมนออกจาก Shopify ได้หลังซื้อ 60 วัน
+  - **6 พ.ย. 19:40 ย้าย DNS ไป Cloudflare แล้ว** (บัญชี Cloudflare ของเจ้าของ pon.ipad@gmail.com, แผน Free): nameserver `jocelyn.ns.cloudflare.com` + `stanley.ns.cloudflare.com` (ตั้งใน Shopify → custom nameservers) · record: A `@` → `216.24.57.1` (IP ของ Render) และ CNAME `www` → `rotfai-sa-sg.onrender.com` ทั้งคู่ **DNS only** (ปิด proxy) · การจดโดเมน/ต่ออายุยังอยู่ที่ Shopify · ย้ายการจดออกจาก Shopify ได้หลังซื้อ 60 วัน
+- **Render แผน $7/เดือน (0.5 CPU, 512MB) ตั้งแต่ 6 พ.ย. 2026 19:36** — ไม่หลับแล้ว · เปลี่ยนแผนแล้ว Render deploy commit ล่าสุดให้เอง
 - ลิงก์เก่า https://rotfai-sa.onrender.com (service `rotfai-sa`, Oregon, Blueprint) ตั้ง env `REDIRECT_TO=https://rotfai-sa-sg.onrender.com` → ส่งต่อทุกหน้า (รวม `?w=`) ไปเว็บสิงคโปร์ · ไม่ต้อง deploy ตัวนี้อีก
 - **GitHub:** https://github.com/Thienpradit/rotfai-sa (Public, branch `main`)
 - Render เชื่อมผ่าน Blueprint (`render.yaml`) แต่บัญชี Render ของเจ้าของล็อกอินด้วยอีเมล ไม่ได้เชื่อม GitHub
