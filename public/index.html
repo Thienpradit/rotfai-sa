@@ -565,12 +565,30 @@ function sfx(k){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime;try{swit
   case'tunnel':noise(t,.6,.3,2200);break;
   case'freeze':[1568,1318,1046,1760].forEach((f,i)=>tone(f,t+i*.05,.28,'sine',.08));break;
   case'boss':tone(110,t,1.1,'sawtooth',.16,85);tone(147,t+.3,1,'sawtooth',.12,110);break;
-  case'siren':{const c=SND.ctx,f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=1600;f.connect(SND.master);   // บอสโผล่: แตรรถไฟทุ้ม ๆ "ปู๊น — ปู๊น" (เดิมไซเรน เจ้าของว่าตกใจเกิน 6 พ.ย. 22:47)
-    for(const[d,len]of[[0,1],[1.25,1.5]]){const g=c.createGain(),t0=t+d;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.16,t0+.09);g.gain.setValueAtTime(.16,t0+len-.18);g.gain.linearRampToValueAtTime(0,t0+len);g.connect(f);
-      for(const[fr,v]of[[277.2,1],[349.2,.8],[415.3,.7],[138.6,.5]]){const o=c.createOscillator(),og=c.createGain();o.type='sawtooth';og.gain.value=v*.4;o.frequency.setValueAtTime(fr*.97,t0);o.frequency.linearRampToValueAtTime(fr,t0+.12);
-        o.connect(og);og.connect(g);o.start(t0);o.stop(t0+len+.05)}}break}
+  case'siren':bossSfx(BOSS_SND,t);break;
   case'coin':tone(1318,t,.08,'square',.05);tone(1760,t+.07,.16,'square',.05);break;
 }}catch(e){}}
+// เสียงตอนบอสโผล่ (เจ้าของเลือก) — ทุกแบบสั้น ~2–3 วิ แล้วเงียบ เพลงเล่นต่อ
+let BOSS_SND='bell';
+function bossSfx(k,t){const c=SND.ctx,out=c.createGain();out.connect(SND.master);
+  const osc=(type,fr,t0,len,vol,att=.01,fr2)=>{const o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.setValueAtTime(fr,t0);if(fr2)o.frequency.exponentialRampToValueAtTime(fr2,t0+len);
+    g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol,t0+att);g.gain.exponentialRampToValueAtTime(.0008,t0+len);o.connect(g);g.connect(out);o.start(t0);o.stop(t0+len+.05)};
+  if(k==='bell'){   // 🔔 กระดิ่งทางข้ามรถไฟ "เด่ง เด่ง เด่ง" 6 ครั้ง
+    for(let i=0;i<6;i++){const t0=t+i*.42;osc('sine',1046,t0,.6,.12,.003);osc('sine',1046*2.76,t0,.25,.04,.002);osc('triangle',523,t0,.5,.05,.003)}}
+  else if(k==='steam'){   // 🚂 หวูดไอน้ำ "ปู๊ด ปู๊ดดด" เสียงสดใส มีลมไอน้ำ
+    for(const[d,len]of[[0,.45],[.6,1.2]]){const t0=t+d;for(const[fr,v]of[[587,1],[740,.8],[880,.6]]){const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(fr*.94,t0);o.frequency.linearRampToValueAtTime(fr,t0+.08);
+        g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.06*v,t0+.05);g.gain.setValueAtTime(.06*v,t0+len-.1);g.gain.linearRampToValueAtTime(0,t0+len);o.connect(g);g.connect(out);o.start(t0);o.stop(t0+len+.05)}
+      const nb=c.createBufferSource(),buf=c.createBuffer(1,c.sampleRate*len|0,c.sampleRate),dd=buf.getChannelData(0);for(let i=0;i<dd.length;i++)dd[i]=(Math.random()*2-1);nb.buffer=buf;
+      const bp=c.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2500;bp.Q.value=.8;const ng=c.createGain();ng.gain.setValueAtTime(0,t0);ng.gain.linearRampToValueAtTime(.05,t0+.05);ng.gain.linearRampToValueAtTime(0,t0+len);nb.connect(bp);bp.connect(ng);ng.connect(out);nb.start(t0)}}
+  else if(k==='drum'){   // 🥁 กลองใหญ่ตูม + แตรเปิดตัวแบบหนังแอคชัน "ตึ้ม...ตึ้ม...ตึ้ง!"
+    for(const[d,v]of[[0,.22],[.45,.22],[.9,.3]]){osc('sine',110,t+d,.6,v,.005,40);osc('triangle',220,t+d,.15,.05,.003,90)}
+    for(const fr of[147,220,294])osc('sawtooth',fr,t+.9,1.4,.035,.02);}
+  else if(k==='fanfare'){   // 🎺 เสียงเตือนแบบเกม "ตะ-ตะ-ต๊าาา" สนุก ๆ
+    [[523,0,.14],[659,.16,.14],[784,.32,.14],[1046,.5,.9]].forEach(([fr,d,len])=>{osc('square',fr,t+d,len,.1,.005);osc('triangle',fr/2,t+d,len,.12,.005)})}
+  else if(k==='horn'){   // 📯 แตรรถไฟทุ้ม ปู๊น—ปู๊น
+    const f=c.createBiquadFilter();f.type='lowpass';f.frequency.value=1600;f.connect(out);
+    for(const[d,len]of[[0,1],[1.25,1.5]]){const g=c.createGain(),t0=t+d;g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.16,t0+.09);g.gain.setValueAtTime(.16,t0+len-.18);g.gain.linearRampToValueAtTime(0,t0+len);g.connect(f);
+      for(const[fr,v]of[[277.2,1],[349.2,.8],[415.3,.7],[138.6,.5]]){const o=c.createOscillator(),og=c.createGain();o.type='sawtooth';og.gain.value=v*.4;o.frequency.setValueAtTime(fr*.97,t0);o.frequency.linearRampToValueAtTime(fr,t0+.12);o.connect(og);og.connect(g);o.start(t0);o.stop(t0+len+.05)}}}}
 // หวูดรถไฟ (ร้านค้า หมวดหวูด) — กด 📯 หรือ H
 let hornCD=0;
 function hornSfx(k,vol){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime,v=Math.max(.05,vol||1);try{switch(k){
