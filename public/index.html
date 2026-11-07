@@ -178,7 +178,12 @@ table.cmp td.nm span{min-width:0;display:flex;flex-direction:column}table.cmp td
 .perkbox .perks{display:grid;gap:3px;margin:6px 0 4px}.perkbox .perks div{color:#aab3e6}.perkbox .perks div.up{color:#cfffdc}.perkbox .perks b{color:#7cfc9a}.perkbox .perks i{font-style:normal;color:#8891c4;font-size:12px}.item .zoom{position:absolute;right:-5px;bottom:-5px;font-size:12px;background:#2f3870;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center}
 canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14px;border:1px solid #2f3870}
 .perkbox{background:rgba(124,252,154,.1);border:1px solid rgba(124,252,154,.4);border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:#cfffdc;margin:6px 0}
-.perkbox small{color:#9fd9b0;font-size:12px}.item .old{text-decoration:line-through;color:#8891c4;margin-right:4px}
+.perkbox small{color:#9fd9b0;font-size:12px}
+.hcmp{background:#151a3a;border:1px solid #2f3870;border-radius:12px;padding:8px 10px;text-align:left;font-size:13px;margin:8px 0}.hcmp>small{color:#8891c4}
+.hrow{display:grid;grid-template-columns:1fr auto;gap:3px 8px;padding:7px 6px;border-radius:9px;cursor:pointer;margin-top:3px}.hrow.on{background:rgba(255,255,255,.08);outline:1px solid rgba(255,255,255,.25)}
+.hrow .hn{color:#fff;font-weight:600}.hrow .hs{color:#aab2e0;font-size:12px;text-align:right}
+.hrow .hb{position:relative;grid-column:1/-1;height:16px;background:#0c1027;border-radius:8px;overflow:hidden}.hrow .hb.t{height:12px}
+.hrow .hb i{position:absolute;left:0;top:0;bottom:0;border-radius:8px;opacity:.85}.hrow .hb em{position:relative;font-style:normal;font-size:11px;padding-left:6px;color:#fff;text-shadow:0 1px 2px #000;line-height:16px}.hrow .hb.t em{line-height:12px;font-size:10px}.item .old{text-decoration:line-through;color:#8891c4;margin-right:4px}
 .tag{display:inline-block;font-size:10px;font-weight:600;border-radius:6px;padding:1px 6px;margin-left:4px;background:#ff5e5e;color:#fff;vertical-align:1px}
 .rcode{font-size:24px;font-weight:600;letter-spacing:3px;color:#ffd23f;background:#0f1330;border-radius:12px;padding:10px;margin:8px 0;user-select:text;-webkit-user-select:text}
 .link{color:#77ccff;cursor:pointer;text-decoration:underline;font-size:13px}
@@ -1863,13 +1868,13 @@ function refreshSheet(){if(sheetRender&&!$('sheet').classList.contains('hidden')
 $('sheetClose').onclick=()=>{$('sheet').classList.add('hidden');if(NET&&state==='lobby')netLeave();showBest();renderSkins()};
 let shopTab='deal';
 const SHOP_TABS=[['deal','⭐ วันนี้'],['loco','🚂 หัวจักร'],['wagon','🚃 ตู้รถ'],['smoke','💨 ควัน'],['skin','🎨 สี'],['kfx','🎆 กำจัด'],['horn','📯 หวูด'],['title','🏷️ ฉายา']];
-const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปใหญ่และรายละเอียด · ความเร็วเท่ากันทุกหัว · หัวที่ดีกว่า: เก็บพลอยไกลขึ้น 🧲, ระเบิดใช้ได้นานขึ้น {B}, ร่างทองนานขึ้น {G}, พลังเร่งเก็บได้มากขึ้น 💎',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'หวูดไอน้ำที่ติดมากับเกมมีแค่เสียง · หวูดที่ซื้อ: กดปุ่ม 📯 (หรือ H) บอทในวงจะหนีออกด้านข้าง (ใช้ได้ทุก 8 วิ) · หวูดแพงขึ้น = ไล่ได้วงกว้างขึ้น + ศัตรูหนีนานขึ้น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
+const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปใหญ่และรายละเอียด · ความเร็วเท่ากันทุกหัว · หัวที่ดีกว่า: เก็บพลอยไกลขึ้น 🧲, ระเบิดใช้ได้นานขึ้น {B}, ร่างทองนานขึ้น {G}, พลังเร่งเก็บได้มากขึ้น 💎',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'แตะที่หวูดเพื่อดูภาพจำลอง รัศมี และเทียบทุกแบบ · หวูดไอน้ำที่ติดมากับเกมมีแค่เสียง · หวูดที่ซื้อ: กดปุ่ม 📯 (หรือ H) บอทในวงจะหนีออกด้านข้าง (ใช้ได้ทุก 8 วิ) · หวูดแพงขึ้น = ไล่ได้วงกว้างขึ้น + ศัตรูหนีนานขึ้น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
 function openShop(tab){if(tab)shopTab=tab;openSheet('🛒 ร้านค้า',renderShop)}
 const isOwned=(cat,id)=>cat==='title'&&id.startsWith('a:')?!!prof.ach[id.slice(2)]:prof.owned[cat].includes(id);
 const isEq=(cat,id)=>cat==='skin'?allSkins()[selSkin]?.id===id:prof.eq[cat]===id;
 function buy(cat,it,price){if(prof.coins<price||isOwned(cat,it.id))return;prof.coins-=price;prof.owned[cat].push(it.id);equip(cat,it.id);saveProf();pushProf();audioInit();sfx('coin');announce('🛒 ซื้อ '+(it.ic||'🎨')+' '+it.n+' แล้ว!')}
 // ---------- หน้ารายละเอียดสินค้า: ภาพตัวอย่าง + คำอธิบาย + ซื้อ/ใช้งาน ----------
-const PREVIEW_CATS=['loco','wagon','skin'];
+const PREVIEW_CATS=['loco','wagon','skin','horn'];
 function drawPreview(cv2,o){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.height;
   {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
   const old=ctx,sl=smoke.length;ctx=c2;
@@ -1984,7 +1989,7 @@ function perkBox(id){const P=LOCO_PERK[id]||LOCO_PERK.classic,B=LOCO_PERK.classi
     <div${up(P.gold,0)}>{G} ร่างทองอยู่ได้ <b>${GOLD_LIFE+P.gold} วิ</b>${P.gold?' <i>(ปกติ '+GOLD_LIFE+')</i>':''}</div>
     <div${up(P.en,B.en)}>💎 พลังเร่งเก็บได้สูงสุด <b>${P.en} วิ</b>${P.en>B.en?' <i>(ปกติ '+B.en+')</i>':''}</div></div>
     <small>ในภาพ: วงสีเขียว = ระยะเก็บพลอยของหัวนี้ · วงสีเทา = ระยะปกติ</small></div>`)}
-function openItem(cat,it,o={}){openSheet((it.ic||'🎨')+' '+it.n,b=>{
+function openItem(cat,it,o={}){if(cat==='horn')return openHorn(it,o);openSheet((it.ic||'🎨')+' '+it.n,b=>{
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p,pk=cat==='loco'?LOCO_PICK[it.id]||0:0;
   b.innerHTML=`<canvas class="pv" width="760" height="${cat==='loco'?420:220}"></canvas>
     <div class="help" style="text-align:left;font-size:14px;color:#dfe4ff;margin:10px 2px 4px">${ITEM_DESC[it.id]||(cat==='skin'?'สีพิเศษสำหรับทั้งขบวน (หัวจักรและตู้)':'')}</div>
@@ -1996,6 +2001,72 @@ function openItem(cat,it,o={}){openSheet((it.ic||'🎨')+' '+it.n,b=>{
   const go=b.querySelector('#itGo');
   if(!own){go.textContent='ซื้อ '+price.toLocaleString()+' 🪙';go.disabled=prof.coins<price;if(go.disabled)go.textContent='เหรียญไม่พอ (ขาด '+(price-prof.coins).toLocaleString()+' 🪙)';go.onclick=()=>{buy(cat,it,price);openItem(cat,it,o)}}
   else{go.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';go.disabled=eq;go.onclick=()=>{equip(cat,it.id);saveProf();openItem(cat,it,o)}}
+  b.querySelector('#itBack').onclick=()=>openShop(shopTab)})}
+// ===== หน้ารายละเอียดหวูด: ภาพจำลองเคลื่อนไหว (ใครในวงหนี) + ค่าความสามารถ + เทียบทุกแบบ (เจ้าของขอ 7 พ.ย.)
+const HORN_DESC={classic:'หวูดไอน้ำปู๊น ๆ ติดมากับเกม มีแค่เสียง ศัตรูไม่หนี',deep:'หวูดทุ้มต่ำแบบเรือใหญ่ ไล่บอทที่อยู่ชิดตัวให้หลบออกข้าง',chime:'กระดิ่งใสกังวาน ไล่ได้กว้างขึ้นอีกนิด',
+  tune:'เป่าเป็นทำนองสามโน้ต โน้ตสีรุ้งกระจายรอบตัว',siren:'ไซเรนแดงสลับน้ำเงินแบบรถด่วน ไล่ได้วงกว้าง ศัตรูหนีนาน',thunder:'แตรเสียงฟ้าผ่า สายฟ้าแตกรอบตัว ไล่ได้เกือบครึ่งจอ',
+  dragon:'แตรมังกรคำราม ลูกไฟพุ่งรอบตัว รัศมีกว้างสุด ศัตรูหนีนานสุด'};
+// บอทในภาพ: [ระยะตอนกดหวูด, มุม°, ทิศวน] ระยะไล่ตั้งให้หวูดแต่ละขั้นไล่ได้เพิ่มทีละตัว
+const HPV_BOTS=[[118,-72,1],[182,58,-1],[246,-148,1],[312,148,-1],[388,-32,1],[472,108,-1],[545,-47,1]],HPV_T0=1.3,HPV_CYC=4.8,HPV_V=95;
+function hornBotPath(b,k,t){const[D,deg,s]=b,ph=deg*Math.PI/180,P=hornPerk(k),fl=P.r&&D<=P.r+14,R=[];   // ทางที่หัวบอทผ่านมา (หัว → ท้าย)
+  const circ=tau=>{const f=ph+s*HPV_V/D*(tau-HPV_T0);return[550+Math.cos(f)*D,550+Math.sin(f)*D]};
+  let fpos=null;if(fl&&t>HPV_T0){fpos=[];let x=550+Math.cos(ph)*D,y=550+Math.sin(ph)*D,h=ph+s*Math.PI/2;const dt=.02;
+    for(let tau=HPV_T0;tau<=t+1e-6;tau+=dt){fpos.push([x,y]);let d=ph-h;d=Math.atan2(Math.sin(d),Math.cos(d));h+=Math.max(-dt*5,Math.min(dt*5,d));x+=Math.cos(h)*HPV_V*1.8*dt;y+=Math.sin(h)*HPV_V*1.8*dt}}
+  for(let i=0;i<90;i++){const tau=t-i*.04;if(fpos&&tau>HPV_T0){const j=Math.min(fpos.length-1,Math.round((tau-HPV_T0)/.02));R.push(fpos[j])}else R.push(circ(tau))}
+  return{path:R,fl}}
+function drawHornScene(cv2,k,t){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.height,P=hornPerk(k),st=hornStyle(k);
+  {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
+  const old=ctx,sl=smoke.length;ctx=c2;
+  try{c2.setTransform(1,0,0,1,0,0);const g=c2.createLinearGradient(0,0,0,H);g.addColorStop(0,'#141a3a');g.addColorStop(1,'#0c1027');c2.fillStyle=g;c2.fillRect(0,0,W,H);
+    const sc=W/1100;c2.setTransform(sc,0,0,sc,0,0);const cx=550,cy=550;
+    c2.strokeStyle='rgba(255,255,255,.04)';c2.lineWidth=2;c2.beginPath();for(let x=0;x<1100;x+=100){c2.moveTo(x,0);c2.lineTo(x,H/sc)}for(let y=50;y<H/sc;y+=100){c2.moveTo(0,y);c2.lineTo(1100,y)}c2.stroke();
+    // วงรัศมีของหวูดทุกแบบ (จาง) + ของหวูดนี้ (สีเด่น)
+    for(const h of SHOP.horn){const r=hornPerk(h.id).r;if(!r)continue;const me=h.id===k;
+      c2.setLineDash(me?[]:[10,10]);c2.lineWidth=me?5:2;c2.strokeStyle=me?st.c:'rgba(255,255,255,.16)';c2.beginPath();c2.arc(cx,cy,r,0,TAU);c2.stroke();
+      if(me){c2.fillStyle=st.c+'14';c2.fill()}
+      c2.font=`700 ${me?26:19}px Mitr,sans-serif`;c2.textAlign='center';c2.fillStyle=me?st.c:'rgba(255,255,255,.3)';c2.fillText(String(r),cx+r*Math.cos(-1.12),cy+r*Math.sin(-1.12)+8)}
+    c2.setLineDash([]);
+    const ws=[],sk=SKINS.filter((x,i)=>i!==selSkin),locos=['diesel','classic','bullet','tram','classic','diesel','bullet'];let n=0;
+    HPV_BOTS.forEach((b,i)=>{const{path,fl}=hornBotPath(b,k,t),w=tipTrain(path,{mass:34,skin:sk[i%sk.length],loco:locos[i]});
+      if(fl&&t>HPV_T0){n++;if(t<HPV_T0+P.t)w.scaredUntil=performance.now()+400}ws.push(w)});
+    const me=tipTrain([[cx,cy],[cx-260,cy]],{mass:34,isP:true,name:'คุณ',skin:curSkin(),loco:prof.eq.loco,wag:prof.eq.wagon});ws.push(me);
+    for(const w of ws)drawWorm(w,-1e4,-1e4,1e4,1e4);
+    const e=t-HPV_T0;
+    if(e>=0&&P.r)drawHornWave({x:cx,y:cy,t:e,horn:P.r,k,seed:1.3});
+    if(e>=0&&e<1.4){c2.globalAlpha=Math.max(0,1-e/1.4);c2.font='700 40px sans-serif';c2.textAlign='center';c2.fillStyle='#fff';c2.fillText(P.r?st.ic:'♪ ปู๊น! ♪',cx+(P.r?0:10),cy-48-e*30);c2.globalAlpha=1}
+    // ป้ายสรุป
+    c2.font='700 30px Mitr,sans-serif';c2.textAlign='left';
+    const msg=e<0?'⏳ บอทกำลังวนรอบตัวคุณ…':P.r?`📢 ไล่ได้ ${n} จาก ${HPV_BOTS.length} ตัว · หนี ${P.t} วิ`:'🔈 เสียงอย่างเดียว · บอทไม่หนี';
+    const mw=c2.measureText(msg).width;c2.fillStyle='rgba(8,10,30,.72)';c2.beginPath();c2.roundRect?c2.roundRect(18,16,mw+28,48,14):c2.rect(18,16,mw+28,48);c2.fill();
+    c2.fillStyle=e<0?'#c9cff0':P.r?st.c:'#aab2e0';c2.fillText(msg,32,51)}
+  catch(err){console.warn('hornpv',err)}finally{ctx=old;smoke.length=sl}}
+function hornBars(k){const mx=Math.max(...SHOP.horn.map(h=>hornPerk(h.id).r)),mt=Math.max(...SHOP.horn.map(h=>hornPerk(h.id).t));
+  return `<div class="hcmp"><b>📊 เทียบหวูดทุกแบบ</b> <small>(แตะเพื่อดู)</small>${SHOP.horn.map(h=>{const P=hornPerk(h.id),own=isOwned('horn',h.id),eq=isEq('horn',h.id),c=hornStyle(h.id).c;
+    return `<div class="hrow${h.id===k?' on':''}" data-h="${h.id}"><span class="hn">${h.ic} ${h.n}</span><span class="hs">${eq?'ใช้อยู่':own?'มีแล้ว':h.p?h.p.toLocaleString()+' 🪙':'ฟรี'}</span>
+      <span class="hb"><i style="width:${P.r/mx*100}%;background:${c}"></i><em>${P.r?'📢 '+P.r:'🔈 เสียงอย่างเดียว'}</em></span><span class="hb t"><i style="width:${P.t/mt*100}%;background:${c}"></i><em>${P.t?'🏃 '+P.t+' วิ':'—'}</em></span></div>`}).join('')}</div>`}
+function openHorn(it,o={}){openSheet(it.ic+' '+it.n,b=>{
+  const k=it.id,P=hornPerk(k),own=isOwned('horn',k),eq=isEq('horn',k),price=o.price??it.p,st=hornStyle(k);
+  b.innerHTML=`<canvas class="pv" width="760" height="760"></canvas>
+    <button class="btn gray" id="hTry" style="margin-top:8px">🔊 ลองเป่าหวูดนี้</button>
+    <div class="help" style="text-align:left;font-size:14px;color:#dfe4ff;margin:10px 2px 4px">${HORN_DESC[k]||''}</div>
+    <div class="perkbox" style="border-color:${st.c}88;background:${st.c}14"><b>ความสามารถของหวูดนี้</b><div class="perks">${P.r?`
+      <div class="up">📢 ไล่ศัตรูในรัศมี <b>${P.r}</b> <i>(${Math.round(P.r/hornPerk('dragon').r*100)}% ของหวูดที่ไกลสุด)</i></div>
+      <div class="up">🏃 ศัตรูหลบออกข้างนาน <b>${P.t} วิ</b> <i>(บอส 👑 ${+(P.t/2).toFixed(2)} วิ)</i></div>
+      <div>⏱️ กดซ้ำได้ทุก <b>${hornCdOf(k)} วิ</b></div>
+      <div>👤 ผู้เล่นจริงไม่โดน (คุมรถไฟเอง) · เพื่อนร่วมทีมไม่โดน</div>`:`
+      <div>🔈 มีแค่เสียง <b>ไม่ไล่ศัตรู</b></div><div>⏱️ กดได้ทุก <b>${hornCdOf(k)} วิ</b></div><div>💡 ซื้อหวูดแบบอื่นเพื่อไล่บอทให้หลบออกข้าง</div>`}</div>
+      <small>ในภาพ: วงสี = รัศมีหวูดนี้ · วงประจาง = หวูดแบบอื่น · ❗ = บอทกำลังหนี</small></div>
+    ${hornBars(k)}
+    <div class="help" style="margin:8px 0 0">${own?(eq?'✅ กำลังใช้อยู่':'✅ มีแล้ว'):'ราคา '+price.toLocaleString()+' 🪙 · คุณมี '+prof.coins.toLocaleString()+' 🪙'}</div>
+    <button class="btn" id="itGo"></button><button class="btn gray" id="itBack">← กลับร้านค้า</button>`;
+  const cv=b.querySelector('.pv');let t0=performance.now()-(HPV_T0-.6)*1000,lastT=0;
+  const tick=()=>{if(!cv.isConnected)return;let t=(performance.now()-t0)/1000;if(t>HPV_CYC){t0=performance.now();t=0}
+    if(lastT<HPV_T0&&t>=HPV_T0&&cv.dataset.snd)hornSfx(k,.8);lastT=t;drawHornScene(cv,k,t);requestAnimationFrame(tick)};tick();
+  b.querySelector('#hTry').onclick=()=>{audioInit();cv.dataset.snd=1;hornSfx(k,1);t0=performance.now()-HPV_T0*1000;lastT=HPV_T0};
+  b.querySelectorAll('.hrow').forEach(r=>r.onclick=()=>{const h=SHOP.horn.find(x=>x.id===r.dataset.h);if(h&&h.id!==k)openHorn(h)});
+  const go=b.querySelector('#itGo');
+  if(!own){go.textContent='ซื้อ '+price.toLocaleString()+' 🪙';go.disabled=prof.coins<price;if(go.disabled)go.textContent='เหรียญไม่พอ (ขาด '+(price-prof.coins).toLocaleString()+' 🪙)';go.onclick=()=>{buy('horn',it,price);openHorn(it,o)}}
+  else{go.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';go.disabled=eq;go.onclick=()=>{equip('horn',k);saveProf();openHorn(it,o)}}
   b.querySelector('#itBack').onclick=()=>openShop(shopTab)})}
 function shopRow(L,cat,it,o={}){
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p;
