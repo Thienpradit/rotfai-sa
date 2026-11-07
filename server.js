@@ -126,7 +126,10 @@ function endMatch(room) {
 }
 
 // ---------- connections ----------
-const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024 });
+// บีบอัดข้อมูล (permessage-deflate): ข้อมูลต่อผู้เล่นลด ~65% (60 → 21 KB/วิ ที่ 30 คน) · ช้าลงไม่ถึง 3ms · เบราว์เซอร์ไม่รองรับ = ส่งแบบเดิมอัตโนมัติ
+// ปิดได้ด้วย env WS_DEFLATE=0
+const DEFLATE = process.env.WS_DEFLATE === '0' ? false : { threshold: 256, serverMaxWindowBits: 13, clientMaxWindowBits: 13, zlibDeflateOptions: { level: 3, memLevel: 7 } };
+const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024, perMessageDeflate: DEFLATE });
 wss.on('connection', ws => {
   let room = null, me = null;
   ws.on('message', raw => {
