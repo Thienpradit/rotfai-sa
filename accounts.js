@@ -77,8 +77,12 @@ const LIVE = !!process.env.RENDER && !process.env.ALLOW_FILE_STORE;
 const accountsDown = () => LIVE && store.kind === 'file';
 
 // ตารางอันดับ 3 แบบ: rp = แรงก์ฤดูกาลนี้, len = ความยาวสูงสุดตลอดกาล, coins = เหรียญที่มีตอนนี้
-const LB_VAL = { rp: u => +u.rp || 0, len: u => Math.floor(+((u.data || {}).st || {}).maxLen || 0), coins: u => Math.floor(+(u.data || {}).coins || 0) };
-const LB_SQL = { rp: 'rp', len: "floor(COALESCE((data->'st'->>'maxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))" };
+const LB_VAL = { rp: u => +u.rp || 0, len: u => Math.floor(+((u.data || {}).st || {}).maxLen || 0), coins: u => Math.floor(+(u.data || {}).coins || 0), kills: u => Math.floor(+((u.data || {}).st || {}).kills || 0) };
+// โปรไฟล์สาธารณะของผู้เล่น (แตะชื่อในตารางอันดับ) — ส่งเฉพาะสถิติ ไม่ส่งข้อมูลส่วนตัว
+const PUB_ST = ['kills', 'boss', 'maxLen', 'games', 'teamWin', 'vsGames', 'killsGame', 'jewels', 'stations'];
+function pubProfile(u) { const d = u.data || {}, st = d.st || {}, o = {}; for (const k of PUB_ST) o[k] = Math.floor(+st[k] || 0);
+  return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', ach: Object.keys(d.ach || {}).length, st: o }; }
+const LB_SQL = { rp: 'rp', len: "floor(COALESCE((data->'st'->>'maxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))", kills: "floor(COALESCE((data->'st'->>'kills')::float,0))" };
 
 // ---------- helpers ----------
 const b64u = s => Buffer.from(s, 'utf8').toString('base64url');
@@ -125,6 +129,11 @@ async function handleApi(req, res, p) {
       const by = LB_VAL[new URL(req.url, 'http://x').searchParams.get('by')] ? new URL(req.url, 'http://x').searchParams.get('by') : 'rp';
       const u = req.headers.authorization ? await authUser(req).catch(() => null) : null;
       return out(200, { season: AC.seasonKey(), by, ...(await store.top(50, AC.seasonKey(), by, u && u.lname)) });
+    }
+    if (p === '/api/profile' && req.method === 'GET') {
+      const nm = lower(String(new URL(req.url, 'http://x').searchParams.get('name') || '').trim().slice(0, 40));
+      const u = nm ? await store.get(nm) : null; if (!u) return out(404, { err: 'ไม่พบผู้เล่นคนนี้' });
+      return out(200, pubProfile(u));
     }
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดปรับปรุงชั่วคราว (ยังไม่ได้ต่อฐานข้อมูล) เล่นแบบ Guest ไปก่อนได้' });
     if (req.method === 'GET' && p === '/api/me') {
