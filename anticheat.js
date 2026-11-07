@@ -129,12 +129,11 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
 
 // ---------- สถิติออนไลน์ (ตารางอันดับนับเฉพาะโหมดออนไลน์ — เจ้าของสั่ง 7 พ.ย. 18:45 เอาโหมดเล่นกับบอทออก) ----------
 // onrp = RP ออนไลน์ของฤดูกาลนี้ (เรียงตารางอันดับ/แจกรางวัลจบเดือน) · st.okills = กำจัดในโหมดออนไลน์ · st.omaxLen = ยาวสุดในโหมดออนไลน์
-// ข้อมูลเก่าที่ยังไม่มีค่าพวกนี้: ถ้าไม่เคยเล่นกับบอทเลย (best.easy/normal/hard = 0) ทุกอย่างมาจากออนไลน์ → ยกมาทั้งหมด · เคยเล่นกับบอท → RP/กำจัดเริ่มนับ 0 ยาวสุดใช้สถิติโลกออนไลน์ (best.online)
-const playedBots = d => ['easy', 'normal', 'hard'].some(k => (+((d.best || {})[k]) || 0) > 0);
+// ข้อมูลเก่าที่ยังไม่มีค่าพวกนี้: ยกคะแนนเดิมมาทั้งหมด (เจ้าของสั่ง 7 พ.ย. 18:56 — ไม่ลบคะแนนเดิมของคนที่เคยเล่นกับบอท) · ต่อจากนี้นับเพิ่มเฉพาะออนไลน์
 function seedOnline(d) { d = d && typeof d === 'object' ? d : {}; if (typeof d.onrp === 'number') return d;
-  const st = { ...(d.st || {}) }, bot = playedBots(d);
-  st.okills = bot ? 0 : Math.floor(+st.kills || 0); st.omaxLen = Math.floor(bot ? +((d.best || {}).online) || 0 : Math.max(+st.maxLen || 0, +((d.best || {}).online) || 0));
-  return { ...d, onrp: bot ? 0 : Math.max(0, Math.floor(+d.rp || 0)), st }; }
+  const st = { ...(d.st || {}) };
+  st.okills = Math.floor(+st.kills || 0); st.omaxLen = Math.floor(Math.max(+st.maxLen || 0, +((d.best || {}).online) || 0));
+  return { ...d, onrp: Math.max(0, Math.floor(+d.rp || 0)), st }; }
 
 // ---------- รหัสกู้คืน ----------
 const RC_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

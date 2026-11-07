@@ -74,11 +74,11 @@ console.log('anticheat OK — 18 cases');
 
 // 11) สถิติออนไลน์ (ตารางอันดับนับเฉพาะออนไลน์ · 7 พ.ย.)
 { const T = Date.now();
-  // ข้อมูลเก่า: ไม่เคยเล่นกับบอท → ยก RP/กำจัด/ยาวสุดมาทั้งหมด · เคยเล่นกับบอท → RP/กำจัด 0, ยาวสุด = best.online
+  // ข้อมูลเก่า: ยกคะแนนเดิมมาทั้งหมด ไม่ว่าจะเคยเล่นกับบอทหรือไม่ (เจ้าของสั่ง 18:56)
   let d = AC.seedOnline({ rp: 900, st: { kills: 40, maxLen: 1200 }, best: { online: 800 } });
   assert.deepStrictEqual([d.onrp, d.st.okills, d.st.omaxLen], [900, 40, 1200]);
   d = AC.seedOnline({ rp: 900, st: { kills: 40, maxLen: 1200 }, best: { online: 800, hard: 1500 } });
-  assert.deepStrictEqual([d.onrp, d.st.okills, d.st.omaxLen], [0, 0, 800]);
+  assert.deepStrictEqual([d.onrp, d.st.okills, d.st.omaxLen], [900, 40, 1200]);
   assert.strictEqual(AC.seedOnline({ onrp: 5, rp: 9 }).onrp, 5);
   // RP ออนไลน์เพิ่มได้ไม่เกิน RP ที่เพิ่มจริง
   const o = { coins: 0, rp: 1000, onrp: 100, season: '2026-11', st: { kills: 10, okills: 2, maxLen: 900, omaxLen: 500 }, best: { hard: 1 }, owned: {}, ach: {}, _srv: { cb: 0, rb: 500, t: T - 60000, paid: [], claims: [] } };
