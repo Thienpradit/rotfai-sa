@@ -1315,6 +1315,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
     ctx.fillStyle='#fff59a';ctx.beginPath();ctx.arc(L*.47,0,r*.22,0,TAU);ctx.fill();
   }
   ctx.restore();
+  if(w.rk!==undefined&&w.alive&&vis(c))drawRankBadge(c.x,c.y,Math.max(8,W*.36),w.rk);   // แรงก์ติดบนหัวรถไฟ
   const elec=(w.loco==='bullet'||w.loco==='tram'||w.loco==='metro')&&w.smokeT==='normal',sk2=w.loco==='comet'&&w.smokeT==='normal'?'comet':w.smokeT;
   if(vis(c)&&!elec&&frame%((boosting||sk2==='comet'?3:9)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL])smoke.push({x:c.x+Math.cos(c.a)*smX,y:c.y+Math.sin(c.a)*smX,r:smR,t:1,k:sk2,h:frame*4%360});
   if(w.slow>0){glowAlong(w,'rgba(155,231,255,.35)',1.2,vx0,vy0,vx1,vy1,M)}
@@ -1325,7 +1326,10 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   ctx.fillStyle=NET&&NET.ffa?(w.isP?'#ffd23f':w.isBoss?'#ff5e5e':w.rk!==undefined?'#9be7ff':'rgba(255,255,255,.8)'):w.team?TEAM_COL[w.team]:w.isBoss?'#ff5e5e':w.isP?'#ffd23f':'rgba(255,255,255,.8)';
   if(w.isBoss&&w.alive){const hs=13,hy=c.y-W-24-Math.max(13,r*.75)-hs,hv=w.hp??BOSS_HEARTS,fs0=ctx.fillStyle;   // หัวใจบอส ❤❤❤ เหนือชื่อ
     for(let i=0;i<BOSS_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.25)';heart(c.x+(i-1)*hs*2.5,hy,hs)}ctx.fillStyle=fs0}
-  const fs=Math.max(13,r*.75);ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+(w.rk!==undefined?rankIcon(w.rk)+' ':'')+w.name,c.x,c.y-W-12);
+  const fs=Math.max(13,r*.75);ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,c.x,c.y-W-12);
+  if(w.alive&&carryBomb(w)){const nm=(w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,bs=Math.max(26,fs*1.7),bob=Math.sin(frame*.12)*3,bx=c.x+ctx.measureText(nm).width/2+bs*.62,by=c.y-W-12-fs*.38+bob,
+      warn=w===player&&player.bombT.length&&player.bombT[0]<=5,pl=.5+.5*Math.sin(frame*(warn?.5:.2));   // ระเบิดลอยข้างหัว (คนอื่นเห็นด้วย) · 5 วิสุดท้ายกะพริบแดง
+    ctx.fillStyle=warn?`rgba(255,60,60,${.25+.3*pl})`:`rgba(255,140,40,${.18+.17*pl})`;ctx.beginPath();ctx.arc(bx,by,bs*.62,0,TAU);ctx.fill();drawBombIcon(bx,by,bs)}
   if(w.title){ctx.font=`600 ${Math.max(10,r*.5)}px Mitr,sans-serif`;ctx.fillStyle='#ffe9a8';ctx.fillText('« '+w.title+' »',c.x,c.y-W-14-fs)}
 }
 function drawSmoke(){for(const s of smoke){s.t-=.018;s.r+=.35;const a=Math.max(0,s.t);
@@ -1478,6 +1482,7 @@ function drawHUD2(){
   ctx.strokeStyle=AR<WR?'#ffd23f':'rgba(255,77,109,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mx,my,AR*S,0,TAU);ctx.stroke();
   for(const w of alive){if(w===player)continue;if((!NET||w.isBot)&&!w.isBoss&&alive.indexOf(w)>10)continue;const h=w.pts[0];
     const hu=NET&&NET.ffa&&w.rk!==undefined;ctx.fillStyle=w.isBoss?'#ff3b3b':w.team?TEAM_COL[w.team]:hu?'#9be7ff':'rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,w.isBoss?4:w.team||hu?3:2,0,TAU);ctx.fill()}
+  for(const w of alive)if(w!==player&&carryBomb(w)){const h=w.pts[0],bx=mx+h.x*S,by=my+h.y*S;ctx.fillStyle='rgba(255,90,40,'+(.35+.2*Math.sin(frame*.25))+')';ctx.beginPath();ctx.arc(bx,by,7,0,TAU);ctx.fill();drawBombIcon(bx,by-1,12)}   // คนที่ถือระเบิด
   if(goldItem){const gx=mx+goldItem.x*S,gy=my+goldItem.y*S,pl=1+.15*Math.sin(frame*.2);
     ctx.fillStyle='rgba(255,210,63,.35)';ctx.beginPath();ctx.arc(gx,gy,9*pl,0,TAU);ctx.fill();
     const mb=(bx,by)=>{ctx.beginPath();ctx.moveTo(bx-5,by+2);ctx.lineTo(bx+5,by+2);ctx.lineTo(bx+3,by-2);ctx.lineTo(bx-3,by-2);ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle='#8a5a00';ctx.lineWidth=1;ctx.stroke()};
@@ -1514,6 +1519,12 @@ function drawHUD2(){
 }
 function drawGoldIcon(x,y,s){const lw=Math.max(1,s*.08),b=(bx,by)=>{ctx.beginPath();ctx.moveTo(bx-s*.5,by+s*.2);ctx.lineTo(bx+s*.5,by+s*.2);ctx.lineTo(bx+s*.3,by-s*.2);ctx.lineTo(bx-s*.3,by-s*.2);ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle='#8a5a00';ctx.lineWidth=lw;ctx.stroke()};
   b(x-s*.42,y+s*.24);b(x+s*.42,y+s*.24);b(x,y-s*.18)}
+const carryBomb=w=>w.isRemote?!!w.hasBomb:w.tgs>0&&w.bombT.length>0;   // ถือระเบิดอยู่ (คนอื่นออนไลน์รู้จาก flag 64)
+function drawRankBadge(x,y,R,rk){const K=RANKS[Math.min(RANKS.length-1,Math.max(0,Math.floor((rk|0)/3)))];   // เหรียญแรงก์กลม สีตามขั้น + ไอคอน
+  ctx.fillStyle='rgba(10,12,30,.75)';ctx.beginPath();ctx.arc(x,y,R+2.5,0,TAU);ctx.fill();
+  ctx.fillStyle=K.col;ctx.beginPath();ctx.arc(x,y,R,0,TAU);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=Math.max(1.2,R*.12);ctx.stroke();
+  ctx.fillStyle='rgba(10,12,30,.35)';ctx.beginPath();ctx.arc(x,y,R*.78,0,TAU);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font=`${Math.round(R*1.15)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(K.ic,x,y+R*.05);ctx.textBaseline='alphabetic'}
 function drawBombIcon(x,y,s){ctx.fillStyle='#22252f';ctx.beginPath();ctx.arc(x,y+s*.08,s*.42,0,TAU);ctx.fill();ctx.strokeStyle='#7a82a8';ctx.lineWidth=Math.max(1,s*.05);ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.arc(x-s*.14,y-s*.06,s*.1,0,TAU);ctx.fill();
   ctx.save();ctx.translate(x+s*.22,y-s*.3);ctx.rotate(.6);ctx.fillStyle='#8a6a3a';ctx.fillRect(-s*.09,-s*.09,s*.18,s*.18);ctx.restore();
@@ -1530,6 +1541,7 @@ function fillTextIcons(str,x,y){   // ข้อความที่มี {G}=�
 // มินิแมป: ตำแหน่งตัวเองให้เห็นชัด = เส้นขบวนสีเหลือง + วงกระพริบ + ลูกศรชี้ทิศ
 let MINI_R=64;const mr0=()=>MINI_R;
 function drawMiniMe(mx,my,S){const P=player.pts,h=P[0],hx=mx+h.x*S,hy=my+h.y*S,pl=Math.sin(frame*.15);
+  if(carryBomb(player)){ctx.fillStyle='rgba(255,90,40,.45)';ctx.beginPath();ctx.arc(hx+9,hy-9,6.5,0,TAU);ctx.fill();drawBombIcon(hx+9,hy-9,11)}
   ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
   ctx.strokeStyle='rgba(255,210,63,.85)';ctx.lineWidth=2.5;const TK=player.tun?player.tun.k:1e9;ctx.beginPath();ctx.moveTo(hx,hy);for(let i=6;i<P.length;i+=6)(i>=TK&&i-6<TK?ctx.moveTo:ctx.lineTo).call(ctx,mx+P[i].x*S,my+P[i].y*S);ctx.stroke();
   ctx.strokeStyle='rgba(255,210,63,'+(.55+.35*pl)+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(hx,hy,8+2.5*pl,0,TAU);ctx.stroke();
@@ -1912,7 +1924,7 @@ function netMsg(m){
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
         if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||BOSS_HEARTS;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
-        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;if(hp!==undefined&&w.isBoss)w.hp=hp}
+        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;w.hasBomb=!!(fl&64);if(hp!==undefined&&w.isBoss)w.hp=hp}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;
@@ -1999,7 +2011,7 @@ function netTick(dt){
   NET.timeLeft=Math.max(0,NET.timeLeft-dt);
   if(player&&!player.alive&&NET.respawnT>0){NET.respawnT-=dt;if(NET.respawnT<=0&&NET.phase==='play'){const sc=player.kills,kp=player.kPaid;netSpawnMe();player.kills=sc;player.kPaid=kp;player.safe=2.5}}
   NET.sendT-=dt;if(NET.sendT<=0&&player){NET.sendT=.05;
-    const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0)|(player.ghost>0?32:0);
+    const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0)|(player.ghost>0?32:0)|(carryBomb(player)?64:0);
     const o={t:'st',x:Math.round(h.x),y:Math.round(h.y),a:+player.angle.toFixed(3),m:+player.mass.toFixed(1),f:fl,ts:Date.now()};
     if(NET.q.eat.length){o.eat=NET.q.eat;NET.q.eat=[]}netSend(o)}
 }
