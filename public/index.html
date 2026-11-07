@@ -534,8 +534,8 @@ function renderRanks(b){const r=rankOf(prof.rp);
   b.querySelector('#rkHow').onclick=()=>b.querySelector('#rkRules').scrollIntoView({behavior:'smooth',block:'start'});
   if(ACCT.mode!=='local'){b.querySelectorAll('#lbTabs .tab').forEach(t=>t.onclick=()=>{lbBy=t.dataset.k;b.querySelectorAll('#lbTabs .tab').forEach(x=>x.classList.toggle('on',x===t));loadLb(b)});loadLb(b)}}
 // สถิติผู้เล่น (โปรไฟล์ตัวเอง + โปรไฟล์คนอื่นจากตารางอันดับ) — เจ้าของขอให้นับการกำจัด (7 พ.ย. 2026)
-function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString();
-  return `<div class="stg">${[['💀',f('kills'),'กำจัดทั้งหมด'],['👑',f('boss'),'ล้มบอส'],['🎯',f('killsGame'),'กำจัดสูงสุด/เกม'],['🚂',f('maxLen'),'ยาวสุด'],['🎮',f('games'),'เกมที่เล่น'],['🤝',f('teamWin'),'ชนะ 2v2']].map(([i,v,t])=>`<div><b>${i} ${v}</b><small>${t}</small></div>`).join('')}</div>`}
+function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString(),kg=+st.killsGame>0;   // killsGame เริ่มเก็บ 7 พ.ย. 2026 → ยังไม่มี = "—" ไม่ใช่ 0
+  return `<div class="stg">${[['💀',f('kills'),'กำจัดทั้งหมด'],['👑',f('boss'),'ล้มบอส'],['🎯',kg?f('killsGame'):'—',kg?'กำจัดสูงสุด/เกม':'กำจัดสูงสุด/เกม (เริ่มนับ 7 พ.ย.)'],['🚂',f('maxLen'),'ยาวสุด'],['🎮',f('games'),'เกมที่เล่น'],['🤝',f('teamWin'),'ชนะ 2v2']].map(([i,v,t])=>`<div><b>${i} ${v}</b><small>${t}</small></div>`).join('')}</div>`}
 function openProfile(name){openSheet('👤 '+name,b=>{b.innerHTML='<div class="help">กำลังโหลด...</div>';
   api('/api/profile?name='+encodeURIComponent(name)).then(u=>{const k=rankOf(u.rp),tt=u.tid&&titleText(u.tid),esc=t=>String(t).replace(/[<>&]/g,'');
     b.innerHTML=`<div style="font-size:22px;font-weight:600">${esc(u.name)}</div>${tt?`<div class="help" style="margin:2px 0;color:#ffd23f">${esc(tt)}</div>`:''}
