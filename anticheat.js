@@ -107,6 +107,16 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   for (const k of Object.keys(ist).slice(0, 60)) { const v = +ist[k]; st[k] = Number.isFinite(v) ? Math.max(0, Math.min(1e7, v)) : 0; }
   const oml = +((old.st || {}).maxLen) || 0, mlCap = reg ? 3000 : oml + 300 + 40 * Math.min(el, 600);
   if ((st.maxLen || 0) > Math.max(oml, mlCap)) { st.maxLen = Math.floor(Math.max(oml, mlCap)); fixed = true; }
+  // สถิติออนไลน์: RP ออนไลน์เพิ่มได้ไม่เกิน RP ที่เพิ่มจริง (และไม่เกิน RP ทั้งหมด) · กำจัด/ยาวสุดออนไลน์ไม่เกินของรวม · เครื่องเก่าที่ไม่ส่งค่า → ใช้ค่าเดิม
+  { const so = seedOnline(old), newSeason = nu.season && so.season && nu.season > so.season, ost = so.st || {};
+    const rBase = newSeason ? Math.floor(orp / 2) : orp, oBase = newSeason ? Math.floor(num(so.onrp) / 2) : num(so.onrp);
+    let onrp = typeof nu.onrp === 'number' && Number.isFinite(nu.onrp) ? Math.max(0, nu.onrp) : oBase;
+    const cap = Math.min(rp, oBase + Math.max(0, rp - rBase)); if (onrp > cap) { if (typeof nu.onrp === 'number') fixed = true; onrp = Math.floor(cap); }
+    nu = { ...nu, onrp };
+    if (!('okills' in ist)) st.okills = Math.floor(+ost.okills || 0); if (!('omaxLen' in ist)) st.omaxLen = Math.floor(+ost.omaxLen || 0);
+    if (st.okills > Math.max(+ost.okills || 0, st.kills || 0)) { st.okills = Math.floor(Math.max(+ost.okills || 0, st.kills || 0)); fixed = true; }
+    const omc = Math.max(+ost.omaxLen || 0, Math.min(st.maxLen || 0, reg ? 3000 : (+ost.omaxLen || 0) + 300 + 40 * Math.min(el, 600)));
+    if (st.omaxLen > omc) { st.omaxLen = Math.floor(omc); fixed = true; } }
   srv.paid = [...paid]; srv.claims = [...claims].slice(-30);
   if (reg) { srv.cb = Math.min(srv.cb, COIN_CAP); srv.rb = Math.min(srv.rb, RP_CAP); }   // โควตาย้ายข้อมูลใช้ได้ตอนลงทะเบียนครั้งเดียว
   srv.cb = Math.round(srv.cb * 100) / 100; srv.rb = Math.round(srv.rb * 100) / 100;
@@ -117,10 +127,19 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   return { data: { ...nu, coins, rp, owned, st, eq, _srv: srv }, fixed };
 }
 
+// ---------- สถิติออนไลน์ (ตารางอันดับนับเฉพาะโหมดออนไลน์ — เจ้าของสั่ง 7 พ.ย. 18:45 เอาโหมดเล่นกับบอทออก) ----------
+// onrp = RP ออนไลน์ของฤดูกาลนี้ (เรียงตารางอันดับ/แจกรางวัลจบเดือน) · st.okills = กำจัดในโหมดออนไลน์ · st.omaxLen = ยาวสุดในโหมดออนไลน์
+// ข้อมูลเก่าที่ยังไม่มีค่าพวกนี้: ถ้าไม่เคยเล่นกับบอทเลย (best.easy/normal/hard = 0) ทุกอย่างมาจากออนไลน์ → ยกมาทั้งหมด · เคยเล่นกับบอท → RP/กำจัดเริ่มนับ 0 ยาวสุดใช้สถิติโลกออนไลน์ (best.online)
+const playedBots = d => ['easy', 'normal', 'hard'].some(k => (+((d.best || {})[k]) || 0) > 0);
+function seedOnline(d) { d = d && typeof d === 'object' ? d : {}; if (typeof d.onrp === 'number') return d;
+  const st = { ...(d.st || {}) }, bot = playedBots(d);
+  st.okills = bot ? 0 : Math.floor(+st.kills || 0); st.omaxLen = Math.floor(bot ? +((d.best || {}).online) || 0 : Math.max(+st.maxLen || 0, +((d.best || {}).online) || 0));
+  return { ...d, onrp: bot ? 0 : Math.max(0, Math.floor(+d.rp || 0)), st }; }
+
 // ---------- รหัสกู้คืน ----------
 const RC_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newRecovery() { const b = crypto.randomBytes(12); let s = ''; for (let i = 0; i < 12; i++) { s += RC_ABC[b[i] % RC_ABC.length]; if (i === 3 || i === 7) s += '-'; } return s; }
 const normRecovery = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const hashRecovery = (code, salt) => crypto.createHash('sha256').update('rc:' + salt + ':' + normRecovery(code)).digest('hex');
 
-module.exports = { validate, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, CATS, COIN_CAP, RP_CAP };
+module.exports = { validate, seedOnline, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, CATS, COIN_CAP, RP_CAP };

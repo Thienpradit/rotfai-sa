@@ -29,9 +29,10 @@ function fileStore(note) {
       const i = me ? all.findIndex(u => u.lname === me) : -1;
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null, n: all.length }; },
     async getSeason(k) { return seasons[k] || null; },
+    async migrateOnline() { let n = 0; for (const u of Object.values(db)) if (typeof (u.data || {}).onrp !== 'number') { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
-      const all = Object.values(db).filter(u => (u.data || {}).season === k && (+u.rp || 0) > 0).sort((a, b) => (+b.rp || 0) - (+a.rp || 0) || (a.updated || 0) - (b.updated || 0)), ranks = {};
-      all.forEach((u, i) => { ranks[u.lname] = [i + 1, +u.rp || 0]; });
+      const all = Object.values(db).filter(u => (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
+      all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
       seasons[k] = { n: all.length, ranks }; fs.mkdirSync(path.dirname(SFILE), { recursive: true }); fs.writeFileSync(SFILE, JSON.stringify(seasons)); return seasons[k]; },
   };
 }
@@ -74,11 +75,13 @@ if (DB_URL) {
         if (v > 0) { const c = await pool.query(`SELECT count(*)::int AS n FROM players WHERE ${w}${ex} > $2`, [season, v]); mine = { pos: c.rows[0].n + 1, val: v }; } }
       const cn = await pool.query(`SELECT count(*)::int AS n FROM players WHERE ${w}${ex} > 0`, [season]);
       return { top: r.rows.map(x => ({ name: x.name, val: +x.val, rp: +x.rp || 0, tid: x.tid })), me: mine, n: cn.rows[0].n }; },
+    async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
+      const r = await pool.query("SELECT lname, data FROM players WHERE NOT (data ? 'onrp')"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND NOT (data ? 'onrp')", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
-      const r = await pool.query("SELECT lname, rp FROM players WHERE data->>'season'=$1 AND rp > 0 ORDER BY rp DESC, updated ASC", [k]), ranks = {};
-      r.rows.forEach((u, i) => { ranks[u.lname] = [i + 1, +u.rp || 0]; });
+      const r = await pool.query(`SELECT lname, ${LB_SQL.rp} AS v FROM players WHERE data->>'season'=$1 AND ${LB_SQL.rp} > 0 ORDER BY v DESC, updated ASC`, [k]), ranks = {};
+      r.rows.forEach((u, i) => { ranks[u.lname] = [i + 1, +u.v || 0]; });
       await pool.query('INSERT INTO seasons (key, n, ranks) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [k, r.rows.length, ranks]);
       return this.getSeason(k); },
   };
@@ -92,12 +95,13 @@ const LIVE = !!process.env.RENDER && !process.env.ALLOW_FILE_STORE;
 const accountsDown = () => LIVE && store.kind === 'file';
 
 // ตารางอันดับ 3 แบบ: rp = แรงก์ฤดูกาลนี้, len = ความยาวสูงสุดตลอดกาล, coins = เหรียญที่มีตอนนี้
-const LB_VAL = { rp: u => +u.rp || 0, len: u => Math.floor(+((u.data || {}).st || {}).maxLen || 0), coins: u => Math.floor(+(u.data || {}).coins || 0), kills: u => Math.floor(+((u.data || {}).st || {}).kills || 0) };
+// ตารางอันดับนับเฉพาะโหมดออนไลน์ (เจ้าของสั่ง 7 พ.ย. 18:45): onrp / st.okills / st.omaxLen (ดู AC.seedOnline)
+const LB_VAL = { rp: u => Math.floor(+(u.data || {}).onrp || 0), len: u => Math.floor(+((u.data || {}).st || {}).omaxLen || 0), coins: u => Math.floor(+(u.data || {}).coins || 0), kills: u => Math.floor(+((u.data || {}).st || {}).okills || 0) };
 // โปรไฟล์สาธารณะของผู้เล่น (แตะชื่อในตารางอันดับ) — ส่งเฉพาะสถิติ ไม่ส่งข้อมูลส่วนตัว
 const PUB_ST = ['kills', 'boss', 'maxLen', 'games', 'teamWin', 'vsGames', 'killsGame', 'jewels', 'stations'];
 function pubProfile(u) { const d = u.data || {}, st = d.st || {}, o = {}; for (const k of PUB_ST) o[k] = Math.floor(+st[k] || 0);
   return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', ach: Object.keys(d.ach || {}).length, st: o }; }
-const LB_SQL = { rp: 'rp', len: "floor(COALESCE((data->'st'->>'maxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))", kills: "floor(COALESCE((data->'st'->>'kills')::float,0))" };
+const LB_SQL = { rp: "floor(COALESCE((data->>'onrp')::float,0))", len: "floor(COALESCE((data->'st'->>'omaxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))", kills: "floor(COALESCE((data->'st'->>'okills')::float,0))" };
 
 // ---------- helpers ----------
 const b64u = s => Buffer.from(s, 'utf8').toString('base64url');
@@ -138,8 +142,10 @@ function limited(req) {
 // ---------- รางวัลจบฤดูกาลตามอันดับ ----------
 // ขึ้นเดือนใหม่ (เวลาไทย) → ถ่ายภาพนิ่งอันดับของเดือนที่แล้วก่อนรับคำขอใด ๆ (ผู้เล่นที่ล็อกอินจะย้ายไปฤดูกาลใหม่ แล้วหายจากตารางเดิม)
 let snapFor = '', snapping = null;
-function ensureSnap() { const cur = AC.seasonKey(); if (snapFor === cur || accountsDown()) return Promise.resolve();
-  if (!snapping) snapping = store.snapSeason(AC.prevSeason(cur)).then(s => { snapFor = cur; if (s) console.log(`season ${AC.prevSeason(cur)} final standings saved: ${s.n} players`); })
+let migrated = null;   // ข้อมูลเก่า → เติมสถิติออนไลน์ (ครั้งเดียวตอนเปิดเซิร์ฟเวอร์)
+const migrateOnce = () => migrated || (migrated = Promise.resolve().then(() => store.migrateOnline()).then(n => { if (n) console.log(`online stats seeded for ${n} players`); }).catch(e => { console.error('online seed error', e.message); migrated = null; }));
+function ensureSnap() { const cur = AC.seasonKey(); if (snapFor === cur || accountsDown()) return accountsDown() ? Promise.resolve() : migrateOnce();
+  if (!snapping) snapping = migrateOnce().then(() => store.snapSeason(AC.prevSeason(cur))).then(s => { snapFor = cur; if (s) console.log(`season ${AC.prevSeason(cur)} final standings saved: ${s.n} players`); })
     .catch(e => console.error('season snapshot error', e.message)).finally(() => { snapping = null; });
   return snapping; }
 setInterval(ensureSnap, 5 * 60 * 1000).unref(); setTimeout(ensureSnap, 3000).unref();
@@ -167,7 +173,7 @@ async function handleApi(req, res, p) {
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดปรับปรุงชั่วคราว (ยังไม่ได้ต่อฐานข้อมูล) เล่นแบบ Guest ไปก่อนได้' });
     if (req.method === 'GET' && p === '/api/me') {
       const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
-      return out(200, { name: u.name, data: u.data, prize: await prizeOf(u) });
+      return out(200, { name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u) });
     }
     if (req.method !== 'POST') return out(404, { err: 'not found' });
     const body = await readBody(req);
@@ -187,7 +193,7 @@ async function handleApi(req, res, p) {
       }
       const u = await store.get(l);
       if (!u || (await hashPass(pass, u.salt)) !== u.hash) return out(401, { err: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
-      return out(200, { token: makeToken(u), name: u.name, data: u.data, prize: await prizeOf(u) });
+      return out(200, { token: makeToken(u), name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u) });
     }
     if (p === '/api/reset') {   // ลืมรหัสผ่าน: ชื่อ + รหัสกู้คืน → ตั้งรหัสผ่านใหม่ (ได้รหัสกู้คืนชุดใหม่ด้วย)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
@@ -196,7 +202,7 @@ async function handleApi(req, res, p) {
       if (!u || !checkRecovery(u.rhash, body.code)) return out(401, { err: 'ชื่อหรือรหัสกู้คืนไม่ถูกต้อง' });
       const salt = crypto.randomBytes(16).toString('hex'), rc = makeRecovery();
       await store.setAuth(u.lname, salt, await hashPass(pass, salt)); await store.setRecovery(u.lname, rc.rhash);
-      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: u.data, code: rc.code, prize: await prizeOf(u) });
+      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: AC.seedOnline(u.data), code: rc.code, prize: await prizeOf(u) });
     }
     const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
     if (p === '/api/save') {

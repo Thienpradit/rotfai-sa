@@ -24,7 +24,7 @@ async def main():
         print(t)
         # ลงทะเบียน 2 บัญชี แล้วดูตารางอันดับ กำจัด + โปรไฟล์คนอื่น
         nm='ทดสอบ'+str(random.randint(100,999))
-        await pg.evaluate(f"""(async()=>{{const j=await api('/api/register',{{name:'{nm}',pass:'abcd1234',data:{{...prof,st:{{...prof.st,kills:77,boss:2,maxLen:900,games:12,teamWin:3,killsGame:9}}}}}});saveAuth('{nm}',j.token);setProfile('acct',j.data)}})()""")
+        await pg.evaluate(f"""(async()=>{{const j=await api('/api/register',{{name:'{nm}',pass:'abcd1234',data:{{...prof,st:{{...prof.st,kills:77,okills:77,boss:2,maxLen:900,omaxLen:900,games:12,teamWin:3,killsGame:9}}}}}});saveAuth('{nm}',j.token);setProfile('acct',j.data)}})()""")
         await pg.wait_for_timeout(500)
         await pg.evaluate("document.getElementById('bRank').click()");await pg.wait_for_timeout(400)
         await pg.screenshot(path=OUT+'/stats.png')

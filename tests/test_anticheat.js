@@ -71,3 +71,23 @@ console.log('anticheat OK — 17 cases');
   r = AC.validate(o, { ...o, eq: { title: 'gemking' } }, T0); assert.strictEqual(r.data.eq.title, 'gemking');
   r = AC.validate(o, { ...o, eq: { title: 'a:k1' } }, T0); assert.strictEqual(r.data.eq.title, 'a:k1'); }
 console.log('anticheat OK — 18 cases');
+
+// 11) สถิติออนไลน์ (ตารางอันดับนับเฉพาะออนไลน์ · 7 พ.ย.)
+{ const T = Date.now();
+  // ข้อมูลเก่า: ไม่เคยเล่นกับบอท → ยก RP/กำจัด/ยาวสุดมาทั้งหมด · เคยเล่นกับบอท → RP/กำจัด 0, ยาวสุด = best.online
+  let d = AC.seedOnline({ rp: 900, st: { kills: 40, maxLen: 1200 }, best: { online: 800 } });
+  assert.deepStrictEqual([d.onrp, d.st.okills, d.st.omaxLen], [900, 40, 1200]);
+  d = AC.seedOnline({ rp: 900, st: { kills: 40, maxLen: 1200 }, best: { online: 800, hard: 1500 } });
+  assert.deepStrictEqual([d.onrp, d.st.okills, d.st.omaxLen], [0, 0, 800]);
+  assert.strictEqual(AC.seedOnline({ onrp: 5, rp: 9 }).onrp, 5);
+  // RP ออนไลน์เพิ่มได้ไม่เกิน RP ที่เพิ่มจริง
+  const o = { coins: 0, rp: 1000, onrp: 100, season: '2026-11', st: { kills: 10, okills: 2, maxLen: 900, omaxLen: 500 }, best: { hard: 1 }, owned: {}, ach: {}, _srv: { cb: 0, rb: 500, t: T - 60000, paid: [], claims: [] } };
+  let r = AC.validate(o, { ...o, rp: 1030, onrp: 130, st: { ...o.st, kills: 12, okills: 4 } }, T); assert(!r.fixed, JSON.stringify(r.data)); assert.strictEqual(r.data.onrp, 130); assert.strictEqual(r.data.st.okills, 4);
+  r = AC.validate(o, { ...o, rp: 1030, onrp: 900 }, T); assert(r.fixed); assert.strictEqual(r.data.onrp, 130);
+  r = AC.validate(o, { ...o, st: { ...o.st, okills: 50 } }, T); assert(r.fixed); assert.strictEqual(r.data.st.okills, 10);
+  r = AC.validate(o, { ...o, st: { ...o.st, omaxLen: 899 } }, T); assert(!r.fixed); r = AC.validate(o, { ...o, st: { ...o.st, omaxLen: 5000 } }, T); assert(r.fixed); assert(r.data.st.omaxLen <= 900);
+  // เครื่องเก่า (ไม่ส่งค่า) → ใช้ค่าเดิม · ข้อมูลเก่าไม่มี onrp → ใช้ค่าที่ seed
+  const { onrp, ...noOn } = o; r = AC.validate(o, { ...noOn, st: { kills: 10, maxLen: 900 } }, T); assert.deepStrictEqual([r.data.onrp, r.data.st.okills, r.data.st.omaxLen], [100, 2, 500]);
+  // ขึ้นฤดูกาลใหม่: RP ครึ่ง → RP ออนไลน์ครึ่งด้วย
+  r = AC.validate(o, { ...o, rp: 500, onrp: 50, season: '2026-12' }, T, 0); assert(!r.fixed, JSON.stringify(r.data)); r = AC.validate(o, { ...o, rp: 500, onrp: 400, season: '2026-12' }, T, 0); assert.strictEqual(r.data.onrp, 50); }
+console.log('online stats OK');

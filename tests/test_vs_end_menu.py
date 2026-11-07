@@ -17,7 +17,7 @@ async def main():
         await pg.screenshot(path=SP+'vsend1.png')
         await pg.click('#leave2');await pg.wait_for_timeout(800)
         print('ERRS',errs[-3:]);print('after leave',await pg.evaluate("[state,!!NET,document.getElementById('menu').classList.contains('hidden'),worms.length,AR]"))
-        await pg.evaluate("document.getElementById('sheet').classList.add('hidden')");await pg.click('#playBot');await pg.wait_for_timeout(500);print('bot sheet opens',await pg.evaluate("document.getElementById('sheetTitle').textContent"))
+        await pg.evaluate("document.getElementById('sheet').classList.add('hidden')");await pg.click('#bShop');await pg.wait_for_timeout(500);print('menu works (shop opens)',await pg.evaluate("document.getElementById('sheetTitle').textContent"))
         await pg.screenshot(path=SP+'vsend2.png')
         print(errs[:5]);await b.close()
 asyncio.run(main())
