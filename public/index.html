@@ -569,7 +569,7 @@ function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-ali
     <div class="help" style="text-align:left;margin:6px 0 0">2) <b>แพ้ 2v2</b> −5 RP (ถ้าเล่นได้น้อยอาจติดลบ)<br>3) <b>ขึ้นเดือนใหม่</b> RP เหลือครึ่งหนึ่ง แต่ได้เหรียญ + ฉายาตามขั้นที่ทำได้<br>ถ้า RP ต่ำกว่าเกณฑ์ของขั้นนั้น แรงก์จะตกลงทันที</div></div>
   <div class="help" style="text-align:left">💡 เคล็ดลับ: แรงก์สูงแล้วอย่ารีบตาย — เก็บพลอยให้ยาวเกินเกณฑ์ก่อนค่อยไปไล่ล่า</div>`}
 // ตารางอันดับผู้เล่น: แรงก์ (ฤดูกาลนี้) / ยาวสุด / เหรียญ · เรียงอันดับ 1, 2, 3, ... + อันดับของเรา
-let lbBy='rp';const LB_TABS=[['rp','🏅 แรงก์'],['kills','💀 กำจัด'],['len','🚂 ยาวสุด'],['coins','🪙 เหรียญ']];
+let lbBy='rp';const LB_TABS=[['rp','🏅 แรงก์'],['kills','💀 กำจัด'],['len','🚂 ยาวสุด']];   // เอาแท็บเหรียญออก (เจ้าของสั่ง 7 พ.ย. 13:05 — เหรียญใช้แล้วหมด ไม่ใช่ตัววัดฝีมือ)
 function loadLb(b){const el=b.querySelector('#lbList');if(!el)return;el.innerHTML='<div>กำลังโหลด...</div>';const by=lbBy,esc=t=>String(t).replace(/[<>&]/g,'');
   const unit=v=>by==='rp'?(+v).toLocaleString()+' RP':by==='len'?'ยาว '+(+v).toLocaleString():by==='kills'?'💀 '+(+v).toLocaleString():(+v).toLocaleString()+' 🪙';
   const pos=i=>`<b class="pos p${Math.min(i+1,4)}">${i+1}</b>`;
