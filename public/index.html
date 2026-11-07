@@ -166,7 +166,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .tabs.wrap{flex-wrap:wrap;gap:5px}.tabs.wrap .tab{flex:1 0 21%;font-size:12px;padding:6px 2px}
 .item.deal{border:2px solid #ffd23f}.item.tap{cursor:pointer}.item.tap:active{background:#18204a}
 .item .perk{display:block;font-style:normal;font-size:11.5px;color:#7cfc9a}
-.item .ic{position:relative}.item .ic.real{background:radial-gradient(circle,#2a3466,#141a3a);width:46px;height:46px}.item .ic canvas.lic{position:static;width:100%;height:100%;display:block}
+.rkimg{vertical-align:-.3em;display:inline-block}.item .ic.rk{width:46px;height:46px}.item .ic{position:relative}.item .ic.real{background:radial-gradient(circle,#2a3466,#141a3a);width:46px;height:46px}.item .ic canvas.lic{position:static;width:100%;height:100%;display:block}
 .cmpbtn{margin:0 0 10px;padding:9px;font-size:15px}
 table.cmp{width:100%;border-collapse:separate;border-spacing:0 5px;font-size:12px;table-layout:fixed}
 table.cmp th{font-weight:600;color:#aab3e6;font-size:15px;padding:0 1px}table.cmp th:first-child{width:38%;text-align:left;font-size:12px;padding-left:6px}
@@ -516,6 +516,56 @@ function rankOf(rp){rp=Math.max(0,Math.floor(rp||0));let t=0;while(t<RANKS.lengt
   return{t,sub,ic:K.ic,col:K.col,name:K.n+(last?'':' '+SUBS[sub]),code:t*3+sub,next:last?null:Math.ceil(hi),frac:last?1:(rp-lo)/(hi-lo)}}
 const rankName=c=>{c=Math.max(0,c|0);const t=Math.min(RANKS.length-1,Math.floor(c/3)),K=RANKS[t];return K.ic+' '+K.n+(t===RANKS.length-1?'':' '+SUBS[c%3])};
 const rankIcon=c=>RANKS[Math.min(RANKS.length-1,Math.max(0,Math.floor((c|0)/3)))].ic;
+// ---------- เหรียญแรงก์ (วาดเอง 7 ขั้น: โล่โลหะ + ปีก/มงกุฎ/เปลวไฟตามขั้น + ดาวบอกขั้นย่อย III/II/I) — เจ้าของขอให้รูปแรงก์สวยขึ้น 7 พ.ย. ----------
+const RANK_PAL=[['#ffd9b0','#d9935f','#7a4520'],['#ffffff','#cfd6e6','#5d6578'],['#fff4b0','#ffc42e','#9a6200'],['#e6fffb','#4fe3d0','#0f6d68'],['#eaf6ff','#6fc3ff','#1d47b0'],['#ffe7c2','#ff8c42','#7d2400'],['#ffe0ea','#ff4f6d','#5c0b33']];
+function drawRankEmblem(c,cx,cy,S,t,sub){   // S = ขนาดกล่อง (กว้าง=สูง)
+  const P=RANK_PAL[t]||RANK_PAL[0],u=S/2,last=t===RANK_PAL.length-1;c.save();c.translate(cx,cy);c.scale(u,u);c.lineJoin='round';c.lineCap='round';
+  const grad=(y0,y1,a)=>{const g=c.createLinearGradient(0,y0,0,y1);a.forEach((s,i)=>g.addColorStop(i/(a.length-1),s));return g};
+  // แสงเรืองด้านหลัง (ขั้นสูง)
+  if(t>=3){const g=c.createRadialGradient(0,0,.1,0,0,1);g.addColorStop(0,P[1]+'88');g.addColorStop(1,P[1]+'00');c.fillStyle=g;c.beginPath();c.arc(0,0,1,0,TAU);c.fill()}
+  // ปีก (ทองขึ้นไป) / เปลวไฟ (ตำนาน)
+  const nf=t>=2?Math.min(4,t):0;
+  for(const sd of[-1,1])for(let i=nf-1;i>=0;i--){c.save();c.scale(sd,1);c.translate(.42,-.12+i*.13);c.rotate(-.55+i*.32);
+    const L=.62-i*.08,W=.15;c.beginPath();c.moveTo(0,-W);c.quadraticCurveTo(L*.75,-W*1.4,L,0);c.quadraticCurveTo(L*.6,W*1.1,0,W);c.closePath();
+    c.fillStyle=last?grad(-W,W,['#fff3a0','#ff9a2e','#d1173a']):grad(-W,W,[P[0],P[1],P[2]]);c.fill();c.strokeStyle=P[2];c.lineWidth=.025;c.stroke();c.restore()}
+  // โล่
+  const sh=new Path2D();sh.moveTo(-.5,-.6);sh.quadraticCurveTo(0,-.72,.5,-.6);sh.lineTo(.58,-.18);sh.quadraticCurveTo(.56,.42,0,.74);sh.quadraticCurveTo(-.56,.42,-.58,-.18);sh.closePath();
+  c.save();c.shadowColor='rgba(0,0,0,.45)';c.shadowBlur=.12*u;c.shadowOffsetY=.04*u;c.fillStyle=P[2];c.fill(sh);c.restore();
+  c.fillStyle=grad(-.7,.75,[P[0],P[1],P[1],P[2]]);c.fill(sh);
+  c.strokeStyle=P[2];c.lineWidth=.07;c.stroke(sh);
+  c.save();c.translate(0,.02);c.scale(.8,.8);c.strokeStyle='rgba(255,255,255,.55)';c.lineWidth=.04;c.stroke(sh);c.restore();
+  // เงาวาวครึ่งบน
+  c.save();c.clip(sh);const gl=c.createLinearGradient(0,-.7,0,0);gl.addColorStop(0,'rgba(255,255,255,.55)');gl.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=gl;
+  c.beginPath();c.ellipse(-.1,-.42,.65,.32,-.2,0,TAU);c.fill();c.restore();
+  // ลายกลางโล่
+  const ink=P[2];c.save();c.translate(0,.02);
+  if(t<=2){c.strokeStyle=ink;c.fillStyle=ink;c.lineWidth=.07;c.beginPath();c.arc(0,0,.27,0,TAU);c.stroke();   // ล้อรถไฟ
+    c.lineWidth=.045;for(let k=0;k<6;k++){const a=k*TAU/6+.3;c.beginPath();c.moveTo(Math.cos(a)*.08,Math.sin(a)*.08);c.lineTo(Math.cos(a)*.26,Math.sin(a)*.26);c.stroke()}
+    c.beginPath();c.arc(0,0,.08,0,TAU);c.fill();if(t===2){c.fillStyle='#fff8d0';c.beginPath();c.arc(0,0,.04,0,TAU);c.fill()}}
+  else if(t<=4){const g=c.createLinearGradient(-.3,-.3,.3,.3);g.addColorStop(0,'#ffffff');g.addColorStop(.5,P[1]);g.addColorStop(1,ink);c.fillStyle=g;   // เพชร
+    c.beginPath();c.moveTo(-.3,-.1);c.lineTo(-.16,-.28);c.lineTo(.16,-.28);c.lineTo(.3,-.1);c.lineTo(0,.34);c.closePath();c.fill();c.strokeStyle=ink;c.lineWidth=.035;c.stroke();
+    c.beginPath();c.moveTo(-.3,-.1);c.lineTo(.3,-.1);c.moveTo(-.16,-.28);c.lineTo(-.08,-.1);c.lineTo(0,.34);c.lineTo(.08,-.1);c.lineTo(.16,-.28);c.lineWidth=.022;c.stroke()}
+  else if(t===5){c.fillStyle=ink;c.beginPath();c.roundRect?c.roundRect(-.24,-.26,.48,.5,.12):c.rect(-.24,-.26,.48,.5);c.fill();   // หน้ารถจักร
+    c.fillStyle=P[0];c.fillRect(-.15,-.18,.3,.14);c.fillStyle='#fff59a';c.beginPath();c.arc(0,.1,.07,0,TAU);c.fill();
+    c.fillStyle=ink;c.fillRect(-.3,.24,.6,.06)}
+  else{const g=c.createLinearGradient(0,.32,0,-.36);g.addColorStop(0,'#ffe066');g.addColorStop(.5,'#ff8a1f');g.addColorStop(1,'#e0123d');c.fillStyle=g;   // เปลวไฟ
+    c.beginPath();c.moveTo(0,-.36);c.bezierCurveTo(.12,-.2,.3,-.06,.24,.12);c.bezierCurveTo(.2,.28,.08,.32,0,.32);c.bezierCurveTo(-.08,.32,-.22,.26,-.24,.1);c.bezierCurveTo(-.26,-.06,-.12,-.08,-.06,-.18);c.bezierCurveTo(-.04,-.08,.04,-.2,0,-.36);c.fill();
+    c.fillStyle='#fff3b0';c.beginPath();c.ellipse(0,.16,.08,.12,0,0,TAU);c.fill()}
+  c.restore();
+  // มงกุฎ (ราชัน + ตำนาน)
+  if(t>=5){c.save();c.translate(0,-.74);const g=grad(-.2,.1,['#fff6b0','#ffc42e','#a86b00']);c.fillStyle=g;c.strokeStyle='#7a4a00';c.lineWidth=.03;
+    c.beginPath();c.moveTo(-.3,.08);c.lineTo(-.34,-.14);c.lineTo(-.16,-.02);c.lineTo(0,-.22);c.lineTo(.16,-.02);c.lineTo(.34,-.14);c.lineTo(.3,.08);c.closePath();c.fill();c.stroke();
+    for(const[x,y]of[[-.34,-.16],[0,-.24],[.34,-.16]]){c.fillStyle=last?'#ff4f6d':'#6fc3ff';c.beginPath();c.arc(x,y,.05,0,TAU);c.fill();c.stroke()}c.restore()}
+  // ดาวขั้นย่อย (III=1 · II=2 · I=3) — ขั้นสุดท้ายไม่มีขั้นย่อย
+  if(!last&&sub!=null){const n=sub+1;for(let i=0;i<n;i++){const x=(i-(n-1)/2)*.22,y=.86;c.save();c.translate(x,y);c.fillStyle='#fff3b0';c.strokeStyle='#8a5a00';c.lineWidth=.025;
+    c.beginPath();for(let k=0;k<10;k++){const r=k%2?.045:.1,a=-Math.PI/2+k*Math.PI/5;c.lineTo(Math.cos(a)*r,Math.sin(a)*r)}c.closePath();c.fill();c.stroke();c.restore()}}
+  c.restore()}
+const RANK_CV={};
+function rankCanvas(t,sub){const k=t+':'+(sub==null?'-':sub);if(!RANK_CV[k]){const cv=document.createElement('canvas');cv.width=cv.height=128;drawRankEmblem(cv.getContext('2d'),64,64,104,t,sub);RANK_CV[k]=cv}return RANK_CV[k]}
+const RANK_URL={};
+function rankImg(t,sub,px){const k=t+':'+(sub==null?'-':sub);if(!RANK_URL[k])try{RANK_URL[k]=rankCanvas(t,sub).toDataURL()}catch(e){return RANKS[t].ic}
+  return`<img class="rkimg" alt="${RANKS[t].n}" src="${RANK_URL[k]}" style="width:${px||22}px;height:${px||22}px">`}
+const rankImgC=(code,px)=>{code=Math.max(0,code|0);const t=Math.min(RANKS.length-1,Math.floor(code/3));return rankImg(t,t===RANKS.length-1?null:code%3,px)};
 const myRank=()=>rankOf(prof.rp).code;
 let roundRP=0;
 const DIFF_RP={easy:.5,normal:1,hard:1.5};
@@ -538,14 +588,14 @@ function addRP(n){if(!n)return;const b=rankOf(prof.rp);prof.rp=Math.max(0,prof.r
   if(player)player.rk=a.code;
   if(a.code>b.code){announce('🎉 เลื่อนแรงก์เป็น '+a.ic+' '+a.name+'!');sfx('gold')}else if(a.code<b.code)announce('📉 แรงก์ตกเป็น '+a.ic+' '+a.name)}
 function rankHTML(earn){const r=rankOf(prof.rp);
-  return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
+  return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${rankImgC(r.code,30)} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}<span class="rkmore">ดูอันดับ ›</span></small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
   b.innerHTML=rankHTML()+'<button class="btn alt" id="rkHow" style="margin:8px 0 0;padding:9px;font-size:14px">📖 วิธีขึ้นแรงก์ / แรงก์ลดเมื่อไหร่</button>'+
   (ACCT.mode!=='local'?'<div class="lbl" style="margin:12px 2px 6px">🌍 อันดับผู้เล่น</div><div class="tabs" id="lbTabs">'+LB_TABS.map(([k,t])=>`<div class="tab${lbBy===k?' on':''}" data-k="${k}">${t}</div>`).join('')+'</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
-  '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
+  '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>rankImg(i,null,18)+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
   '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
-  RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic" style="background:${K.col}22">${K.ic}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
+  RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic rk" style="background:${K.col}22">${rankImg(i,null,40)}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
   '<div class="lbl" id="rkRules" style="margin:14px 2px 4px">📖 กติกาแรงก์</div>'+rankRulesHTML();
   b.querySelector('#rkHow').onclick=()=>b.querySelector('#rkRules').scrollIntoView({behavior:'smooth',block:'start'});
   if(ACCT.mode!=='local'){b.querySelectorAll('#lbTabs .tab').forEach(t=>t.onclick=()=>{lbBy=t.dataset.k;b.querySelectorAll('#lbTabs .tab').forEach(x=>x.classList.toggle('on',x===t));loadLb(b)});loadLb(b)}}
@@ -555,7 +605,7 @@ function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString
 function openProfile(name){openSheet('👤 '+name,b=>{b.innerHTML='<div class="help">กำลังโหลด...</div>';
   api('/api/profile?name='+encodeURIComponent(name)).then(u=>{const k=rankOf(u.rp),tt=u.tid&&titleText(u.tid),esc=t=>String(t).replace(/[<>&]/g,'');
     b.innerHTML=`<div style="font-size:22px;font-weight:600">${esc(u.name)}</div>${tt?`<div class="help" style="margin:2px 0;color:#ffd23f">${esc(tt)}</div>`:''}
-      <div class="item" style="border:2px solid ${k.col}"><div class="ic" style="background:${k.col}22">${k.ic}</div><div class="tx">${k.name}<small>${(u.rp||0).toLocaleString()} RP · ฤดูกาลนี้</small></div></div>
+      <div class="item" style="border:2px solid ${k.col}"><div class="ic rk" style="background:${k.col}22">${rankImgC(k.code,40)}</div><div class="tx">${k.name}<small>${(u.rp||0).toLocaleString()} RP · ฤดูกาลนี้</small></div></div>
       <div class="lbl" style="margin:10px 2px 4px">📊 สถิติ</div>${statsHTML(u.st)}<div class="help">🏅 เหรียญตรา ${u.ach||0} อัน</div>
       <button class="btn alt" id="pfBack" style="margin-top:10px">‹ กลับไปตารางอันดับ</button>`;
     b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)}).catch(e=>{b.innerHTML=`<div class="help">❌ ${e.message||'โหลดไม่ได้'}</div><button class="btn alt" id="pfBack">‹ กลับ</button>`;b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)})})}
@@ -565,7 +615,7 @@ function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-ali
     <div class="help" style="text-align:left;margin:4px 0 0">ตัวคูณ: เล่นกับบอท Easy ×${DIFF_RP.easy} · Normal ×${DIFF_RP.normal} · Hard ×${DIFF_RP.hard} · ออนไลน์ ×1<br>ตัวอย่าง: ยาว 600 + กำจัด 3 ตัว (ออนไลน์) = 10 + 6 = <b>+16 RP</b></div></div>
   <div class="rkbox"><b style="color:#ff7b7b">📉 แรงก์ลดเมื่อ</b>
     <div class="help" style="text-align:left;margin:4px 0">1) <b>ตายตอนขบวนยังสั้น</b> (ตั้งแต่แรงก์เงินขึ้นไป · ทองแดงไม่โดนหัก)</div>
-    ${tb('<tr><th style="text-align:left">แรงก์</th><th style="text-align:right">ต้องยาวอย่างน้อย</th><th style="text-align:right">ไม่ถึงโดนหัก</th></tr>'+RANKS.slice(1).map((K,i)=>`<tr><td>${K.ic} ${K.n}</td><td style="text-align:right">${rpNeed(i+1)}</td><td style="text-align:right;color:#ff7b7b">−${rpLoss(i+1)} RP</td></tr>`).join(''))}
+    ${tb('<tr><th style="text-align:left">แรงก์</th><th style="text-align:right">ต้องยาวอย่างน้อย</th><th style="text-align:right">ไม่ถึงโดนหัก</th></tr>'+RANKS.slice(1).map((K,i)=>`<tr><td>${rankImg(i+1,null,18)} ${K.n}</td><td style="text-align:right">${rpNeed(i+1)}</td><td style="text-align:right;color:#ff7b7b">−${rpLoss(i+1)} RP</td></tr>`).join(''))}
     <div class="help" style="text-align:left;margin:6px 0 0">2) <b>แพ้ 2v2</b> −5 RP (ถ้าเล่นได้น้อยอาจติดลบ)<br>3) <b>ขึ้นเดือนใหม่</b> RP เหลือครึ่งหนึ่ง แต่ได้เหรียญ + ฉายาตามขั้นที่ทำได้<br>ถ้า RP ต่ำกว่าเกณฑ์ของขั้นนั้น แรงก์จะตกลงทันที</div></div>
   <div class="help" style="text-align:left">💡 เคล็ดลับ: แรงก์สูงแล้วอย่ารีบตาย — เก็บพลอยให้ยาวเกินเกณฑ์ก่อนค่อยไปไล่ล่า</div>`}
 // ตารางอันดับผู้เล่น: แรงก์ (ฤดูกาลนี้) / ยาวสุด / เหรียญ · เรียงอันดับ 1, 2, 3, ... + อันดับของเรา
@@ -575,7 +625,7 @@ function loadLb(b){const el=b.querySelector('#lbList');if(!el)return;el.innerHTM
   const pos=i=>`<b class="pos p${Math.min(i+1,4)}">${i+1}</b>`;
   api('/api/top?by='+by).then(j=>{if(lbBy!==by)return;
     const row=(u,i,me)=>{const k=rankOf(u.rp??(by==='rp'?u.val:0)),tt=u.tid&&titleText(u.tid);
-      return`<div class="lbrow${me?' me':''}${i<3?' top3':''}" data-name="${esc(u.name).replace(/"/g,"&quot;")}">${pos(i)}<span class="who"><b>${esc(u.name)}${me?' (คุณ)':''}</b><small style="color:${k.col}">${k.ic} ${k.name}${tt?' <i>· '+esc(tt)+'</i>':''}</small></span><span class="val">${unit(u.val)}</span></div>`};
+      return`<div class="lbrow${me?' me':''}${i<3?' top3':''}" data-name="${esc(u.name).replace(/"/g,"&quot;")}">${pos(i)}<span class="who"><b>${esc(u.name)}${me?' (คุณ)':''}</b><small style="color:${k.col}">${rankImgC(k.code,16)} ${k.name}${tt?' <i>· '+esc(tt)+'</i>':''}</small></span><span class="val">${unit(u.val)}</span></div>`};
     let h=j.top.length?j.top.map((u,i)=>row(u,i,ACCT.name&&u.name===ACCT.name)).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>';
     if(j.me&&j.me.pos>j.top.length)h+=`<div class="gap">⋯</div>`+row({name:ACCT.name,val:j.me.val,rp:prof.rp,tid:prof.eq.title},j.me.pos-1,true);
     setTimeout(()=>el.querySelectorAll('.lbrow[data-name]').forEach(r=>{r.style.cursor='pointer';r.onclick=()=>openProfile(r.dataset.name)}));
@@ -1346,7 +1396,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
     ctx.fillStyle='#fff59a';ctx.beginPath();ctx.arc(L*.47,0,r*.22,0,TAU);ctx.fill();
   }
   ctx.restore();
-  if(w.rk!==undefined&&w.alive&&vis(c))drawRankBadge(c.x,c.y,Math.max(8,W*.36),w.rk);   // แรงก์ติดบนหัวรถไฟ
+  if(w.rk!==undefined&&w.alive&&vis(c))drawRankBadge(c.x,c.y,Math.max(13,W*.62),w.rk);   // แรงก์ติดบนหัวรถไฟ
   const elec=(w.loco==='bullet'||w.loco==='tram'||w.loco==='metro')&&w.smokeT==='normal',sk2=w.loco==='comet'&&w.smokeT==='normal'?'comet':w.smokeT;
   if(vis(c)&&!elec&&frame%((boosting||sk2==='comet'?3:9)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL])smoke.push({x:c.x+Math.cos(c.a)*smX,y:c.y+Math.sin(c.a)*smX,r:smR,t:1,k:sk2,h:frame*4%360});
   if(w.slow>0){glowAlong(w,'rgba(155,231,255,.35)',1.2,vx0,vy0,vx1,vy1,M)}
@@ -1551,11 +1601,8 @@ function drawHUD2(){
 function drawGoldIcon(x,y,s){const lw=Math.max(1,s*.08),b=(bx,by)=>{ctx.beginPath();ctx.moveTo(bx-s*.5,by+s*.2);ctx.lineTo(bx+s*.5,by+s*.2);ctx.lineTo(bx+s*.3,by-s*.2);ctx.lineTo(bx-s*.3,by-s*.2);ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle='#8a5a00';ctx.lineWidth=lw;ctx.stroke()};
   b(x-s*.42,y+s*.24);b(x+s*.42,y+s*.24);b(x,y-s*.18)}
 const carryBomb=w=>w.isRemote?!!w.hasBomb:w.tgs>0&&w.bombT.length>0;   // ถือระเบิดอยู่ (คนอื่นออนไลน์รู้จาก flag 64)
-function drawRankBadge(x,y,R,rk){const K=RANKS[Math.min(RANKS.length-1,Math.max(0,Math.floor((rk|0)/3)))];   // เหรียญแรงก์กลม สีตามขั้น + ไอคอน
-  ctx.fillStyle='rgba(10,12,30,.75)';ctx.beginPath();ctx.arc(x,y,R+2.5,0,TAU);ctx.fill();
-  ctx.fillStyle=K.col;ctx.beginPath();ctx.arc(x,y,R,0,TAU);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=Math.max(1.2,R*.12);ctx.stroke();
-  ctx.fillStyle='rgba(10,12,30,.35)';ctx.beginPath();ctx.arc(x,y,R*.78,0,TAU);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font=`${Math.round(R*1.15)}px sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(K.ic,x,y+R*.05);ctx.textBaseline='alphabetic'}
+function drawRankBadge(x,y,R,rk){rk=Math.max(0,rk|0);const t=Math.min(RANKS.length-1,Math.floor(rk/3));   // เหรียญแรงก์ (รูปเดียวกับในเมนู) ติดบนหัวรถไฟ
+  ctx.drawImage(rankCanvas(t,t===RANKS.length-1?null:rk%3),x-R,y-R,R*2,R*2)}
 function drawBombIcon(x,y,s){ctx.fillStyle='#22252f';ctx.beginPath();ctx.arc(x,y+s*.08,s*.42,0,TAU);ctx.fill();ctx.strokeStyle='#7a82a8';ctx.lineWidth=Math.max(1,s*.05);ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.arc(x-s*.14,y-s*.06,s*.1,0,TAU);ctx.fill();
   ctx.save();ctx.translate(x+s*.22,y-s*.3);ctx.rotate(.6);ctx.fillStyle='#8a6a3a';ctx.fillRect(-s*.09,-s*.09,s*.18,s*.18);ctx.restore();
@@ -2070,7 +2117,7 @@ function netPlayers(list){NET.players=new Map(list.map(p=>[p.id,p]));NET.me=NET.
 function renderLobby(b){
   if(!NET)return;const ps=[...NET.players.values()];
   const myT=NET.me?NET.me.team:'A';
-  const col=t=>{const l=ps.filter(p=>p.team===t);return l.map(p=>`<div>${p.id===NET.id?'⭐ ':''}${p.rk!==undefined?rankIcon(p.rk)+' ':''}${String(p.name).replace(/[<>&]/g,'')}${p.host?' 👑':''}</div>`).join('')+
+  const col=t=>{const l=ps.filter(p=>p.team===t);return l.map(p=>`<div>${p.id===NET.id?'⭐ ':''}${p.rk!==undefined?rankImgC(p.rk,16)+' ':''}${String(p.name).replace(/[<>&]/g,'')}${p.host?' 👑':''}</div>`).join('')+
     Array.from({length:Math.max(0,2-l.length)},()=>'<div style="color:#8891c4">🤖 บอท (ว่าง)</div>').join('')+
     (t===myT?'<div class="tpick on">✓ คุณอยู่ทีมนี้</div>':l.length>=2?'<div class="tpick off">ทีมเต็ม</div>':`<button class="tpick" data-t="${t}">เข้าทีมนี้</button>`)};
   const canStart=NET.host&&ps.length>=1;
