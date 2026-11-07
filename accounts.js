@@ -29,7 +29,7 @@ function fileStore(note) {
       const i = me ? all.findIndex(u => u.lname === me) : -1;
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null, n: all.length }; },
     async getSeason(k) { return seasons[k] || null; },
-    async migrateOnline() { let n = 0; for (const u of Object.values(db)) if (typeof (u.data || {}).onrp !== 'number') { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
+    async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const all = Object.values(db).filter(u => (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
@@ -76,7 +76,7 @@ if (DB_URL) {
       const cn = await pool.query(`SELECT count(*)::int AS n FROM players WHERE ${w}${ex} > 0`, [season]);
       return { top: r.rows.map(x => ({ name: x.name, val: +x.val, rp: +x.rp || 0, tid: x.tid })), me: mine, n: cn.rows[0].n }; },
     async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
-      const r = await pool.query("SELECT lname, data FROM players WHERE NOT (data ? 'onrp')"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND NOT (data ? 'onrp')", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
+      const r = await pool.query("SELECT lname, data FROM players WHERE COALESCE(data->>'onv','') <> '2'"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND COALESCE(data->>'onv','') <> '2'", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;

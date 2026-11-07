@@ -109,11 +109,9 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   if ((st.maxLen || 0) > Math.max(oml, mlCap)) { st.maxLen = Math.floor(Math.max(oml, mlCap)); fixed = true; }
   // สถิติออนไลน์: RP ออนไลน์เพิ่มได้ไม่เกิน RP ที่เพิ่มจริง (และไม่เกิน RP ทั้งหมด) · กำจัด/ยาวสุดออนไลน์ไม่เกินของรวม · เครื่องเก่าที่ไม่ส่งค่า → ใช้ค่าเดิม
   { const so = seedOnline(old), newSeason = nu.season && so.season && nu.season > so.season, ost = so.st || {};
-    const rBase = newSeason ? Math.floor(orp / 2) : orp, oBase = newSeason ? Math.floor(num(so.onrp) / 2) : num(so.onrp);
-    let onrp = typeof nu.onrp === 'number' && Number.isFinite(nu.onrp) ? Math.max(0, nu.onrp) : oBase;
-    const cap = Math.min(rp, oBase + Math.max(0, rp - rBase)); if (onrp > cap) { if (typeof nu.onrp === 'number') fixed = true; onrp = Math.floor(cap); }
-    nu = { ...nu, onrp };
-    if (!('okills' in ist)) st.okills = Math.floor(+ost.okills || 0); if (!('omaxLen' in ist)) st.omaxLen = Math.floor(+ost.omaxLen || 0);
+    nu = { ...nu, onrp: rp, onv: 2 };   // RP ได้เฉพาะออนไลน์แล้ว → RP ออนไลน์ = RP (ผ่านกันโกง rp แล้ว)
+    if (!('okills' in ist)) st.okills = Math.floor((+ost.okills || 0) + Math.max(0, (st.kills || 0) - (+ost.kills || 0)));   // เครื่องเก่า: นับกำจัดที่เพิ่มด้วย
+    if (!('omaxLen' in ist)) st.omaxLen = Math.floor(Math.max(+ost.omaxLen || 0, st.maxLen || 0));
     if (st.okills > Math.max(+ost.okills || 0, st.kills || 0)) { st.okills = Math.floor(Math.max(+ost.okills || 0, st.kills || 0)); fixed = true; }
     const omc = Math.max(+ost.omaxLen || 0, Math.min(st.maxLen || 0, reg ? 3000 : (+ost.omaxLen || 0) + 300 + 40 * Math.min(el, 600)));
     if (st.omaxLen > omc) { st.omaxLen = Math.floor(omc); fixed = true; } }
@@ -130,10 +128,11 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
 // ---------- สถิติออนไลน์ (ตารางอันดับนับเฉพาะโหมดออนไลน์ — เจ้าของสั่ง 7 พ.ย. 18:45 เอาโหมดเล่นกับบอทออก) ----------
 // onrp = RP ออนไลน์ของฤดูกาลนี้ (เรียงตารางอันดับ/แจกรางวัลจบเดือน) · st.okills = กำจัดในโหมดออนไลน์ · st.omaxLen = ยาวสุดในโหมดออนไลน์
 // ข้อมูลเก่าที่ยังไม่มีค่าพวกนี้: ยกคะแนนเดิมมาทั้งหมด (เจ้าของสั่ง 7 พ.ย. 18:56 — ไม่ลบคะแนนเดิมของคนที่เคยเล่นกับบอท) · ต่อจากนี้นับเพิ่มเฉพาะออนไลน์
-function seedOnline(d) { d = d && typeof d === 'object' ? d : {}; if (typeof d.onrp === 'number') return d;
+// onv:2 (7 พ.ย. 20:15): เครื่องเก่าที่ยังเปิดค้างหลังอัปเดตส่ง RP/กำจัดเพิ่มแต่ไม่ส่งค่าออนไลน์ → ตารางอันดับไม่ขยับ · ตอนนี้ไม่มีโหมดบอทแล้ว RP ได้เฉพาะออนไลน์ → onrp = rp เสมอ
+function seedOnline(d) { d = d && typeof d === 'object' ? d : {}; if (d.onv === 2) return d;
   const st = { ...(d.st || {}) };
-  st.okills = Math.floor(+st.kills || 0); st.omaxLen = Math.floor(Math.max(+st.maxLen || 0, +((d.best || {}).online) || 0));
-  return { ...d, onrp: Math.max(0, Math.floor(+d.rp || 0)), st }; }
+  st.okills = Math.floor(Math.max(+st.okills || 0, +st.kills || 0)); st.omaxLen = Math.floor(Math.max(+st.omaxLen || 0, +st.maxLen || 0, +((d.best || {}).online) || 0));
+  return { ...d, onrp: Math.max(0, Math.floor(+d.rp || 0)), onv: 2, st }; }
 
 // ---------- รหัสกู้คืน ----------
 const RC_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
