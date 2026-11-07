@@ -1,7 +1,7 @@
 // รถไฟซ่า — บอทรันบนเซิร์ฟเวอร์ (โลกออนไลน์ free-for-all + 2v2 เติมบอท)
 // เดิมบอทรันในมือถือ "หัวหน้าห้อง" → เครื่องช้า/สลับแอป บอทกระตุกทั้งโลก · ตอนนี้เซิร์ฟเวอร์คำนวณเองทุกตัว ทุกคนเห็นลื่นเท่ากัน
 // กติกาการเคลื่อนที่/AI/ชน/กิน ลอกมาจาก public/index.html (class Worm, aiThink, step) — ถ้าแก้กติกาที่นั่น ให้แก้ที่นี่ด้วย
-const TAU = Math.PI * 2, CS = 100, SELF_IDX = 20, GROW = .7, BOMB_R = 240, FREEZE_R = 650, FREEZE_T = 6, PORTAL_EDGE = 260;
+const TAU = Math.PI * 2, CS = 100, SELF_IDX = 20, GROW = .7, BOMB_R_FFA = 500, BOMB_R_VS = 300, FREEZE_R = 650, FREEZE_T = 6, PORTAL_EDGE = 260;
 const LAG_STEPS = 12;
 const BOSS_HEARTS = 3, BOSS_HIT_CD = 1.5;   // บอส 👑 มีหัวใจ 3 ดวง เสียเฉพาะตอนบอสเอาหัวชนตัวผู้เล่น (เครื่องผู้เล่นส่ง bhit มา) · บอทธรรมดาชนครั้งเดียวตายเหมือนเดิม
 const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, DROP_TTL = 30;
@@ -271,7 +271,7 @@ function onBomb(room, by, x, y) { if (!room.sim) return;
   for (const w of [...room.bots.values()]) { if (!w.alive || (by.team && w.team === by.team)) continue;
     if (w.isBoss) continue; const r = bombHitBot(room, w, x, y); if (r === 'head') killBot(room, w, by.body || { human: true, pid: by.id }, 'bomb'); } }
 // ระเบิด: โดนหัว (จุด 0–7) = ตาย · โดนแค่ลำตัว = ตัดเฉพาะส่วนในวง (ต้องตรงกับ bombHit ใน index.html)
-function bombHitBot(room, w, x, y) { const p = w.pts, R2 = BOMB_R * BOMB_R, rh = (BOMB_R + rOf(w.mass)) ** 2;
+function bombHitBot(room, w, x, y) { const BR = room.ffa ? BOMB_R_FFA : BOMB_R_VS, p = w.pts, R2 = BR * BR, rh = (BR + rOf(w.mass)) ** 2;
   for (let i = 0; i < Math.min(8, p.length); i++) if ((p[i].x - x) ** 2 + (p[i].y - y) ** 2 < rh) return 'head';
   if (w.tun) { const T = w.tun; for (let i = T.k; i < p.length; i++) { p[i].x += T.dx; p[i].y += T.dy; } w.tun = null; }
   const keep = [], gone = []; p.forEach((q, i) => ((i >= 8 && (q.x - x) ** 2 + (q.y - y) ** 2 < R2) ? gone : keep).push(q)); if (!gone.length) return false;
