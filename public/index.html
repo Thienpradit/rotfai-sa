@@ -1068,6 +1068,7 @@ class Worm{
     if(this.isRemote)return;
     const m=this.mass*.8,cnt=Math.max(6,Math.min(160,Math.floor(this.pts.length/2))),v=m/cnt,drop=[];
     for(let i=0;i<cnt;i++){const q=this.pts[Math.floor(i/cnt*this.pts.length)];drop.push([Math.round(q.x+rnd(-10,10)),Math.round(q.y+rnd(-10,10))])}
+    if(NET&&this.isP&&killer&&killer.netId>0&&NET.players.has(killer.netId))pvpFeed(killer.netId,NET.id);   // เราโดนผู้เล่นกำจัด → ขึ้นประกาศให้เราเห็นด้วย
     if(NET&&this.isP)netSend({t:'die',k:killer&&killer.netId||null,drop,v});else if(NET&&this.isBot)netSend({t:'bdie',id:this.netId,k:killer&&killer.netId||null,drop,v});else if(!NET)for(const[x,y]of drop)addFood(x,y,v,DROP_TTL);
     {const kf=killer&&(killer.isP?prof.eq.kfx:killer.kfx);if(kf&&kf!=='none'){const q=this.pts[0];killFx(q.x,q.y,kf)}}
     if(killer&&(!NET||this.isBot&&killer.isP)){killer.kills++;if(killer.isP){const h=killer.pts[0];if(!this.isBoss)texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+this.name+'!',t:1.6,c:'#ffd23f'});sfx('kill');track('kills');trackMax('killsGame',killer.kills);if(bombing)bombHits++}}
@@ -1639,12 +1640,20 @@ function render(){
     ctx.globalAlpha=Math.min(1,t.t);ctx.font='600 18px Mitr,sans-serif';ctx.fillStyle=t.c;ctx.textAlign='center';fillTextIcons(t.txt,t.x,t.y)}
   ctx.globalAlpha=1;ctx.restore();
   if(player&&(state==='play'||state==='dead'||state==='over'))drawHUD();
-  if(meT.length)drawMeToasts(meT.slice(-3));   // วาดทับแถบข้อมูล/มินิแมป
+  {const now=performance.now();killFeed=killFeed.filter(k=>k.until>now);
+    const lst=[...killFeed.slice().reverse().map(k=>({txt:k.txt,c:k.c,kf:1,t:(k.until-now)/1000})),...meT.slice(-3).reverse()];
+    if(lst.length&&state!=='menu')drawMeToasts(lst)}   // วาดทับแถบข้อมูล/มินิแมป · บนสุด = ประกาศกำจัดล่าสุด
 }
+// ===== ประกาศผู้เล่นกำจัดผู้เล่น (เจ้าของสั่ง 8 พ.ย. 00:27): แถบบนจอ ทุกคนเห็น "⚔️ A กำจัด B" 4.5 วิ สูงสุด 3 อัน =====
+let killFeed=[];
+function pvpFeed(k,v){const nm=id=>id===NET.id?'คุณ':((NET.players.get(id)||{}).name||'ผู้เล่น');
+  const me=k===NET.id,vic=v===NET.id;
+  killFeed.push({txt:'⚔️ '+nm(k)+(me?' กำจัด ':' กำจัด ')+nm(v)+(me?'!':''),c:me?'#7cfc9a':vic?'#ff8f8f':'#ffe2a8',until:performance.now()+4500,kf:1});
+  if(killFeed.length>3)killFeed.shift()}
 function drawMeToasts(list){const LSc=VH-SAFE.t-SAFE.b<500,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y0=SAFE.t+(LSc?62:128);   // ข้างบนจอใต้ประกาศ เรียงลง (เจ้าของสั่ง 20:06) · แนวตั้งเลยแถบข้อมูลบนจอลงมา
   ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='600 15px Mitr,sans-serif';
-  list.slice().reverse().forEach((t,i)=>{const y=y0+i*26,a=Math.min(1,t.t*1.5);ctx.globalAlpha=a;
-    const w=Math.min(VW*.9,ctx.measureText(t.txt.replace(/\{[A-Z]\}/g,'  ')).width+26);ctx.fillStyle='rgba(10,13,35,.62)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-11,w,22,11):ctx.rect(x-w/2,y-11,w,22);ctx.fill();
+  list.forEach((t,i)=>{const y=y0+i*26,a=Math.min(1,t.t*1.5);ctx.globalAlpha=a;
+    const w=Math.min(VW*.9,ctx.measureText(t.txt.replace(/\{[A-Z]\}/g,'  ')).width+26);ctx.fillStyle=t.kf?'rgba(90,16,24,.72)':'rgba(10,13,35,.62)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-11,w,22,11):ctx.rect(x-w/2,y-11,w,22);ctx.fill();
     ctx.fillStyle=t.c;fillTextIcons(t.txt,x,y+5)});
   ctx.restore()}
 function drawHUD(){
@@ -2292,10 +2301,11 @@ function netMsg(m){
     case'crash':if(player&&player.alive&&!(player.ghost>0)&&!(player.safe>0)){const k=worms.find(o=>o.netId===m.k);const h=player.pts[0];   // อีกฝ่ายเห็นเราชนลำตัวเขา
       texts.push({x:h.x,y:h.y-40,txt:'💥 ชนขบวน '+(k?k.name:'')+'!',t:1.6,c:'#ff5e5e'});player.die(k||null)}break;
     case'kill':{const w=worms.find(o=>o.netId===m.v);
+      if(m.v>0&&m.k>0&&m.v!==m.k)pvpFeed(m.k,m.v);   // ผู้เล่นจริงกำจัดผู้เล่นจริง → ประกาศให้ทุกคนเห็น
       {const kf=m.k===NET.id?prof.eq.kfx:(NET.players.get(m.k)||{}).kfx,q=w&&w.alive?w.pts[0]:null;if(q&&kf)killFx(q.x,q.y,kf)}
       if(w)w.alive=false;const bi=NET.bots.get(m.v);NET.bots.delete(m.v);
       if(bi&&bi.boss){bossActive=null;bossDown(m.k===NET.id?null:((NET.players.get(m.k)||NET.bots.get(m.k)||{}).name||''),m.k===NET.id)}
-      if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');track('okills');trackMax('killsGame',player.kills);if(!NET.ffa)track('vsKills');if(m.b){NET.bombN=(performance.now()-(NET.bombAt||0)<1500?NET.bombN||0:0)+1;track('bombKills');trackMax('bestBomb',NET.bombN)}const h=player.pts[0];if(!(bi&&bi.boss))texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+((bi||NET.players.get(m.v))?.name||'')+'!',t:1.6,c:'#ffd23f'});
+      if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');track('okills');trackMax('killsGame',player.kills);if(!NET.ffa)track('vsKills');if(m.b){NET.bombN=(performance.now()-(NET.bombAt||0)<1500?NET.bombN||0:0)+1;track('bombKills');trackMax('bestBomb',NET.bombN)}const h=player.pts[0];if(!(bi&&bi.boss)&&!(m.v>0))texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+((bi||NET.players.get(m.v))?.name||'')+'!',t:1.6,c:'#ffd23f'});
         if(bi&&bi.boss){addCoins(BOSS_COINS);track('boss')}}break}
     case'bomb':{booms.push({x:m.x,y:m.y,t:0});sfx('bomb');const by=NET.players.get(m.by);
       if(player&&player.alive&&by&&!(by.team&&by.team===player.team)&&player.safe<=0&&!(player.ghost>0)){const r=bombHit(player,m.x,m.y);if(r==='head')player.die({netId:m.by})}
