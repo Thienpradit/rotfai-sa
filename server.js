@@ -152,7 +152,7 @@ wss.on('connection', (ws, req) => {
       if (fresh && ffa) room.diff = d;
       if (room.players.size >= room.cfg.max) { send(ws, { t: 'err', msg: `ห้องนี้เต็มแล้ว (${room.cfg.max} คน) ลองรหัสห้องอื่น` }); room = null; return; }
       const nA = [...room.players.values()].filter(p => p.team === 'A').length;
-      me = { id: nextId++, ws, name: clean(m.name, 14) || 'ผู้เล่น', team: ffa ? null : nA <= room.players.size - nA ? 'A' : 'B',
+      me = { id: nextId++, ws, cz: !!m.cz, name: clean(m.name, 14) || 'ผู้เล่น', team: ffa ? null : nA <= room.players.size - nA ? 'A' : 'B',
         host: room.players.size === 0, skin: Array.isArray(m.skin) ? m.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffd23f', '#ff8c42'],
         loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
       room.players.set(me.id, me);
@@ -260,10 +260,12 @@ setInterval(() => {
     // บอท: คิด + ขยับ + ชน + กิน บนเซิร์ฟเวอร์
     botsim.step(room, TICK, bcast, dropFoods);
     // states
-    const p = [];
-    for (const pl of room.players.values()) if (pl.st) p.push([pl.id, pl.st.x, pl.st.y, pl.st.a, pl.st.m, pl.st.f, pl.st.ts]);
-    for (const b of room.bots.values()) if (b.st && b.alive) p.push(b.st);
-    bcast(room, { t: 's', p, tl: +room.timeLeft.toFixed(2), sc: teamScore(room) });
+    // ส่งแบบย่อ (cz) ให้เครื่องที่รองรับ: เวลาเป็นส่วนต่างจาก T, id บอทสั้นลง (−(1e8+k) → −(k+1)) · Render ตัด permessage-deflate ทิ้ง เลยย่อเองแทน
+    const p = [], pc = [], T = Date.now(), tl = +room.timeLeft.toFixed(2), sc = teamScore(room);
+    for (const pl of room.players.values()) if (pl.st) { const s = pl.st; p.push([pl.id, s.x, s.y, s.a, s.m, s.f, s.ts]); pc.push([pl.id, s.x, s.y, +(+s.a).toFixed(2), s.m, s.f, s.ts - T]); }
+    for (const b of room.bots.values()) if (b.st && b.alive) { p.push(b.st); const r = [b.st[0] + 1e8 - 1, b.st[1], b.st[2], b.st[3], b.st[4], b.st[5], b.st[6] - T]; if (b.st.length > 7) r.push(b.st[7]); pc.push(r); }
+    let sL = null, sC = null;
+    for (const pl of room.players.values()) if (pl.ws.readyState === 1) pl.ws.send(pl.cz ? (sC || (sC = JSON.stringify({ t: 's', p: pc, T, tl, sc }))) : (sL || (sL = JSON.stringify({ t: 's', p, tl, sc }))));
     if (!room.ffa && room.timeLeft <= 0) endMatch(room);
   }
 }, TICK * 1000);

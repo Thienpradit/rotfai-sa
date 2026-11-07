@@ -1920,7 +1920,7 @@ function netConnect(room,srv,nmode){const ffa=nmode==='ffa';
   const me=NET;
   try{localStorage.setItem('wormName',playerName())}catch(e){}
   if(ffa)setTimeout(()=>{if(NET===me&&!me.opened){try{ws.close()}catch(e){}fail()}},7000);
-  ws.onopen=()=>{me.opened=true;netSend({t:'join',room,mode:ffa?'ffa':'vs',diff:ONLINE_DIFF,name:playerName(),skin:curSkin(),...myLook(),rk:myRank()})};
+  ws.onopen=()=>{me.opened=true;netSend({t:'join',cz:1,room,mode:ffa?'ffa':'vs',diff:ONLINE_DIFF,name:playerName(),skin:curSkin(),...myLook(),rk:myRank()})};
   ws.onerror=()=>{if(!me.opened)fail()};
   ws.onclose=()=>{if(NET!==me)return;if(!me.opened){fail();return}NET=null;if(state==='over'){worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
   ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
@@ -1946,8 +1946,9 @@ function netMsg(m){
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
     case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
-    case's':{NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
-      for(const a of m.p){const[id,x,y,an,ms,fl,ts,hp]=a;if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;
+    case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
+      NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
+      for(const a of m.p){let[id,x,y,an,ms,fl,ts,hp]=a;if(m.T){if(id<0)id=id-1e8+1;ts=m.T+(ts||0)}if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;
         const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
         if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||BOSS_HEARTS;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
