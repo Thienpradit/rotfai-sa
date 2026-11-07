@@ -694,7 +694,7 @@ function bossSfx(k,t){const c=SND.ctx,out=c.createGain();out.connect(SND.master)
 // หวูดรถไฟ (ร้านค้า หมวดหวูด) — กด 📯 หรือ H
 let hornCD=0;
 // หวูดไล่ศัตรู (เจ้าของสั่ง 7 พ.ย.): กดแล้วบอทในรัศมี r หนีออกด้านข้างนาน t วิ · หวูดแพงขึ้น = วงกว้างขึ้น + หนีนานขึ้น (หนีไกลขึ้น) · ใช้ได้ทุก HORN_CD วิ · บอสหนีครึ่งเดียว · ต้องตรงกับ botsim.js
-const HORN_CD=8,HORN_PERK={classic:{r:0,t:0},deep:{r:320,t:1.3},chime:{r:380,t:1.6},tune:{r:450,t:1.9},siren:{r:530,t:2.3},thunder:{r:620,t:2.7},dragon:{r:720,t:3.2}};
+const HORN_CD=8,HORN_PERK={classic:{r:0,t:0},deep:{r:150,t:1.3},chime:{r:200,t:1.6},tune:{r:260,t:1.9},siren:{r:330,t:2.3},thunder:{r:410,t:2.7},dragon:{r:500,t:3.2}};
 const hornPerk=k=>HORN_PERK[k]||HORN_PERK.classic;
 const hornCdOf=k=>hornPerk(k).r?HORN_CD:2.5;   // หวูดไอน้ำ (ฟรี) ไม่ไล่ใคร = เสียงอย่างเดียว กดได้ทุก 2.5 วิ · หวูดที่ซื้อ = ไล่ศัตรู ทุก 8 วิ
 // หน้าตาหวูดแต่ละแบบ: สีวงคลื่น + อนุภาค (เจ้าของขอให้สวยขึ้น 7 พ.ย.)

@@ -8,7 +8,7 @@ const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, DROP_TTL =
 const RAGE_SPD = [1, 1.4, 2], RAGE_TURN = .15, BOSS_CAP = 2.7 * 2;   // บอสเสียหัวใจ → เร็วขึ้น ×1.4 / ชีวิตสุดท้าย ×2 (= ผู้เล่นเร่งเพชร) และไม่เร็วกว่านั้น (ต้องตรงกับ index.html)
 const bossRage = w => w.isBoss ? Math.max(0, (w.maxHp || BOSS_HEARTS) - w.hp) : 0;
 // หวูดไล่ศัตรู: ต้องตรงกับ HORN_PERK ใน index.html
-const HORN_PERK = { classic: { r: 0, t: 0 }, deep: { r: 320, t: 1.3 }, chime: { r: 380, t: 1.6 }, tune: { r: 450, t: 1.9 }, siren: { r: 530, t: 2.3 }, thunder: { r: 620, t: 2.7 }, dragon: { r: 720, t: 3.2 } };
+const HORN_PERK = { classic: { r: 0, t: 0 }, deep: { r: 150, t: 1.3 }, chime: { r: 200, t: 1.6 }, tune: { r: 260, t: 1.9 }, siren: { r: 330, t: 2.3 }, thunder: { r: 410, t: 2.7 }, dragon: { r: 500, t: 3.2 } };
 const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: BOSS_HEARTS };   // ระดับ Normal
 const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
 const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
