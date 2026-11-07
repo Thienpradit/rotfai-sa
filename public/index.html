@@ -179,6 +179,14 @@ table.cmp td.nm span{min-width:0;display:flex;flex-direction:column}table.cmp td
 canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14px;border:1px solid #2f3870}
 .perkbox{background:rgba(124,252,154,.1);border:1px solid rgba(124,252,154,.4);border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:#cfffdc;margin:6px 0}
 .perkbox small{color:#9fd9b0;font-size:12px}
+.lb .val em.lbpz{display:block;font-style:normal;font-size:11.5px;color:#ffd23f;font-weight:600;text-align:right;margin-top:1px}.lb .val{text-align:right}
+.lbpzbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;margin-bottom:4px;border-radius:10px;background:rgba(255,210,63,.12);border:1px solid rgba(255,210,63,.4);cursor:pointer;font-size:12.5px;color:#ffe9a8;text-align:left}
+.lb div.lbpzbar{background:rgba(255,210,63,.12)!important}.lb .lbpzbar span:first-child{white-space:normal}.lbpzbar small{display:block;color:#c9b77a;font-size:11px}.lbpzbar>b{color:#ffd23f;white-space:nowrap;font-size:12.5px}
+.przme.big{font-size:15px;text-align:center;padding:10px;line-height:1.6}.gold{color:#ffd23f!important}
+.ptab{display:grid;gap:2px;margin:8px 0;font-size:13px}.ptab>div{display:grid;grid-template-columns:1.2fr 1fr .8fr;align-items:center;padding:5px 9px;border-radius:8px;background:rgba(255,210,63,.07);color:#e6dcc0;text-align:right}
+.ptab>div span:first-child{text-align:left}.ptab>div b{color:#ffd23f}.ptab>div i{font-style:normal;color:#8f8a7a;font-size:12px}.ptab>div.t3{font-weight:600;color:#fff3c4}.ptab>div.on{outline:2px solid #7cfc9a;background:rgba(124,252,154,.14)}
+.ptab .ph{background:none;color:#c9b77a;font-size:12px;font-weight:600}.ptab .ph small{display:block;font-weight:400;font-size:10.5px}
+.prules{text-align:left;font-size:13px;margin:10px 0;background:#151a3a;border:1px solid #2f3870;border-radius:12px;padding:9px 11px}.prules>div{margin:5px 0;color:#dfe4ff}.prules b{color:#ffd23f}
 .prz{background:linear-gradient(160deg,rgba(255,210,63,.13),rgba(255,210,63,.04));border:1px solid rgba(255,210,63,.45);border-radius:12px;padding:9px 10px;text-align:left;font-size:13px;color:#ffe9a8;margin:6px 0}
 .prz>b{color:#ffd23f}.prz small{display:block;color:#c9b77a;font-size:11.5px;margin-top:5px}.prz small b{color:#ffd23f}
 .przr{display:grid;gap:2px;margin:6px 0 2px}.przr div{display:flex;justify-content:space-between;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.18);color:#e6dcc0}
@@ -607,6 +615,27 @@ function ensureSeason(){if(ACCT.mode==='guest')return;const cur=seasonKey();if(!
   prof.coins+=c;prof.st.coinsEarned=(prof.st.coinsEarned||0)+c;prof.rp=Math.floor(prof.rp/2);prof.season=cur;saveProf();
   const where=acct?(P&&P.pos?'อันดับที่ '+P.pos+' จาก '+P.n+' คน':'ไม่ติดอันดับ'):r.ic+' '+r.name;
   setTimeout(()=>{announce('🏁 จบฤดูกาล '+seasonName(old)+' · '+where+(c?' · ได้ '+c.toLocaleString()+' 🪙':'')+' + ฉายาฤดูกาล · RP เริ่มใหม่ครึ่งหนึ่ง');if(c)sfx('gold')},400)}
+// หน้า 🎁 รางวัลจบเดือน: รายละเอียดการแจก + อันดับตอนนี้พร้อมรางวัลของแต่ละคน
+function openPrizes(){openSheet('🎁 รางวัลจบเดือน',b=>{
+  b.innerHTML=`<div class="help" style="color:#ffd23f;margin:2px 0 8px">🗓️ ฤดูกาล ${seasonName(seasonKey())} · จบสิ้นเดือน (เที่ยงคืนเวลาไทย) · เหลืออีก ${seasonDaysLeft()} วัน</div><div id="pzBody">กำลังโหลด...</div>
+    <div class="howbox prules"><b>📜 วิธีแจกรางวัล</b>
+      <div>🏅 แจกตาม<b>อันดับแรงก์ (RP) ของเดือนนี้</b> ตอนสิ้นเดือน · ต้องลงทะเบียนและมี RP มากกว่า 0 ถึงจะติดอันดับ (Guest ไม่ได้)</div>
+      <div>👥 <b>ปรับตามจำนวนผู้เล่นอัตโนมัติ</b>: ผู้เล่นติดอันดับ ${PRIZE_FULL} คนขึ้นไป = ได้เต็ม 100% · น้อยกว่านั้นลดตามสัดส่วน (เช่น 25 คน = 50%) ต่ำสุด 10%</div>
+      <div>📸 เที่ยงคืนวันสิ้นเดือน ระบบจะ<b>บันทึกอันดับสุดท้าย</b>ไว้ เปิดเกมครั้งแรกของเดือนใหม่ได้เหรียญเข้าบัญชีเอง (รับได้ครั้งเดียว)</div>
+      <div>🎖️ ได้<b>ฉายาประจำฤดูกาล</b>ตามขั้นแรงก์ที่ทำได้ด้วย · แล้ว RP เริ่มเดือนใหม่ที่ครึ่งหนึ่ง</div>
+      <div>💡 อันดับเท่ากัน คนที่ทำ RP ถึงก่อนอยู่อันดับสูงกว่า</div></div>
+    <button class="btn gray" id="pzBack">← กลับหน้าแรงก์</button>`;
+  b.querySelector('#pzBack').onclick=()=>openSheet('🏆 แรงก์',renderRanks);
+  api('/api/top?by=rp').then(j=>{const el=b.querySelector('#pzBody');if(!el||typeof j.n!=='number')return;const n=j.n,esc=t=>String(t).replace(/[<>&]/g,'');
+    const rows=[[1,1,'🥇 ที่ 1'],[2,2,'🥈 ที่ 2'],[3,3,'🥉 ที่ 3'],[4,10,'ที่ 4–10'],[11,20,'ที่ 11–20'],[21,50,'ที่ 21–50'],[51,100,'ที่ 51–100'],[101,0,'ที่ 101 ขึ้นไป']],me=j.me?j.me.pos:0;
+    el.innerHTML=`${ACCT.mode==='acct'?`<div class="przme big">${me?`ถ้าจบเดือนตอนนี้ คุณอยู่อันดับที่ <b>${me}</b> จาก ${n} คน<br>ได้ <b class="gold">${seasonPrize(me,n).toLocaleString()} 🪙</b>`:'คุณยังไม่ติดอันดับเดือนนี้ — เล่นให้ได้ RP ก่อน'}</div>`:'<div class="przme big">👻 Guest ไม่ได้รางวัล — ลงทะเบียนเพื่อติดอันดับ</div>'}
+      <div class="ptab"><div class="ph"><span>อันดับ</span><span>ตอนนี้<small>${n} คน · ${Math.round(prizeScale(n)*100)}%</small></span><span>เต็ม<small>${PRIZE_FULL}+ คน</small></span></div>
+      ${rows.map(([a,c,t])=>`<div class="${me>=a&&(c===0||me<=c)?'on':''}${a<=3?' t3':''}"><span>${t}</span><b>${seasonPrize(a,Math.max(n,1)).toLocaleString()} 🪙</b><i>${seasonPrize(a,PRIZE_FULL).toLocaleString()}</i></div>`).join('')}</div>
+      <div class="lbl" style="margin:12px 2px 6px">🏅 อันดับตอนนี้ + รางวัลถ้าจบเดือน</div>
+      <div class="lb">${j.top.length?j.top.slice(0,20).map((u,i)=>{const k=rankOf(u.rp||u.val),mine=ACCT.name&&u.name===ACCT.name;
+        return`<div class="lbrow${mine?' me':''}${i<3?' top3':''}"><b class="pos p${Math.min(i+1,4)}">${i+1}</b><span class="who"><b>${esc(u.name)}${mine?' (คุณ)':''}</b><small style="color:${k.col}">${rankImgC(k.code,16)} ${(+u.val).toLocaleString()} RP</small></span><span class="val gold">🎁 ${seasonPrize(i+1,n).toLocaleString()} 🪙</span></div>`}).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>'}
+      ${me>20?`<div class="gap">⋯</div><div class="lbrow me"><b class="pos p4">${me}</b><span class="who"><b>${esc(ACCT.name)} (คุณ)</b><small>${(+j.me.val).toLocaleString()} RP</small></span><span class="val gold">🎁 ${seasonPrize(me,n).toLocaleString()} 🪙</span></div>`:''}</div>`})
+  .catch(()=>{const el=b.querySelector('#pzBody');if(el)el.innerHTML='<div>โหลดอันดับไม่ได้ ลองใหม่อีกครั้ง</div>'})})}
 // ตารางรางวัลจบฤดูกาล (หน้า 🏆 แรงก์) — n = ผู้เล่นที่ติดอันดับตอนนี้, pos = อันดับเราตอนนี้
 function prizeTableHTML(n,pos){const f=prizeScale(n),rows=[[1,1,'🥇 ที่ 1'],[2,2,'🥈 ที่ 2'],[3,3,'🥉 ที่ 3'],[4,10,'ที่ 4–10'],[11,20,'ที่ 11–20'],[21,50,'ที่ 21–50'],[51,100,'ที่ 51–100'],[101,0,'ที่ 101 ขึ้นไป']];
   const mine=pos>=1?seasonPrize(pos,n):0;
@@ -623,14 +652,15 @@ function rankHTML(earn){const r=rankOf(prof.rp);
   return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${rankImgC(r.code,30)} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}<span class="rkmore">ดูอันดับ ›</span></small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
-  b.innerHTML=rankHTML()+'<button class="btn alt" id="rkHow" style="margin:8px 0 0;padding:9px;font-size:14px">📖 วิธีขึ้นแรงก์ / แรงก์ลดเมื่อไหร่</button>'+
+  b.innerHTML=rankHTML()+(ACCT.mode!=='local'?'<button class="btn" id="rkPrize" style="margin:8px 0 0;padding:9px;font-size:14px;background:linear-gradient(#ffd23f,#e0a800);color:#3a2a00">🎁 รางวัลจบเดือน · ดูว่าแต่ละอันดับได้เท่าไหร่</button>':'')+'<button class="btn alt" id="rkHow" style="margin:8px 0 0;padding:9px;font-size:14px">📖 วิธีขึ้นแรงก์ / แรงก์ลดเมื่อไหร่</button>'+
   (ACCT.mode!=='local'?'<div class="lbl" style="margin:12px 2px 6px">🌍 อันดับผู้เล่น</div><div class="tabs" id="lbTabs">'+LB_TABS.map(([k,t])=>`<div class="tab${lbBy===k?' on':''}" data-k="${k}">${t}</div>`).join('')+'</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
   '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div id="przBox">${ACCT.mode==='local'?`<div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>rankImg(i,null,18)+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`:prizeTableHTML(0,0)}</div>`+
   '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
   RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic rk" style="background:${K.col}22">${rankImg(i,null,40)}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
   '<div class="lbl" id="rkRules" style="margin:14px 2px 4px">📖 กติกาแรงก์</div>'+rankRulesHTML();
   b.querySelector('#rkHow').onclick=()=>b.querySelector('#rkRules').scrollIntoView({behavior:'smooth',block:'start'});
-  if(ACCT.mode!=='local')api('/api/top?by=rp').then(j=>{const el=b.querySelector('#przBox');if(el&&typeof j.n==='number')el.innerHTML=prizeTableHTML(j.n,j.me?j.me.pos:0)}).catch(()=>{});
+  const rp=b.querySelector('#rkPrize');if(rp)rp.onclick=openPrizes;
+  if(ACCT.mode!=='local')api('/api/top?by=rp').then(j=>{const el=b.querySelector('#przBox');if(el&&typeof j.n==='number'){el.innerHTML=prizeTableHTML(j.n,j.me?j.me.pos:0)+'<button class="btn alt" id="przMore" style="margin:6px 0 0;padding:8px;font-size:13.5px">🎁 ดูรายละเอียดการแจกรางวัล ›</button>';el.querySelector('#przMore').onclick=openPrizes}}).catch(()=>{});
   if(ACCT.mode!=='local'){b.querySelectorAll('#lbTabs .tab').forEach(t=>t.onclick=()=>{lbBy=t.dataset.k;b.querySelectorAll('#lbTabs .tab').forEach(x=>x.classList.toggle('on',x===t));loadLb(b)});loadLb(b)}}
 // สถิติผู้เล่น (โปรไฟล์ตัวเอง + โปรไฟล์คนอื่นจากตารางอันดับ) — เจ้าของขอให้นับการกำจัด (7 พ.ย. 2026)
 function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString(),kg=+st.killsGame>0;   // killsGame เริ่มเก็บ 7 พ.ย. 2026 → ยังไม่มี = "—" ไม่ใช่ 0
@@ -658,11 +688,14 @@ function loadLb(b){const el=b.querySelector('#lbList');if(!el)return;el.innerHTM
   const pos=i=>`<b class="pos p${Math.min(i+1,4)}">${i+1}</b>`;
   api('/api/top?by='+by).then(j=>{if(lbBy!==by)return;
     const row=(u,i,me)=>{const k=rankOf(u.rp??(by==='rp'?u.val:0)),tt=u.tid&&titleText(u.tid);
-      return`<div class="lbrow${me?' me':''}${i<3?' top3':''}" data-name="${esc(u.name).replace(/"/g,"&quot;")}">${pos(i)}<span class="who"><b>${esc(u.name)}${me?' (คุณ)':''}</b><small style="color:${k.col}">${rankImgC(k.code,16)} ${k.name}${tt?' <i>· '+esc(tt)+'</i>':''}</small></span><span class="val">${unit(u.val)}</span></div>`};
-    let h=j.top.length?j.top.map((u,i)=>row(u,i,ACCT.name&&u.name===ACCT.name)).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>';
+      const pz=by==='rp'&&typeof j.n==='number'?seasonPrize(i+1,j.n):0;
+      return`<div class="lbrow${me?' me':''}${i<3?' top3':''}" data-name="${esc(u.name).replace(/"/g,"&quot;")}">${pos(i)}<span class="who"><b>${esc(u.name)}${me?' (คุณ)':''}</b><small style="color:${k.col}">${rankImgC(k.code,16)} ${k.name}${tt?' <i>· '+esc(tt)+'</i>':''}</small></span><span class="val">${unit(u.val)}${by==='rp'?`<em class="lbpz">🎁 ${pz.toLocaleString()} 🪙</em>`:''}</span></div>`};
+    let h=by==='rp'&&typeof j.n==='number'?`<div class="lbpzbar" id="lbPz"><span>🎁 = เหรียญที่ได้ถ้าจบเดือนตอนนี้<small>${j.n.toLocaleString()} คน · รางวัล ${Math.round(prizeScale(j.n)*100)}% · เหลือ ${seasonDaysLeft()} วัน</small></span><b>ดูรายละเอียด ›</b></div>`:'';
+    h+=j.top.length?j.top.map((u,i)=>row(u,i,ACCT.name&&u.name===ACCT.name)).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>';
     if(j.me&&j.me.pos>j.top.length)h+=`<div class="gap">⋯</div>`+row({name:ACCT.name,val:j.me.val,rp:prof.rp,tid:prof.eq.title},j.me.pos-1,true);
     setTimeout(()=>el.querySelectorAll('.lbrow[data-name]').forEach(r=>{r.style.cursor='pointer';r.onclick=()=>openProfile(r.dataset.name)}));
-    el.innerHTML=h+(ACCT.mode==='guest'?'<div class="lbnote">👻 Guest ไม่ขึ้นตารางอันดับ — ลงทะเบียนเพื่อแข่งกับคนอื่น</div>':j.me?`<div class="lbnote">คุณอยู่อันดับที่ <b>${j.me.pos}</b></div>`:'')})
+    el.innerHTML=h+(ACCT.mode==='guest'?'<div class="lbnote">👻 Guest ไม่ขึ้นตารางอันดับ — ลงทะเบียนเพื่อแข่งกับคนอื่น</div>':j.me?`<div class="lbnote">คุณอยู่อันดับที่ <b>${j.me.pos}</b>${by==='rp'&&typeof j.n==='number'?` · ถ้าจบเดือนตอนนี้ได้ <b style="color:#ffd23f">${seasonPrize(j.me.pos,j.n).toLocaleString()} 🪙</b>`:''}</div>`:'');
+    const pb=el.querySelector('#lbPz');if(pb)pb.onclick=openPrizes})
   .catch(()=>{if(lbBy===by)el.innerHTML='<div>โหลดอันดับไม่ได้</div>'})}
 const allSkins=()=>[...SKINS.map((c,i)=>({id:'b'+i,c,own:true})),...SHOP.skin.map(s=>({id:s.id,c:s.c,own:prof.owned.skin.includes(s.id),p:s.p})),...LIMITED.filter(s=>s.cat==='skin'&&prof.owned.skin.includes(s.id)).map(s=>({id:s.id,c:s.c,own:true,p:s.p}))];
 
