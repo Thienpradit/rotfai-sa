@@ -204,7 +204,7 @@ wss.on('connection', (ws, req) => {
       case 'bomb': { const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'bomb', by: me.id, x, y }, ws); botsim.onBomb(room, me, x, y); break; }
       case 'cut': { const x = +m.x || 0, y = +m.y || 0; if (m.v < 0) botsim.onCut(room, me, m.v, x, y); else bcast(room, { t: 'cut', by: me.id, v: m.v, x, y }, ws); break; }
       case 'frz': { const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'frz', by: me.id, x, y }, ws); botsim.onFreeze(room, me, x, y); break; }
-      case 'horn': { const now = Date.now(); if (now - (me.hornT || 0) > 7000) { me.hornT = now; const k = clean(m.k, 10); bcast(room, { t: 'horn', by: me.id, k }, ws); if (m.x !== undefined) botsim.onHorn(room, me, +m.x || 0, +m.y || 0, k); } break; }   // หวูดไล่บอท (ใช้ได้ทุก 8 วิ)
+      case 'horn': { const now = Date.now(); const k = clean(m.k, 10); if (now - (me.hornT || 0) > (k === 'classic' ? 2000 : 7000)) { me.hornT = now; bcast(room, { t: 'horn', by: me.id, k }, ws); if (m.x !== undefined) botsim.onHorn(room, me, +m.x || 0, +m.y || 0, k); } break; }   // หวูดไล่บอท (ใช้ได้ทุก 8 วิ)
       // ---- ผลกับบอทบนเซิร์ฟเวอร์ ----
       case 'bhit': if (typeof m.id === 'number') botsim.onBossHit(room, me, m.id, m.d); break;
       // ---- คนชนคน: เครื่องเจ้าของลำตัวเห็นหัวผู้เล่นอื่นแตะลำตัวตัวเองบนจอ → ผู้เล่นนั้นตาย (ชดเชยดีเลย์ เหมือนบอท) ----
