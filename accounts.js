@@ -209,7 +209,7 @@ async function handleApi(req, res, p) {
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
       const pz = await prizeOf(u), { data, fixed } = AC.validate(u.data || {}, raw, Date.now(), pz ? pz.coins : 0);
       await store.save(u.lname, data, rpOf(data));
-      return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
+      return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
     }
     if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });

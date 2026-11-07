@@ -496,7 +496,7 @@ function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;
   fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ACCT.token},body:JSON.stringify({data:prof}),keepalive:true})
     .then(async r=>{if(r.status===401)return authExpired();const j=await r.json().catch(()=>({}));if(j.fix&&ACCT.mode==='acct'&&ACCT.token===tok)applyFix(j.fix)}).catch(()=>{profDirty=true})}
 // เซิร์ฟเวอร์ตรวจเหรียญ/RP/ของที่ซื้อแล้วไม่ตรง (เช่น แก้ค่าในเบราว์เซอร์) → ใช้ค่าจากเซิร์ฟเวอร์แทน
-function applyFix(d){prof.coins=Math.max(0,+d.coins||0);prof.rp=Math.max(0,+d.rp||0);if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
+function applyFix(d){prof.coins=Math.max(0,+d.coins||0);prof.rp=Math.max(0,+d.rp||0);if(d.onrp!==undefined)prof.onrp=Math.max(0,+d.onrp||0);if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
   if(player)player.rk=myRank();showBest();announce('⚠️ ข้อมูลเหรียญ/แรงก์ไม่ตรงกับเซิร์ฟเวอร์ ปรับให้ตรงแล้ว')}
 const MP=Object.fromEntries(MPOOL.map(m=>[m.id,m]));
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
