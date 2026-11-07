@@ -103,6 +103,8 @@ input:focus{border-color:#77ccff}
 #bossWarn{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;
   font:800 clamp(18px,5.2vw,28px) Mitr,sans-serif;letter-spacing:2px;color:rgba(255,40,40,.78);text-shadow:0 0 10px rgba(255,0,0,.55),0 2px 0 rgba(60,0,0,.8);opacity:0}
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
+#resetBar{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;width:min(92vw,440px);box-sizing:border-box;padding:8px 12px;border-radius:12px;background:linear-gradient(#ff8c42,#e0601a);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:left}
+#resetBar.hidden{display:none}#resetBar span{flex:1;min-width:0}#resetBar small{font-weight:400;font-size:11.5px;opacity:.92}#resetBar b{font-size:18px;color:#fff3a8}#resetBar button{flex:none;border:0;border-radius:9px;padding:6px 10px;background:#fff;color:#c24a00;font:700 12.5px Mitr,sans-serif;cursor:pointer}
 #bossDown{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;width:max-content;max-width:72vw;line-height:1.25;text-align:center;background:rgba(15,19,48,.88);border:1.5px solid rgba(255,210,63,.55);border-radius:12px;padding:4px 14px;
   font:700 clamp(14px,4vw,22px) Mitr,sans-serif;color:#ffd23f;text-shadow:0 0 8px rgba(255,170,0,.5),0 2px 0 rgba(60,30,0,.85);opacity:0}
 #bossDown b{color:#fff}#bossDown.rage{color:#ff6b6b;border-color:rgba(255,80,80,.6);text-shadow:0 0 8px rgba(255,0,0,.5),0 2px 0 rgba(60,0,0,.85)}#bossDown small{display:block;font-size:.72em;color:#ffe9a8}
@@ -319,7 +321,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <button id="fsGame" class="ibtn fsb hidden" title="เต็มจอ">⛶</button>
 <button id="setGame" class="ibtn hidden" title="ตั้งค่า">⚙️</button>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
-<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div>
+<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
 <script>
@@ -1754,7 +1756,7 @@ function startGame(m){
   $('menu').classList.add('hidden');$('over').classList.add('hidden');$('snd').classList.remove('hidden');$('setGame').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');
   lastBtn='';updBtns();
 }
-function finish(timeUp,quit){
+function finish(timeUp,quit,noPen){
   if(state==='over')return;
   const alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   const score=Math.floor(timeUp?player.mass:player.maxMass),rk=alive.indexOf(player)+1;
@@ -1762,7 +1764,7 @@ function finish(timeUp,quit){
   if(score>best){best=score;prof.best[bestKey()]=best}
   track('games');trackMax('maxLen',score);if(netOn())trackMax('omaxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
   addCoins(Math.floor(score/10)+player.kills*5);
-  {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);if(!timeUp||quit)rp-=deathPenalty(score);if(netOn())addRP(rp)}   // RP ได้เฉพาะโหมดออนไลน์ (ออฟไลน์ตอนต่อเซิร์ฟเวอร์ไม่ได้ = ไม่ได้ RP)
+  {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);if((!timeUp||quit)&&!noPen)rp-=deathPenalty(score);if(netOn())addRP(rp)}   // RP ได้เฉพาะโหมดออนไลน์ (ออฟไลน์ตอนต่อเซิร์ฟเวอร์ไม่ได้ = ไม่ได้ RP)
   saveProf();
   $('overTitle').textContent=quit?'ออกจากเกม 🚪':timeUp?'หมดเวลา! ⏱':'โดนชนซะแล้ว! 💥';
   $('sLen').textContent=score;$('sKill').textContent=player.kills;
@@ -2216,13 +2218,31 @@ function netConnect(room,srv,nmode){const ffa=nmode==='ffa';
   if(ffa)setTimeout(()=>{if(NET===me&&!me.opened){try{ws.close()}catch(e){}fail()}},7000);
   ws.onopen=()=>{me.opened=true;netSend({t:'join',cz:1,room,mode:ffa?'ffa':'vs',diff:ONLINE_DIFF,name:playerName(),skin:curSkin(),...myLook(),rk:myRank()})};
   ws.onerror=()=>{if(!me.opened)fail()};
-  ws.onclose=()=>{if(NET!==me)return;if(!me.opened){fail();return}NET=null;if(state==='over'){worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
+  ws.onclose=()=>{if(NET!==me||RESET)return;if(!me.opened){fail();return}NET=null;if(state==='over'){worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
   ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
 }
 function netLeave(silent){if(!NET)return;const n=NET;NET=null;try{n.ws.close()}catch(e){}worms=worms.filter(w=>!w.isRemote&&!w.isP&&!w.isBot);bossActive=null;$('coopBar').classList.add('hidden');if(!silent)toMenu()}
 function setFoods(list){foods=list.map(a=>mkFood(a[1],a[2],a[3],a[0],a[4],a[5]))}
+// ===== เซิร์ฟเวอร์อัปเดตเวอร์ชันใหม่ (เจ้าของสั่ง 7 พ.ย. 19:13): แจ้งนับถอยหลัง → ครบแล้วออกจากเกม (เก็บเหรียญ/RP ให้ ไม่หักแต้ม) → โหลดเวอร์ชันใหม่ =====
+// สัญญาณ: เซิร์ฟเวอร์ส่ง reset{s} (เครื่องเก่าเห็นว่าเวอร์ชันใหม่ขึ้นแล้ว หรือโดนสั่งปิด) · หรือเครื่องเราถาม /version ทุก 30 วิ แล้วเวอร์ชันไม่ตรง
+const APP_VER='__APP_VER__';   // เซิร์ฟเวอร์ใส่เวอร์ชันให้ตอนส่งหน้าเว็บ
+let RESET=null;
+function startResetCountdown(s){if(RESET)return;s=Math.max(1,+s||60);RESET={end:performance.now()+s*1000};$('resetBar').classList.remove('hidden');
+  $('resetNow').onclick=doResetExit;
+  const tick=()=>{if(!RESET||RESET.done)return;const left=Math.ceil((RESET.end-performance.now())/1000);
+    if(left<=0)return doResetExit();
+    $('resetTxt').innerHTML=`🔄 อัปเดตเวอร์ชันใหม่ใน <b>${left}</b> วิ<br><small>${inGameNow()?'ครบเวลาจะออกจากเกมเอง เหรียญและแรงก์เก็บให้ครบ ไม่โดนหัก':'ครบเวลาจะโหลดใหม่ให้เอง'}</small>`;setTimeout(tick,250)};
+  tick()}
+const inGameNow=()=>state==='play'&&!!player;
+function doResetExit(){if(!RESET||RESET.done)return;RESET.done=true;$('resetTxt').innerHTML='⏳ กำลังโหลดเวอร์ชันใหม่…';$('resetNow').style.display='none';
+  try{if(state==='play'&&player&&player.alive&&(!NET||NET.ffa))finish(false,true,true)}catch(e){}
+  try{saveProf();pushProf()}catch(e){}
+  setTimeout(()=>{try{if(NET&&NET.ws)NET.ws.close()}catch(e){}location.reload()},2200)}
+if(!APP_VER.startsWith('__'))setInterval(()=>{if(RESET||document.hidden)return;
+  fetch('/version',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&j.v&&j.v!==APP_VER)startResetCountdown(inGameNow()||NET?60:15)}).catch(()=>{})},30000);
 function netMsg(m){
   switch(m.t){
+    case'reset':startResetCountdown(m.s);break;
     case'err':if(NET.ffa){const n=NET;NET=null;try{n.ws.close()}catch(e){}announce(m.msg+' — หาโลกอื่นให้แทน');netConnect('','','ffa');break}netStatus('❌ '+m.msg);break;
     case'welcome':{
       NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;loadBest();resetPlayBtn();resetItems()}

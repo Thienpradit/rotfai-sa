@@ -17,12 +17,36 @@ const TEAM_MAX = 2;
 const PU_KEYS = ['magnet', 'x3', 'speed', 'freeze'];
 const TICK = 1 / 20;   // ส่งสถานะ 20 ครั้ง/วินาที
 
+// ---------- เวอร์ชัน + รีเซ็ตตอนอัปเดต (เจ้าของสั่ง 7 พ.ย. 19:13) ----------
+// Render: deploy ใหม่พร้อม → สลับคนเข้าใหม่ไปเครื่องใหม่ → 60 วิต่อมาส่ง SIGTERM ให้เครื่องเก่า (+ รอได้อีก 30 วิ)
+// เครื่องเก่าคอยถามที่อยู่สาธารณะว่าเวอร์ชันเปลี่ยนหรือยัง → เปลี่ยนแล้วส่ง reset{s:60} ให้ทุกคน (นับถอยหลังบนจอ ครบแล้วออกจากเกม + โหลดเวอร์ชันใหม่)
+const VERSION = (process.env.RENDER_GIT_COMMIT || process.env.APP_VERSION || require('crypto').createHash('sha1').update(fs.readFileSync(path.join(__dirname, 'public', 'index.html'))).update(fs.readFileSync(__filename)).digest('hex')).slice(0, 10);
+const RESET_SECS = +process.env.RESET_SECS || 60;
+const SELF_URL = (process.env.SELF_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+let resetAt = 0;   // เวลา (ms) ที่จะรีเซ็ต · 0 = ยังไม่รีเซ็ต
+function startReset(secs, why) {
+  if (resetAt) return; resetAt = Date.now() + secs * 1000; console.log(`reset countdown ${secs}s (${why})`);
+  const msg = JSON.stringify({ t: 'reset', s: secs });
+  for (const ws of wss.clients) if (ws.readyState === 1) ws.send(msg);
+  setTimeout(() => { console.log('reset: closing'); for (const ws of wss.clients) try { ws.close(4000, 'update'); } catch (e) {} setTimeout(() => process.exit(0), 1500).unref(); }, secs * 1000 + 3000);
+}
+function checkNewVersion() {
+  if (resetAt || !SELF_URL) return;
+  const req = (SELF_URL.startsWith('https') ? require('https') : http).get(SELF_URL + '/version?from=' + VERSION, { timeout: 4000 }, r => {
+    let b = ''; r.on('data', d => b += d); r.on('end', () => { try { const v = JSON.parse(b).v; if (r.statusCode === 200 && v && v !== VERSION) startReset(RESET_SECS, 'new version ' + v); } catch (e) {} });
+  });
+  req.on('error', () => {}); req.on('timeout', () => req.destroy());
+}
+if (SELF_URL) setInterval(checkNewVersion, +process.env.VERSION_POLL_MS || 5000).unref();
+if (process.env.RENDER || process.env.GRACEFUL) process.on('SIGTERM', () => { if (!resetAt) startReset(Math.min(RESET_SECS, 25), 'SIGTERM'); });   // เฉพาะบน Render (ในเครื่อง pkill แล้วปิดทันที)   // ไม่ได้ตรวจเจอก่อน (เช่น รีสตาร์ท) → แจ้งเท่าที่เวลาเหลือ
+
 // ---------- static files ----------
 const PUBLIC = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ })); }
+  if (p === '/version') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ v: VERSION, reset: resetAt ? Math.max(0, Math.ceil((resetAt - Date.now()) / 1000)) : 0 })); }
   if (p === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
   // ย้ายเซิร์ฟเวอร์: ตั้ง env REDIRECT_TO=https://ที่อยู่ใหม่ แล้วลิงก์เก่าจะพาไปที่ใหม่เอง (เก็บ ?w=โค้ดโลก ไว้ด้วย)
   if (process.env.REDIRECT_TO) { res.writeHead(301, { Location: process.env.REDIRECT_TO.replace(/\/$/, '') + (req.url || '/') }); return res.end(); }
@@ -32,8 +56,9 @@ const server = http.createServer((req, res) => {
   if (!file.startsWith(PUBLIC)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
-    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
-    res.end(data);
+    const html = path.extname(file) === '.html';
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', ...(html ? { 'Cache-Control': 'no-cache' } : {}) });
+    res.end(html ? data.toString('utf8').replace(/__APP_VER__/g, VERSION) : data);
   });
 });
 
@@ -158,6 +183,7 @@ wss.on('connection', (ws, req) => {
       room.players.set(me.id, me);
       send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room) });
+      if (resetAt) send(ws, { t: 'reset', s: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) });
       lobby(room);
       return;
     }
