@@ -23,7 +23,12 @@ const SALE_POOL = CATS.flatMap(c => Object.entries(SHOP[c]).filter(([, p]) => p 
 const ACH_IDS = ['k1', 'k100', 'l500', 'l1000', 'b3', 'g1', 'boss', 'st20', 'w100', 'hard1', 'team', 'rich'];
 const ACH_COINS = 300;
 const RANK_MIN = [0, 600, 2500, 6000, 12000, 25000, 50000];
-const SEASON_COINS = [500, 1500, 3000, 6000, 10000, 15000, 25000];
+// รางวัลจบฤดูกาลตามอันดับ (เจ้าของสั่ง 7 พ.ย.): [อันดับถึง, เหรียญ] เต็มจำนวนเมื่อมีผู้เล่นติดอันดับ ≥ 50 คน · น้อยกว่านั้นลดตามสัดส่วน (ต่ำสุด 10%)
+// ต้องตรงกับ PRIZE_BANDS / seasonPrize ใน public/index.html
+const PRIZE_BANDS = [[1, 50000], [2, 35000], [3, 25000], [10, 10000], [20, 5000], [50, 2500], [100, 1000], [Infinity, 300]], PRIZE_FULL = 50;
+const prizeScale = n => Math.min(1, Math.max(0.1, n / PRIZE_FULL));
+function seasonPrize(pos, n) { if (!(pos >= 1) || !(n >= 1)) return 0; const b = PRIZE_BANDS.find(x => pos <= x[0])[1]; return Math.max(100, Math.round(b * prizeScale(n) / 100) * 100); }
+const prevSeason = k => { let y = +k.slice(0, 4), m = +k.slice(5, 7) - 1; if (m < 1) { m = 12; y--; } return y + '-' + String(m).padStart(2, '0'); };
 // โควตา: เหรียญเก็บได้สูงสุด 5,000 ต่อรอบ เติม 15/วินาที (900/นาที) · RP สูงสุด 400 เติม 1/วินาที
 const COIN_CAP = 5000, COIN_RATE = 15, RP_CAP = 400, RP_RATE = 1, MISSION_MAX = 300;
 // ลงทะเบียนครั้งแรก (ย้ายเหรียญ Guest/ข้อมูลเก่าในเครื่องเข้าบัญชี): เหรียญ+มูลค่าของรวมได้ไม่เกิน 60,000 และ RP ไม่เกิน 6,000
@@ -54,7 +59,7 @@ function dayOk(k, now) {   // วันที่ของภารกิจร�
 const num = v => Math.max(0, Math.floor(+v || 0));
 
 // old = ข้อมูลที่เซิร์ฟเวอร์มี (null = ลงทะเบียนใหม่), nu = ข้อมูลที่เครื่องส่งมา → { data, fixed }
-function validate(old, nu, now = Date.now()) {
+function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหรียญรางวัลจบฤดูกาลที่เซิร์ฟเวอร์คำนวณจากอันดับ (ถ้าข้อมูลนี้ขึ้นฤดูกาลใหม่)
   const reg = !old; old = old || { coins: 0, rp: 0, owned: {}, ach: {} };
   const o0 = old._srv;
   const srv = o0 ? { ...o0 } : { cb: reg ? REG_COINS : COIN_CAP, rb: reg ? REG_RP : RP_CAP, t: now,
@@ -72,7 +77,7 @@ function validate(old, nu, now = Date.now()) {
     const k = dl.date + ':' + i; if (m && m.c && !claims.has(k)) { claims.add(k); extra += Math.min(MISSION_MAX, num(m.r)); } });
   // รางวัลจบฤดูกาล
   const cur = seasonKey(now);
-  if (nu.season === cur && old.season && old.season < cur && srv.sp !== cur) { extra += SEASON_COINS[tierOf(num(old.rp))]; srv.sp = cur; }
+  if (nu.season === cur && old.season && old.season < cur && srv.sp !== cur) { extra += Math.max(0, +prize || 0); srv.sp = cur; }
   // ของในร้าน: ของใหม่ต้องมีจริงในร้าน และต้องมีเหรียญพอจ่าย (เหรียญเดิม + ที่หาได้จริง) ไม่พอ → เอาชิ้นแพงสุดออกก่อน
   const owned = {}, oo = old.owned || {}, no = nu.owned && typeof nu.owned === 'object' ? nu.owned : {}, buys = [];
   for (const c of CATS) {
@@ -118,4 +123,4 @@ function newRecovery() { const b = crypto.randomBytes(12); let s = ''; for (let 
 const normRecovery = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const hashRecovery = (code, salt) => crypto.createHash('sha256').update('rc:' + salt + ':' + normRecovery(code)).digest('hex');
 
-module.exports = { validate, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, CATS, COIN_CAP, RP_CAP };
+module.exports = { validate, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, CATS, COIN_CAP, RP_CAP };

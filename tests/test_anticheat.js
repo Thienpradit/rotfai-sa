@@ -34,10 +34,13 @@ r = step({ ...r.data, ach: {} }, { ...r.data, coins: 1600, ach: { k1: 1 } }, 0);
 o = { ...base(), _srv: { cb: 0, rb: 50, t: T0, paid: [], claims: [] } };
 r = step(o, { ...o, rp: 99999 }, 0); assert(r.fixed); assert.strictEqual(r.data.rp, 150);
 r = step(o, { ...o, rp: 10 }, 0); assert(!r.fixed); assert.strictEqual(r.data.rp, 10);
-// 10) รางวัลจบฤดูกาล (แรงก์ทอง 2,500+ → 3,000 เหรียญ) ได้ครั้งเดียว
+// 10) รางวัลจบฤดูกาลตามอันดับ (เซิร์ฟเวอร์ส่งจำนวนเหรียญมา เช่น ที่ 2 จาก 60 คน = 35,000) ได้ครั้งเดียว · ไม่ได้รางวัล (prize 0) ใส่เหรียญเองไม่ได้
+assert.strictEqual(AC.seasonPrize(2, 60), 35000); assert.strictEqual(AC.seasonPrize(7, 60), 10000); assert.strictEqual(AC.seasonPrize(150, 60), 300);
+assert.strictEqual(AC.seasonPrize(1, 10), 10000); assert.strictEqual(AC.seasonPrize(1, 1), 5000); assert.strictEqual(AC.seasonPrize(0, 10), 0); assert.strictEqual(AC.prevSeason('2027-01'), '2026-12');
 o = { coins: 0, rp: 3000, owned: {}, ach: {}, season: '2026-10', _srv: { cb: 0, rb: 0, t: T0, paid: [], claims: [] } };
-r = step(o, { ...o, coins: 3000, rp: 1500, season: '2026-11', owned: { title: ['S:2026-10:2'] } }, 0); assert(!r.fixed, JSON.stringify(r.data)); assert.strictEqual(r.data.coins, 3000);
-r = step(r.data, { ...r.data, coins: 6000, season: '2026-11' }, 0); assert(r.fixed); assert.strictEqual(r.data.coins, 3000);
+r = AC.validate(o, { ...o, coins: 35000, rp: 1500, season: '2026-11', owned: { title: ['S:2026-10:2'] } }, T0, 35000); assert(!r.fixed, JSON.stringify(r.data)); assert.strictEqual(r.data.coins, 35000);
+r = AC.validate(r.data, { ...r.data, coins: 70000, season: '2026-11' }, T0, 35000); assert(r.fixed); assert.strictEqual(r.data.coins, 35000);
+r = AC.validate(o, { ...o, coins: 35000, rp: 1500, season: '2026-11' }, T0, 0); assert(r.fixed); assert.strictEqual(r.data.coins, 0);
 // 11) ภารกิจรายวัน: กดรับได้ครั้งเดียวต่อข้อ
 o = { ...base(), daily: { date: '2026-11-6', m: [{ id: 'kills', n: 5, r: 50, p: 5, c: false }] }, _srv: { cb: 0, rb: 0, t: T0, paid: [], claims: [] } };
 r = step(o, { ...o, coins: 1050, daily: { date: '2026-11-6', m: [{ id: 'kills', n: 5, r: 50, p: 5, c: true }] } }, 0); assert(!r.fixed); assert.strictEqual(r.data.coins, 1050);

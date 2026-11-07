@@ -18,4 +18,7 @@ for (let d = 0; d < 400; d++) {
   assert.deepStrictEqual([s.sale[0], s.sale[1], s.lim[1]], [cs.cat, cs.id, cl.id], 'ของประจำวัน ' + day + ' ไม่ตรง');
   assert.strictEqual(s.salePrice, Math.round(cs.p * .7 / 100) * 100);
 }
+// รางวัลจบฤดูกาลตามอันดับ: สูตรในเกมต้องตรงกับเซิร์ฟเวอร์
+{ const cp = {}; new Function('cp', grab('const PRIZE_BANDS=', 'Math.round(b*prizeScale(n)/100)*100)}') + ';cp.f=seasonPrize;')(cp);
+  for (const n of [1, 2, 3, 7, 10, 25, 49, 50, 51, 120, 999]) for (let pos = 0; pos <= Math.min(n, 130); pos++) assert.strictEqual(cp.f(pos, n), AC.seasonPrize(pos, n), `รางวัลอันดับ ${pos}/${n} ไม่ตรง`); }
 console.log('shop sync OK —', Object.values(AC.SHOP).reduce((n, c) => n + Object.keys(c).length, 0), 'items +', AC.LIMITED.length, 'limited, 400 days of deals match');

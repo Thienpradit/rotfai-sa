@@ -179,6 +179,11 @@ table.cmp td.nm span{min-width:0;display:flex;flex-direction:column}table.cmp td
 canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14px;border:1px solid #2f3870}
 .perkbox{background:rgba(124,252,154,.1);border:1px solid rgba(124,252,154,.4);border-radius:12px;padding:8px 10px;text-align:left;font-size:13.5px;color:#cfffdc;margin:6px 0}
 .perkbox small{color:#9fd9b0;font-size:12px}
+.prz{background:linear-gradient(160deg,rgba(255,210,63,.13),rgba(255,210,63,.04));border:1px solid rgba(255,210,63,.45);border-radius:12px;padding:9px 10px;text-align:left;font-size:13px;color:#ffe9a8;margin:6px 0}
+.prz>b{color:#ffd23f}.prz small{display:block;color:#c9b77a;font-size:11.5px;margin-top:5px}.prz small b{color:#ffd23f}
+.przr{display:grid;gap:2px;margin:6px 0 2px}.przr div{display:flex;justify-content:space-between;padding:4px 8px;border-radius:8px;background:rgba(0,0,0,.18);color:#e6dcc0}
+.przr div.t3{font-weight:600;color:#fff3c4}.przr div b{color:#ffd23f}.przr div.on{outline:2px solid #7cfc9a;background:rgba(124,252,154,.14)}
+.przme{margin-top:6px;padding:6px 8px;border-radius:8px;background:rgba(124,252,154,.12);color:#cfffdc}.przme b{color:#7cfc9a}
 .hcmp{background:#151a3a;border:1px solid #2f3870;border-radius:12px;padding:8px 10px;text-align:left;font-size:13px;margin:8px 0}.hcmp>small{color:#8891c4}
 .hrow{display:grid;grid-template-columns:1fr auto;gap:3px 8px;padding:7px 6px;border-radius:9px;cursor:pointer;margin-top:3px}.hrow.on{background:rgba(255,255,255,.08);outline:1px solid rgba(255,255,255,.25)}
 .hrow .hn{color:#fff;font-weight:600}.hrow .hs{color:#aab2e0;font-size:12px;text-align:right}
@@ -590,11 +595,26 @@ const seasonKey=()=>bkkDay().slice(0,7);
 const TH_MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const seasonName=k=>TH_MON[+k.slice(5,7)-1]+' '+k.slice(0,4);
 function seasonDaysLeft(){const k=seasonKey(),y=+k.slice(0,4),m=+k.slice(5,7);return Math.max(0,Math.ceil((Date.UTC(y,m,1)-7*36e5-Date.now())/864e5))}
+// รางวัลจบฤดูกาลตามอันดับ (เจ้าของสั่ง 7 พ.ย.) — ต้องตรงกับ anticheat.js · เต็มจำนวนเมื่อผู้เล่นติดอันดับ ≥ 50 คน น้อยกว่านั้นลดตามสัดส่วน (ต่ำสุด 10%)
+const PRIZE_BANDS=[[1,50000],[2,35000],[3,25000],[10,10000],[20,5000],[50,2500],[100,1000],[Infinity,300]],PRIZE_FULL=50;
+const prizeScale=n=>Math.min(1,Math.max(.1,n/PRIZE_FULL));
+function seasonPrize(pos,n){if(!(pos>=1)||!(n>=1))return 0;const b=PRIZE_BANDS.find(x=>pos<=x[0])[1];return Math.max(100,Math.round(b*prizeScale(n)/100)*100)}
+let SEASON_PRIZE=null;   // จากเซิร์ฟเวอร์ตอนเข้าสู่ระบบ: {season,pos,n,coins}
 function ensureSeason(){if(ACCT.mode==='guest')return;const cur=seasonKey();if(!prof.season){prof.season=cur;profDirty=true;return}
-  if(prof.season>=cur)return;const old=prof.season,r=rankOf(prof.rp),c=SEASON_COINS[r.t],tid='S:'+old+':'+r.t;
+  if(prof.season>=cur)return;const old=prof.season,r=rankOf(prof.rp),tid='S:'+old+':'+r.t,acct=ACCT.mode==='acct',P=acct&&SEASON_PRIZE&&SEASON_PRIZE.season===old?SEASON_PRIZE:null;
+  const c=acct?(P?P.coins:0):SEASON_COINS[r.t];   // บัญชีออนไลน์ = ตามอันดับ · เล่นในเครื่อง (ไม่มีตารางอันดับ) = ตามขั้นแบบเดิม
   if(!prof.owned.title.includes(tid))prof.owned.title.push(tid);
   prof.coins+=c;prof.st.coinsEarned=(prof.st.coinsEarned||0)+c;prof.rp=Math.floor(prof.rp/2);prof.season=cur;saveProf();
-  setTimeout(()=>announce('🏁 จบฤดูกาล '+seasonName(old)+' ที่ '+r.ic+' '+r.name+' · ได้ '+c.toLocaleString()+' 🪙 + ฉายาฤดูกาล · RP เริ่มใหม่ครึ่งหนึ่ง'),400)}
+  const where=acct?(P&&P.pos?'อันดับที่ '+P.pos+' จาก '+P.n+' คน':'ไม่ติดอันดับ'):r.ic+' '+r.name;
+  setTimeout(()=>{announce('🏁 จบฤดูกาล '+seasonName(old)+' · '+where+(c?' · ได้ '+c.toLocaleString()+' 🪙':'')+' + ฉายาฤดูกาล · RP เริ่มใหม่ครึ่งหนึ่ง');if(c)sfx('gold')},400)}
+// ตารางรางวัลจบฤดูกาล (หน้า 🏆 แรงก์) — n = ผู้เล่นที่ติดอันดับตอนนี้, pos = อันดับเราตอนนี้
+function prizeTableHTML(n,pos){const f=prizeScale(n),rows=[[1,1,'🥇 ที่ 1'],[2,2,'🥈 ที่ 2'],[3,3,'🥉 ที่ 3'],[4,10,'ที่ 4–10'],[11,20,'ที่ 11–20'],[21,50,'ที่ 21–50'],[51,100,'ที่ 51–100'],[101,0,'ที่ 101 ขึ้นไป']];
+  const mine=pos>=1?seasonPrize(pos,n):0;
+  return`<div class="prz"><b>🎁 รางวัลจบฤดูกาล (แจกตามอันดับ 🏅 แรงก์ ตอนสิ้นเดือน)</b>
+    <div class="przr">${rows.map(([a,b,t])=>{const on=pos>=a&&(b===0||pos<=b);return`<div class="${on?'on':''}${a<=3?' t3':''}"><span>${t}</span><b>${seasonPrize(a,Math.max(n,1)).toLocaleString()} 🪙</b></div>`}).join('')}</div>
+    <small>ตอนนี้มีผู้เล่นติดอันดับ <b>${n.toLocaleString()}</b> คน${f<1?` → รางวัล ${Math.round(f*100)}% (ครบ ${PRIZE_FULL} คนขึ้นไปได้เต็ม 100%)`:' → ได้รางวัลเต็ม 100%'} · ตัวเลขปรับเองตามจำนวนผู้เล่นตอนจบเดือน</small>
+    ${ACCT.mode==='acct'?`<div class="przme">${pos>=1?`ถ้าจบตอนนี้ คุณอยู่อันดับที่ <b>${pos}</b> → ได้ <b>${mine.toLocaleString()} 🪙</b>`:'เล่นให้มี RP ในเดือนนี้ก่อน ถึงจะติดอันดับรับรางวัล'}</div>`:'<div class="przme">เข้าสู่ระบบ (ลงทะเบียน) ถึงจะติดอันดับรับรางวัลได้</div>'}
+    <small>+ ฉายาประจำฤดูกาลตามขั้นแรงก์ · ขึ้นเดือนใหม่ RP ลดเหลือครึ่งหนึ่ง</small></div>`}
 function deathPenalty(score){const t=rankOf(prof.rp).t;return t>=1&&score<rpNeed(t)?rpLoss(t):0}
 function addRP(n){if(!n)return;const b=rankOf(prof.rp);prof.rp=Math.max(0,prof.rp+n);roundRP+=n;profDirty=true;const a=rankOf(prof.rp);
   if(player)player.rk=a.code;
@@ -605,11 +625,12 @@ function rankHTML(earn){const r=rankOf(prof.rp);
 function renderRanks(b){const r=rankOf(prof.rp);
   b.innerHTML=rankHTML()+'<button class="btn alt" id="rkHow" style="margin:8px 0 0;padding:9px;font-size:14px">📖 วิธีขึ้นแรงก์ / แรงก์ลดเมื่อไหร่</button>'+
   (ACCT.mode!=='local'?'<div class="lbl" style="margin:12px 2px 6px">🌍 อันดับผู้เล่น</div><div class="tabs" id="lbTabs">'+LB_TABS.map(([k,t])=>`<div class="tab${lbBy===k?' on':''}" data-k="${k}">${t}</div>`).join('')+'</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
-  '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>rankImg(i,null,18)+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
+  '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div id="przBox">${ACCT.mode==='local'?`<div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>rankImg(i,null,18)+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`:prizeTableHTML(0,0)}</div>`+
   '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
   RANKS.map((K,i)=>`<div class="item" style="${i===r.t?'border:2px solid '+K.col:''}"><div class="ic rk" style="background:${K.col}22">${rankImg(i,null,40)}</div><div class="tx">${K.n}${i<RANKS.length-1?' III → I':''}<small>${K.min.toLocaleString()}${i<RANKS.length-1?' – '+(RANKS[i+1].min-1).toLocaleString():'+'} RP</small></div>${i===r.t?'<b style="color:'+K.col+'">◀ คุณ</b>':''}</div>`).join('')+
   '<div class="lbl" id="rkRules" style="margin:14px 2px 4px">📖 กติกาแรงก์</div>'+rankRulesHTML();
   b.querySelector('#rkHow').onclick=()=>b.querySelector('#rkRules').scrollIntoView({behavior:'smooth',block:'start'});
+  if(ACCT.mode!=='local')api('/api/top?by=rp').then(j=>{const el=b.querySelector('#przBox');if(el&&typeof j.n==='number')el.innerHTML=prizeTableHTML(j.n,j.me?j.me.pos:0)}).catch(()=>{});
   if(ACCT.mode!=='local'){b.querySelectorAll('#lbTabs .tab').forEach(t=>t.onclick=()=>{lbBy=t.dataset.k;b.querySelectorAll('#lbTabs .tab').forEach(x=>x.classList.toggle('on',x===t));loadLb(b)});loadLb(b)}}
 // สถิติผู้เล่น (โปรไฟล์ตัวเอง + โปรไฟล์คนอื่นจากตารางอันดับ) — เจ้าของขอให้นับการกำจัด (7 พ.ย. 2026)
 function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString(),kg=+st.killsGame>0;   // killsGame เริ่มเก็บ 7 พ.ย. 2026 → ยังไม่มี = "—" ไม่ใช่ 0
@@ -1781,7 +1802,7 @@ $('name').addEventListener('input',()=>{try{localStorage.setItem('wormName',$('n
 async function api(path,body){const o=body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{headers:{}};
   if(ACCT.token)o.headers.Authorization='Bearer '+ACCT.token;const r=await fetch(path,o);let j={};try{j=await r.json()}catch(e){}
   if(!r.ok)throw Object.assign(new Error(j.err||'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้'),{status:r.status});return j}
-function setProfile(mode,data,name,token){ACCT={mode,name:name||null,token:token||null,down:ACCT.down};prof=normProf(data);ensureDaily();ensureSeason();loadBest();lastBtn='';
+function setProfile(mode,data,name,token,prize){SEASON_PRIZE=prize||null;ACCT={mode,name:name||null,token:token||null,down:ACCT.down};prof=normProf(data);ensureDaily();ensureSeason();loadBest();lastBtn='';
   try{const sid=localStorage.getItem('trainSkin');const i=allSkins().findIndex(s=>s.id===sid);if(i>=0)selSkin=i}catch(e){}
   refreshAcctUI();renderSkins();showBest()}
 function refreshAcctUI(){const a=ACCT.mode==='acct',ab=$('acctBtn');ab.classList.toggle('hidden',ACCT.mode==='local');ab.classList.toggle('on',a);ab.textContent=a?'👤 '+ACCT.name:'👻 Guest';
@@ -1843,7 +1864,7 @@ function renderAccount(b,first){
       else if(rs)j=await api('/api/reset',{name,code:b.querySelector('#acCode').value,pass});
       else j=await api('/api/login',{name,pass});
       saveAuth(j.name,j.token);try{if(reg)localStorage.setItem('rsMigrated','1')}catch(e){}
-      setProfile('acct',j.data,j.name,j.token);$('sheet').classList.add('hidden');$('over').classList.contains('hidden')||$('rankOver')&&($('rankOver').innerHTML=rankHTML(),$('guestOver').classList.add('hidden'));
+      setProfile('acct',j.data,j.name,j.token,j.prize);$('sheet').classList.add('hidden');$('over').classList.contains('hidden')||$('rankOver')&&($('rankOver').innerHTML=rankHTML(),$('guestOver').classList.add('hidden'));
       announce(reg?'✅ ลงทะเบียนสำเร็จ! ยินดีต้อนรับ '+j.name:rs?'✅ ตั้งรหัสผ่านใหม่แล้ว ยินดีต้อนรับกลับมา '+j.name:'✅ ยินดีต้อนรับกลับมา '+j.name);
       if(j.code)showRecovery(j.code,rs)}
     catch(e){st.textContent='❌ '+e.message;go.disabled=false}};
@@ -1853,7 +1874,7 @@ async function bootAccount(){
   if(!/^https?:$/.test(location.protocol)){setProfile('local',legacyProf());return}
   try{const st=await api('/api/status');ACCT.down=!!st.down}catch(e){setProfile('local',legacyProf());return}
   let auth=null;try{auth=JSON.parse(localStorage.getItem('rsAuth'))}catch(e){}
-  if(auth&&auth.token){ACCT.token=auth.token;try{const j=await api('/api/me');setProfile('acct',j.data,j.name,auth.token);return}
+  if(auth&&auth.token){ACCT.token=auth.token;try{const j=await api('/api/me');setProfile('acct',j.data,j.name,auth.token,j.prize);return}
     catch(e){ACCT.token=null;if(e.status===401){try{localStorage.removeItem('rsAuth')}catch(er){}}}}
   setProfile('guest',null);if(!inviteOpen&&state==='menu')openAccount(true)}
 $('acctBtn').onclick=()=>openAccount();
