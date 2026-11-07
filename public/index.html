@@ -525,7 +525,7 @@ function rankHTML(earn){const r=rankOf(prof.rp);
   return`<div class="rankbox" id="rankOpen"><div class="rk1"><b style="color:${r.col}">${r.ic} ${r.name}</b><span>${prof.rp.toLocaleString()} RP${earn?` <i style="color:${earn>0?'#7cfc9a':'#ff7b7b'}">(${earn>0?'+':''}${earn})</i>`:''}</span></div>
   <div class="bar"><i style="width:${Math.round(r.frac*100)}%;background:${r.col}"></i></div><small>${r.next?'อีก '+(r.next-prof.rp).toLocaleString()+' RP เลื่อนขั้น':'แรงก์สูงสุดแล้ว!'}<span class="rkmore">ดูอันดับ ›</span></small></div>`}
 function renderRanks(b){const r=rankOf(prof.rp);
-  b.innerHTML=rankHTML()+'<div class="lbl" style="margin:10px 2px 4px">📊 สถิติของคุณ</div>'+statsHTML(prof.st)+'<button class="btn alt" id="rkHow" style="margin:8px 0 0;padding:9px;font-size:14px">📖 วิธีขึ้นแรงก์ / แรงก์ลดเมื่อไหร่</button>'+
+  b.innerHTML=rankHTML()+'<button class="btn alt" id="rkHow" style="margin:8px 0 0;padding:9px;font-size:14px">📖 วิธีขึ้นแรงก์ / แรงก์ลดเมื่อไหร่</button>'+
   (ACCT.mode!=='local'?'<div class="lbl" style="margin:12px 2px 6px">🌍 อันดับผู้เล่น</div><div class="tabs" id="lbTabs">'+LB_TABS.map(([k,t])=>`<div class="tab${lbBy===k?' on':''}" data-k="${k}">${t}</div>`).join('')+'</div><div class="lb" id="lbList">กำลังโหลด...</div>':'')+
   '<div class="lbl" style="margin:14px 2px 4px">ฤดูกาล</div>'+`<div class="help" style="margin:6px 0 2px;color:#ffd23f">🗓️ ฤดูกาล ${seasonName(seasonKey())} · เหลืออีก ${seasonDaysLeft()} วัน</div><div class="help" style="margin:0 0 4px">จบฤดูกาลได้เหรียญตามขั้น: ${RANKS.map((K,i)=>K.ic+' '+SEASON_COINS[i].toLocaleString()).join(' · ')} 🪙 + ฉายาประจำฤดูกาล แล้ว RP ลดเหลือครึ่งหนึ่ง</div>`+
   '<div class="lbl" style="margin:12px 2px 4px">ขั้นแรงก์</div>'+
