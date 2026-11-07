@@ -13,6 +13,10 @@ async def main():
           const runs=[];for(let i=0;i<30;i++){prof.daily=null;ensureDaily();const ids=prof.daily.m.map(m=>m.id);runs.push([ids.length,ids.some(i=>MG_KILL.includes(i)),ids.some(i=>MG_VS.includes(i)),new Set(ids).size===ids.length,prof.daily.m.every(m=>m.r<=300&&m.r>=10)])}
           return {keep,len:prof.daily.m.length,ok:runs.every(x=>x[0]===5&&x[1]&&x[2]&&x[3]&&x[4]),sample:prof.daily.m.map(m=>misTxt(m)+' → '+m.r)}})()""")
         print(r)
+        # เป้ากำจัดเก่าที่ง่ายเกิน (ยังไม่รับรางวัล) → สุ่มใหม่ตามเกณฑ์ใหม่ เก็บความคืบหน้า · ที่รับรางวัลแล้วไม่แตะ
+        up=await pg.evaluate("""(()=>{prof.daily={date:todayKey(),m:[{id:'kills',n:15,r:30,p:5,c:false},{id:'vsPlay',n:3,r:20,p:0,c:false},{id:'whites',n:30,r:20,p:0,c:false},{id:'killsOne',n:6,r:30,p:6,c:true},{id:'games',n:8,r:15,p:1,c:false}]};ensureDaily();const m=prof.daily.m;
+          return m[0].n>=50&&m[0].n<=100&&m[0].p===5&&m[3].n===6&&m[3].c&&mkMission(MP.killsOne).n>=10})()""")
+        print('upgrade old kill missions:',up);r['ok']=r['ok'] and up
         # ติดตาม: kills/killsGame/vsKills/vsGames/bossHits
         t=await pg.evaluate("""(()=>{prof.daily.m=[mkMission(MP.killsOne),mkMission(MP.vsKills),mkMission(MP.vsPlay),mkMission(MP.bossHit),mkMission(MP.kills)];
           const k0=prof.st.kills||0;track('kills');trackMax('killsGame',3);track('vsKills');track('vsGames');track('bossHits');

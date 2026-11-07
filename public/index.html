@@ -405,8 +405,8 @@ const myTitle=()=>{const t=prof.eq.title;if(!t)return'';if(t.startsWith('a:'))re
 // ภารกิจรายวัน 5 ข้อ (เจ้าของขอให้ยากขึ้น + มีภารกิจ 2v2 + ภารกิจกำจัดตามเป้า — 7 พ.ย. 2026)
 // ทุกวันได้: ภารกิจกำจัด 1 ข้อ (MG_KILL) + ภารกิจ 2v2 1 ข้อ (MG_VS) + อื่น ๆ 3 ข้อ · รางวัลข้อละไม่เกิน 300 (anticheat MISSION_MAX)
 const MPOOL=[
-  {id:'kills',ev:'kills',lo:10,hi:30,txt:n=>`กำจัดขบวนศัตรูรวม ${n} ขบวน`,ru:10},
-  {id:'killsOne',ev:'killsGame',lo:4,hi:12,max:1,txt:n=>`กำจัดให้ได้ ${n} ขบวนในเกมเดียว`,ru:25},
+  {id:'kills',ev:'kills',lo:50,hi:100,txt:n=>`กำจัดขบวนศัตรูรวม ${n} ขบวน`,ru:3},
+  {id:'killsOne',ev:'killsGame',lo:10,hi:20,max:1,txt:n=>`กำจัดให้ได้ ${n} ขบวนใน 1 ชีวิต (ไม่ตายเลย)`,ru:15},
   {id:'vsPlay',ev:'vsGames',lo:2,hi:5,txt:n=>`เล่น ⚔️ 2v2 ให้ครบ ${n} แมตช์`,ru:30},
   {id:'vsWin',ev:'teamWin',lo:1,hi:3,txt:n=>`ชนะ ⚔️ 2v2 ${n} แมตช์`,ru:90},
   {id:'vsKills',ev:'vsKills',lo:4,hi:12,txt:n=>`กำจัดศัตรูในโหมด ⚔️ 2v2 รวม ${n} ขบวน`,ru:20},
@@ -469,7 +469,8 @@ const misTxt=m=>MP[m.id]?MP[m.id].txt(m.n):'';
 function mkMission(d){const n=(d.lo+Math.floor(Math.random()*(d.hi-d.lo+1)))*(d.mul||1);return{id:d.id,n,r:Math.min(300,Math.max(10,Math.round(n*d.ru/5)*5)),p:0,c:false}}
 function ensureDaily(){const k=todayKey(),old=prof.daily;
   const ok=old&&old.date===k&&old.m.length&&old.m[0].n!==undefined&&old.m.every(m=>MP[m.id]);
-  if(ok&&old.m.length>=DAILY_N)return;
+  let up=false;if(ok)old.m.forEach((m,i)=>{const d=MP[m.id];if(!m.c&&m.n<d.lo*(d.mul||1)){const nm=mkMission(d);nm.p=Math.min(m.p,nm.n);old.m[i]=nm;up=true}});   // เป้าเก่าที่ง่ายกว่าเกณฑ์ใหม่ (ยังไม่รับรางวัล) → สุ่มเป้าใหม่ เก็บความคืบหน้าไว้
+  if(ok&&old.m.length>=DAILY_N){if(up)saveProf();return}
   const prev=ok?[]:old?old.m.map(m=>m.id):[],ms=ok?old.m.slice():[],have=()=>ms.map(m=>m.id);
   const pick=ids=>{let c=MPOOL.filter(d=>ids(d.id)&&!have().includes(d.id)&&!prev.includes(d.id));if(!c.length)c=MPOOL.filter(d=>ids(d.id)&&!have().includes(d.id));return c.length?c[Math.floor(Math.random()*c.length)]:null};
   if(!have().some(i=>MG_KILL.includes(i))){const d=pick(i=>MG_KILL.includes(i));if(d)ms.push(mkMission(d))}
