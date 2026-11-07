@@ -159,6 +159,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .fsg .ic{width:34px;height:34px;border-radius:9px;background:#2f3870;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .fsg .note{font-size:12px;color:#aab2e0;background:#121634;border-radius:9px;padding:6px 9px;margin-top:4px;line-height:1.45}
 .fsapp{background:#ff8c42;color:#0f1330;border-radius:12px;padding:9px 12px;font-size:13.5px;line-height:1.5;text-align:left;margin:6px 0 2px}
+.tipc{background:#0f1330;border:1px solid #2f3870;border-radius:14px;overflow:hidden;margin-bottom:10px;text-align:left}.tipc canvas{position:static;display:block;width:100%;height:auto;aspect-ratio:19/10}.tipc b{display:block;color:#ffd23f;font-size:15px;padding:8px 12px 0}.tipc span{display:block;font-size:13px;line-height:1.55;color:#d7dcff;padding:2px 12px 10px}
 .hlist{text-align:left;font-size:13.5px;line-height:1.6;margin:0;padding:0;list-style:none}
 .hlist li{background:#0f1330;border-radius:10px;padding:7px 10px;margin-bottom:6px}
 .hlist li b{color:#ffd23f}
@@ -1666,7 +1667,12 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ที่ 1/2–3 โหมดจับเวลา +10/+5 · ชนะ 2v2 +15<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบฤดูกาลได้ตามขั้นแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
-$('bHelp').onclick=()=>openSheet('❓ วิธีเล่น',b=>{b.innerHTML=iconize('<button class="btn alt" id="hFs" style="margin:0 0 8px">📱 วิธีเล่นเต็มจอ (Android / iPhone)</button><ul class="hlist">'+HOWTO.map(([t,d])=>`<li><b>${t}</b><br>${d}</li>`).join('')+'</ul>');b.querySelector('#hFs').onclick=()=>fsGuide()});
+let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
+$('bHelp').onclick=()=>openSheet('❓ วิธีเล่น',b=>{const T=helpTab==='tips';
+  b.innerHTML='<div class="tabs" id="hTabs"><div class="tab'+(T?'':' on')+'" data-k="rules">📖 กติกา</div><div class="tab'+(T?' on':'')+'" data-k="tips">💡 เคล็ดลับ</div></div>'+
+    iconize(T?tipsHTML():'<button class="btn alt" id="hFs" style="margin:0 0 8px">📱 วิธีเล่นเต็มจอ (Android / iPhone)</button><ul class="hlist">'+HOWTO.map(([t,d])=>`<li><b>${t}</b><br>${d}</li>`).join('')+'</ul>');
+  b.querySelectorAll('#hTabs .tab').forEach(d=>d.onclick=()=>{helpTab=d.dataset.k;sheetRender(b);const pn=$('sheet').querySelector('.panel');if(pn)pn.scrollTop=0});
+  if(T)b.querySelectorAll('.tipcv').forEach(cv=>drawTip(cv,TIPS[+cv.dataset.i]));else b.querySelector('#hFs').onclick=()=>fsGuide()});
 function renderSkins(){const sk=$('skins');sk.innerHTML='';const list=allSkins();if(!list[selSkin]||!list[selSkin].own)selSkin=0;
   list.forEach((s,i)=>{const d=document.createElement('div');d.className='skin'+(i===selSkin?' sel':'')+(s.own?'':' lock');
     d.style.background=s.c.length>2?`conic-gradient(${s.c.join(',')},${s.c[0]})`:`linear-gradient(135deg,${s.c[0]} 50%,${s.c[1]} 50%)`;
@@ -1790,6 +1796,78 @@ function drawPreview(cv2,o){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.heig
     drawWorm(w,-1e4,-1e4,1e4,1e4)}
   finally{ctx=old;smoke.length=sl}}
 // ไอคอนในร้าน = รูปหัวจักร/ตู้รถที่ใช้ในเกมจริง (วาดด้วยโค้ดวาดเกมเดียวกัน)
+// ---------- 💡 เคล็ดลับการเล่น (มีรูปวาดจากกราฟิกในเกม) · อยู่ใน ❓ วิธีเล่น แท็บ "เคล็ดลับ" (เจ้าของสั่ง 7 พ.ย.) ----------
+function tipTrain(path,o){   // สร้างขบวนวางตามเส้นทาง (หัว → ท้าย) ในฉาก 380×200
+  const segs=[];let L=0;for(let i=1;i<path.length;i++){const d=Math.hypot(path[i][0]-path[i-1][0],path[i][1]-path[i-1][1]);segs.push(d);L+=d}
+  let m=o.mass||40;if(!o.mass)for(let k=0;k<6;k++){const r=Math.min(10+Math.sqrt(m)*.75,44),s=r*.42;m=Math.max(12,(L/s-14)/.45)}
+  const w=new Worm(o.name||'',o.skin||SKINS[1],0,0,!!o.isP,{loco:o.loco||'classic',wag:o.wag,smoke:'normal',a:0});w.mass=m;w.safe=0;w.ghost=0;w.seed=3;
+  const n=w.nPts(),s=w.r()*.42;w.pts=[];let si=0,t=0;
+  for(let i=0;i<n;i++){let d=i*s;si=0;while(si<segs.length-1&&d>segs[si]){d-=segs[si];si++}
+    const a=path[si],b=path[si+1],k=segs[si]?d/segs[si]:0;w.pts.push({x:a[0]+(b[0]-a[0])*k,y:a[1]+(b[1]-a[1])*k})}
+  w.angle=w.target=Math.atan2(w.pts[0].y-w.pts[1].y,w.pts[0].x-w.pts[1].x);Object.assign(w,o.set||{});return w}
+const tipArc=(cx,cy,r,a0,a1,n=24)=>Array.from({length:n+1},(_,i)=>{const a=a0+(a1-a0)*i/n;return[cx+Math.cos(a)*r,cy+Math.sin(a)*r]});
+function tipMark(x,y,ok,txt,left){const c=ctx;c.fillStyle=ok?'#29c76f':'#ff4d4d';c.beginPath();c.arc(x,y,11,0,TAU);c.fill();c.strokeStyle='#fff';c.lineWidth=2.6;c.beginPath();
+  if(ok){c.moveTo(x-5,y);c.lineTo(x-1,y+4);c.lineTo(x+6,y-4)}else{c.moveTo(x-4.5,y-4.5);c.lineTo(x+4.5,y+4.5);c.moveTo(x+4.5,y-4.5);c.lineTo(x-4.5,y+4.5)}c.stroke();
+  if(txt){const tx=left?x-15:x+15;c.font='600 12px Mitr,sans-serif';c.textAlign=left?'right':'left';c.lineWidth=3;c.strokeStyle='rgba(10,12,30,.9)';c.strokeText(txt,tx,y+4);c.fillStyle=ok?'#7dffb0':'#ff9b9b';c.fillText(txt,tx,y+4)}}
+function tipArrow(x1,y1,x2,y2,col){const c=ctx,a=Math.atan2(y2-y1,x2-x1);c.strokeStyle=col;c.fillStyle=col;c.lineWidth=2.5;c.setLineDash([6,5]);c.beginPath();c.moveTo(x1,y1);c.lineTo(x2-Math.cos(a)*8,y2-Math.sin(a)*8);c.stroke();c.setLineDash([]);
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-Math.cos(a-.45)*11,y2-Math.sin(a-.45)*11);c.lineTo(x2-Math.cos(a+.45)*11,y2-Math.sin(a+.45)*11);c.closePath();c.fill()}
+function tipLabel(x,y,t,col,sz,al){const c=ctx;c.font=`700 ${sz||13}px Mitr,sans-serif`;c.textAlign=al||'center';c.lineWidth=3.5;c.strokeStyle='rgba(10,12,30,.9)';c.strokeText(t,x,y);c.fillStyle=col||'#fff';c.fillText(t,x,y)}
+const tipGem=(x,y,i,s=16)=>ctx.drawImage(GEMS[FOOD_COLORS[i%7]],x-s/2,y-s/2,s,s);
+function tipRail(y,x0,x1){const c=ctx;c.strokeStyle='#5a4128';c.lineWidth=6;c.beginPath();for(let x=x0;x<x1;x+=26){c.moveTo(x,y-15);c.lineTo(x,y+15)}c.stroke();
+  c.strokeStyle='#aeb8cc';c.lineWidth=3;c.beginPath();for(const d of[-9,9]){c.moveTo(x0,y+d);c.lineTo(x1,y+d)}c.stroke()}
+function tipPortal(x,y,col){const c=ctx,g=c.createRadialGradient(x,y,3,x,y,30);g.addColorStop(0,'#000');g.addColorStop(.7,'#141833');g.addColorStop(1,col);c.fillStyle=g;c.beginPath();c.arc(x,y,30,0,TAU);c.fill();
+  c.strokeStyle=col;c.lineWidth=3;c.setLineDash([8,6]);c.beginPath();c.arc(x,y,34,0,TAU);c.stroke();c.setLineDash([])}
+function tipRing(x,y,r,col,dash){const c=ctx;c.strokeStyle=col;c.lineWidth=2.5;if(dash)c.setLineDash([8,6]);c.beginPath();c.arc(x,y,r,0,TAU);c.stroke();c.setLineDash([])}
+const ME={skin:SKINS[0],isP:true,name:'คุณ'},EN=(i,o)=>({skin:SKINS[[1,4,2,3][i%4]],name:'ศัตรู',...o});
+const TIPS=[
+  {t:'✂️ ตัดหน้าศัตรู',d:'เร่งแซงขึ้นหน้าแล้วเลี้ยวขวางทาง ให้หัวศัตรูชนลำตัวเรา = ศัตรูตาย เราได้แต้มกำจัด + พลอยทั้งขบวน',draw(){
+    const e=tipTrain([[170,120],[170,240]],EN(0));const me=tipTrain([[300,62],[280,95],[40,95]],ME);
+    tipArrow(220,58,276,58,'#ffd23f');return[e,me]},post(){tipLabel(170,110,'💥',null,18);tipMark(196,138,true,'ศัตรูชนเรา = ตาย')}},
+  {t:'🌀 วนล้อมศัตรู',d:'ขบวนยาวแล้ว ให้วนเป็นวงรอบศัตรูแล้วค่อย ๆ หดวง ศัตรูไม่มีทางออก ต้องชนตัวเราเอง',draw(){
+    const me=tipTrain(tipArc(190,108,66,-0.6+TAU,0.35,40),ME);const e=tipTrain([[205,108],[160,116]],EN(1));return[me,e]},
+    post(){for(const a of[0,2.1,4.2])tipArrow(190+Math.cos(a)*56,108+Math.sin(a)*56,190+Math.cos(a)*36,108+Math.sin(a)*36,'#77ccff')}},
+  {t:'💎 รีบเก็บพลอยคนตาย',d:'ขบวนที่ตายแตกเป็นพลอยกองใหญ่ แต่อยู่ได้แค่ 30 วิ แล้วหาย · ใครไปถึงก่อนได้ก่อน',pre(){
+    for(let i=0;i<26;i++){const k=i/25,x=150+k*190,y=50+Math.sin(k*3)*30+k*60;tipGem(x+((i*37)%9-4),y+((i*53)%9-4),i)}},draw(){
+    return[tipTrain([[120,128],[40,175]],ME)]},post(){tipArrow(130,118,165,80,'#ffd23f');tipLabel(300,40,'⏱ 30 วิ','#ff9b9b',13)}},
+  {t:'🛤️ วิ่งบนราง',d:'บนรางวิ่งเร็วขึ้น ×1.6 · ใช้ไล่ตัดหน้าหรือหนีศัตรูที่ไม่ได้อยู่บนราง',pre(){tipRail(130,0,380)},draw(){
+    return[tipTrain([[300,130],[70,130]],ME),tipTrain([[230,48],[90,48]],EN(2))]},
+    post(){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=2;for(const dy of[-8,0,8]){ctx.beginPath();ctx.moveTo(30,130+dy);ctx.lineTo(55,130+dy);ctx.stroke()}
+      tipLabel(330,112,'×1.6','#7dffb0',16);tipLabel(258,40,'×1','#cfd6ff',13)}},
+  {t:'🚇 อุโมงค์ = หนีไว + อมตะ',d:'ลอดอุโมงค์แล้วไปโผล่อีกฝั่ง และได้โล่อมตะ 2 วิ ชนใครก็ไม่ตาย · อุโมงค์ที่มีกากบาทคือปิด',pre(){tipPortal(80,110,'#c08cff');tipPortal(290,90,'#c08cff')},draw(){
+    const me=tipTrain([[335,72],[294,90]],ME);return[me]},post(){tipArrow(112,104,252,92,'#c08cff');tipRing(335,72,28,'#ffd23f');tipLabel(300,170,'🛡️ อมตะ 2 วิ ชนไม่ตาย','#ffd23f',12)}},
+  {t:'{B} ระเบิดให้โดนหัว',d:'เข้าไปใกล้หัวศัตรูก่อนค่อยกดระเบิด · วงระเบิดโดนหัว = ตาย · โดนแค่ลำตัว = ขาดเฉพาะส่วนในวง',draw(){
+    const me=tipTrain([[120,105],[30,150]],{...ME,set:{tgs:1,bombT:[12]}});
+    return[tipTrain([[178,70],[250,40],[380,40]],EN(0)),tipTrain([[360,186],[230,168],[0,186]],EN(1)),me]},
+    pre(){ctx.fillStyle='rgba(255,140,40,.14)';ctx.beginPath();ctx.arc(120,105,88,0,TAU);ctx.fill();tipRing(120,105,88,'#ff8c42',true)},
+    post(){tipMark(205,72,false,'หัวโดน = ตาย');tipMark(120,190,true,'ตัวโดน = ขาด');}},
+  {t:'👑 ล้มบอส: ชนแค่หัว',d:'เอาหัวเราชนหัวบอสตรง ๆ หรือล่อให้บอสชนตัวเรา = บอสเสีย 1 หัวใจ · ห้ามชนตัวบอสเด็ดขาด · ครบ 3 ครั้งได้ 500 🪙',draw(){
+    const b=tipTrain([[225,95],[420,95]],{skin:BOSS_SKIN,name:'',loco:'diesel',mass:200,set:{isBoss:true,hp:2,maxHp:3}});
+    return[b,tipTrain([[160,95],[30,95]],ME),tipTrain([[330,128],[330,240]],{...ME,name:''})]},
+    post(){tipMark(190,128,true,'หัวชนหัว');tipMark(312,168,false,'ชนตัว = ตาย',true)}},
+  {t:'{G} ร่างทองชนให้ขาด',d:'เก็บทองคำแท่งแล้วเป็นร่างทอง พุ่งชนกลางขบวนศัตรู 1 ครั้ง ศัตรูขาดตรงนั้นทันที แล้วเก็บพลอยที่หล่น',draw(){
+    return[tipTrain([[360,92],[20,92]],EN(3)),tipTrain([[205,112],[60,170]],{...ME,set:{gold:true}})]},
+    post(){tipLabel(205,104,'✂️',null,18);for(let i=0;i<6;i++)tipGem(150-i*16,72+(i%2)*8,i);tipMark(235,60,true,'ขาด!')}},
+  {t:'❄️ แช่แข็งแล้วไล่',d:'ไอเทมแช่แข็งทำให้ศัตรูรอบตัวช้าลงครึ่งหนึ่ง 6 วิ · ช่วงนี้ตัดหน้าได้ง่ายมาก',draw(){
+    return[tipTrain([[262,62],[360,30]],EN(1,{set:{slow:1}})),tipTrain([[250,165],[370,185]],EN(2,{set:{slow:1}})),tipTrain([[190,110],[50,140]],ME)]},
+    pre(){ctx.fillStyle='rgba(155,231,255,.10)';ctx.beginPath();ctx.arc(190,110,95,0,TAU);ctx.fill();tipRing(190,110,95,'#9be7ff',true)},post(){tipLabel(110,40,'❄️ ช้าลง','#9be7ff',13)}},
+  {t:'⭕ ระวังขอบวงแดง',d:'ออกนอกวงสนามเส้นแดง = ตายทันที · เวลาหนีหรือไล่ใกล้ขอบ ให้เลี้ยวกลับเข้ากลางสนามก่อน',pre(){
+    ctx.fillStyle='rgba(255,40,60,.16)';ctx.beginPath();ctx.arc(-420,100,740,0,TAU);ctx.rect(380,-10,-400,220);ctx.fill('evenodd');
+    ctx.strokeStyle='rgba(255,77,109,.85)';ctx.lineWidth=4;ctx.beginPath();ctx.arc(-420,100,740,-.4,.4);ctx.stroke()},draw(){
+    return[tipTrain([[290,100],[60,100]],ME)]},post(){tipMark(318,138,false,'ออกนอกวง = ตาย',true);tipArrow(240,80,160,40,'#7dffb0');tipLabel(130,30,'เลี้ยวกลับเข้ากลาง','#7dffb0',12)}},
+  {t:'💎 เก็บเพชรขาวไว้เร่ง',d:'เร่งต้องใช้พลังจากเพชรขาว (เม็ดละ 5 วิ) · เก็บสำรองไว้ใช้ตอนตัดหน้าหรือหนีบอส อย่าเร่งทิ้งเปล่า ๆ',pre(){
+    for(const[x,y]of[[200,70],[255,105],[310,70]]){ctx.fillStyle='rgba(255,255,255,.25)';ctx.beginPath();ctx.arc(x,y,24,0,TAU);ctx.fill();ctx.drawImage(GEMS['#ffffff'],x-15,y-15,30,30)}},draw(){
+    return[tipTrain([[140,110],[30,150]],ME)]},post(){tipLabel(255,155,'+5 วิ ต่อเม็ด','#fff',13)}},
+  {t:'💍 เครื่องประดับคุ้มสุด',d:'แหวน สร้อยคอ ต่างหู โผล่นาน ๆ ที เก็บ 1 ชิ้นได้เท่าพลอย 5 เม็ด · เห็นแล้วรีบไปเก็บ',pre(){
+    JEWELS.forEach((j,i)=>{const x=90+i*100,y=80;ctx.fillStyle='rgba(255,210,63,.18)';ctx.beginPath();ctx.arc(x,y,30,0,TAU);ctx.fill();ctx.drawImage(j,x-24,y-24,48,48)});
+    for(let i=0;i<5;i++)tipGem(150+i*20,160,i,18)},post(){tipLabel(110,165,'1 ชิ้น =','#ffd23f',14,'right')}}];
+function drawTip(cv2,tip){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.height;
+  {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
+  const old=ctx,sl=smoke.length;ctx=c2;
+  try{c2.setTransform(1,0,0,1,0,0);const g=c2.createLinearGradient(0,0,0,H);g.addColorStop(0,'#141a3a');g.addColorStop(1,'#0c1027');c2.fillStyle=g;c2.fillRect(0,0,W,H);
+    const sc=W/380;c2.setTransform(sc,0,0,sc,0,0);c2.strokeStyle='rgba(255,255,255,.04)';c2.lineWidth=1;c2.beginPath();for(let x=0;x<380;x+=40){c2.moveTo(x,0);c2.lineTo(x,200)}for(let y=0;y<200;y+=40){c2.moveTo(0,y);c2.lineTo(380,y)}c2.stroke();
+    if(tip.pre)tip.pre();for(const w of(tip.draw?tip.draw():[]))drawWorm(w,-1e4,-1e4,1e4,1e4);if(tip.post)tip.post()}
+  catch(e){console.warn('tip',e)}finally{ctx=old;smoke.length=sl}}
+function tipsHTML(){return TIPS.map((t,i)=>`<div class="tipc"><canvas class="tipcv" data-i="${i}" width="760" height="400"></canvas><b>${t.t}</b><span>${t.d}</span></div>`).join('')}
 function drawItemIcon(cv2,cat,id){const c2=cv2.getContext('2d'),S=cv2.width;
   {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
   const old=ctx,sl=smoke.length;ctx=c2;
