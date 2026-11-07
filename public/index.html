@@ -183,7 +183,14 @@ canvas.pv{position:static;display:block;width:100%;height:auto;border-radius:14p
 .rcode{font-size:24px;font-weight:600;letter-spacing:3px;color:#ffd23f;background:#0f1330;border-radius:12px;padding:10px;margin:8px 0;user-select:text;-webkit-user-select:text}
 .link{color:#77ccff;cursor:pointer;text-decoration:underline;font-size:13px}
 #horn{position:fixed;right:calc(140px + env(safe-area-inset-right));bottom:calc(49px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:3px solid rgba(255,255,255,.45);background:rgba(119,204,255,.3);color:#fff;font-size:24px;z-index:5;touch-action:none;cursor:pointer}
-#horn.cd{opacity:.4}
+#horn{display:flex;align-items:center;justify-content:center;padding:0;--hc:#77ccff;--p:1;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),rgba(20,26,60,.82) 70%);border-color:var(--hc);box-shadow:0 0 0 0 var(--hc)}
+#horn .hsvg{width:68%;height:68%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));transition:transform .15s}
+#horn .hring{position:absolute;inset:-6px;border-radius:50%;background:conic-gradient(var(--hc) calc(var(--p)*1turn),rgba(255,255,255,.12) 0);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3.5px));pointer-events:none}
+#horn .hbadge{position:absolute;right:-4px;top:-4px;font-style:normal;font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px #000)}
+#horn .hcd{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font:700 17px Mitr,sans-serif;color:#fff;text-shadow:0 1px 3px #000;background:rgba(10,12,30,.55);border-radius:50%}
+#horn.cd .hcd{display:flex}#horn.cd .hsvg{opacity:.45}
+#horn:not(.cd){animation:hornReady 2s ease-in-out infinite}#horn:active .hsvg{transform:scale(.88) rotate(-8deg)}
+@keyframes hornReady{0%,100%{box-shadow:0 0 0 0 transparent}50%{box-shadow:0 0 14px 2px var(--hc)}}
 #setGame{position:fixed;left:calc(108px + env(safe-area-inset-left));bottom:calc(12px + env(safe-area-inset-bottom));z-index:5;opacity:.8;font-size:17px}
 #setGame.nofs{left:calc(60px + env(safe-area-inset-left))}
 /* ตั้งค่า: ปุ่มควบคุมอยู่ซ้าย (body.sideL) → สลับเฉพาะปุ่มด้านล่าง (ข้อมูลด้านบน/มินิแมป/อันดับ อยู่ที่เดิม) · เร่ง/ระเบิด/หวูด ไปซ้าย, ปุ่มเสียง/เต็มจอ/ตั้งค่า ไปขวา */
@@ -290,7 +297,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 
 <button id="boost" class="hidden">เร่ง!</button>
 <button id="bomb" class="hidden">💣</button>
-<button id="horn" class="hidden" title="หวูด (H)">📯</button>
+<button id="horn" class="hidden" title="หวูด (คลิกปุ่มกลางเมาส์ / H)"><span class="hring"></span><svg class="hsvg" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="hg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".55" stop-color="#ffc42e"/><stop offset="1" stop-color="#a86b00"/></linearGradient></defs><circle cx="6" cy="20" r="3" fill="url(#hg)" stroke="#7a4a00" stroke-width="1"/><rect x="8" y="17.5" width="15" height="5" rx="2.2" fill="url(#hg)" stroke="#7a4a00" stroke-width="1"/><rect x="11.5" y="13" width="2.6" height="5" rx="1" fill="#ffc42e" stroke="#7a4a00" stroke-width=".8"/><rect x="16" y="13" width="2.6" height="5" rx="1" fill="#ffc42e" stroke="#7a4a00" stroke-width=".8"/><path d="M22 17 L34 8.5 Q38.5 20 34 31.5 L22 23 Z" fill="url(#hg)" stroke="#7a4a00" stroke-width="1.1"/><ellipse cx="34.6" cy="20" rx="2.2" ry="10.6" fill="#7a4a00" opacity=".55"/></svg><i class="hbadge"></i><b class="hcd"></b></button>
 <button id="snd" class="ibtn hidden">🔊</button>
 <button id="fsGame" class="ibtn fsb hidden" title="เต็มจอ">⛶</button>
 <button id="setGame" class="ibtn hidden" title="ตั้งค่า">⚙️</button>
@@ -689,10 +696,30 @@ let hornCD=0;
 // หวูดไล่ศัตรู (เจ้าของสั่ง 7 พ.ย.): กดแล้วบอทในรัศมี r หนีออกด้านข้างนาน t วิ · หวูดแพงขึ้น = วงกว้างขึ้น + หนีนานขึ้น (หนีไกลขึ้น) · ใช้ได้ทุก HORN_CD วิ · บอสหนีครึ่งเดียว · ต้องตรงกับ botsim.js
 const HORN_CD=8,HORN_PERK={classic:{r:250,t:1},deep:{r:320,t:1.3},chime:{r:380,t:1.6},tune:{r:450,t:1.9},siren:{r:530,t:2.3},thunder:{r:620,t:2.7},dragon:{r:720,t:3.2}};
 const hornPerk=k=>HORN_PERK[k]||HORN_PERK.classic;
-function hornScare(x,y,k,src){const P=hornPerk(k);booms.push({x,y,t:0,horn:P.r});let n=0;   // ศัตรูในวงหนีออกด้านข้าง (ด้านที่ห่างจากคนกด)
+// หน้าตาหวูดแต่ละแบบ: สีวงคลื่น + อนุภาค (เจ้าของขอให้สวยขึ้น 7 พ.ย.)
+const HORN_STYLE={classic:{c:'#9be7ff',ic:'📯',fx:'puff'},deep:{c:'#4f8dff',ic:'🛳️',fx:'puff'},chime:{c:'#ffd23f',ic:'🔔',fx:'spark'},tune:{c:'#ff7bd5',ic:'🎵',fx:'note'},
+  siren:{c:'#ff4d4d',c2:'#4d8dff',ic:'🚨',fx:'siren'},thunder:{c:'#fff066',ic:'⚡',fx:'bolt'},dragon:{c:'#ff7a1a',ic:'🐉',fx:'fire'}};
+const hornStyle=k=>HORN_STYLE[k]||HORN_STYLE.classic;
+function hornUI(){const b=$('horn');if(!b)return;const st=hornStyle(prof.eq.horn);b.style.setProperty('--hc',st.c);b.style.setProperty('--p',hornCD>0?(1-hornCD/HORN_CD).toFixed(3):1);
+  const bd=b.querySelector('.hbadge');if(bd&&bd.textContent!==st.ic)bd.textContent=st.ic;const cd=b.querySelector('.hcd');if(cd)cd.textContent=hornCD>0?Math.ceil(hornCD):''}
+function drawHornWave(e){const st=hornStyle(e.k),R=e.horn,p=Math.min(1,e.t/.7),a=Math.max(0,1-e.t/1.1),c=ctx;   // วงคลื่นหวูด + อนุภาคตามชนิด
+  c.save();c.globalAlpha=a;const g=c.createRadialGradient(e.x,e.y,R*p*.2,e.x,e.y,R*p);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(1,st.c+'33');c.fillStyle=g;c.beginPath();c.arc(e.x,e.y,R*p,0,TAU);c.fill();
+  for(let i=0;i<3;i++){const q=Math.max(0,p-i*.16);if(q<=0)continue;c.strokeStyle=st.fx==='siren'?(i%2?st.c2:st.c):st.c;c.lineWidth=(i?3:7)*(1-q*.5)+1;c.setLineDash(i===2?[14,10]:[]);c.beginPath();c.arc(e.x,e.y,R*q,0,TAU);c.stroke()}
+  c.setLineDash([]);const n=st.fx==='puff'?10:12;
+  for(let i=0;i<n;i++){const an=i/n*TAU+(e.seed||0),d=R*p*(.75+.25*((i*7)%5)/4),x=e.x+Math.cos(an)*d,y=e.y+Math.sin(an)*d;
+    if(st.fx==='puff'){c.fillStyle=st.c;c.beginPath();c.arc(x,y,14*(1-p)+6,0,TAU);c.fill()}
+    else if(st.fx==='spark'){c.fillStyle='#fff8c8';star4(x,y,13*(1-p)+7)}
+    else if(st.fx==='note'){c.fillStyle=`hsl(${(i*40+e.t*200)%360},90%,70%)`;c.font='700 36px sans-serif';c.textAlign='center';c.fillText(i%2?'♪':'♫',x,y)}
+    else if(st.fx==='siren'){c.fillStyle=i%2?st.c2:st.c;c.beginPath();c.arc(x,y,10,0,TAU);c.fill()}
+    else if(st.fx==='bolt'){c.strokeStyle='#fff066';c.lineWidth=4.5;c.beginPath();c.moveTo(x,y-22);c.lineTo(x-9,y);c.lineTo(x+8,y);c.lineTo(x-3,y+23);c.stroke()}
+    else{const fl=c.createRadialGradient(x,y,1,x,y,24);fl.addColorStop(0,'#fff3a0');fl.addColorStop(.5,'#ff8a1f');fl.addColorStop(1,'rgba(220,20,40,0)');c.fillStyle=fl;c.beginPath();c.arc(x,y,24*(1-p*.4),0,TAU);c.fill()}}
+  c.restore()}
+function hornScare(x,y,k,src){const P=hornPerk(k);booms.push({x,y,t:0,horn:P.r,k,seed:Math.random()*6});let n=0;   // ศัตรูในวงหนีออกด้านข้าง (ด้านที่ห่างจากคนกด)
   for(const w of worms){if(w===src||!w.alive||w.isP||w.isRemote||(src&&ally(w,src)))continue;const h=w.pts[0],d=Math.hypot(h.x-x,h.y-y);if(d>P.r+w.r())continue;
     const away=Math.atan2(h.y-y,h.x-x),s1=w.angle+Math.PI/2,s2=w.angle-Math.PI/2,c=a=>Math.cos(a-away);
-    w.flee={t:P.t*(w.isBoss?.5:1),a:c(s1)>=c(s2)?s1:s2};n++}return n}
+    w.flee={t:P.t*(w.isBoss?.5:1),a:c(s1)>=c(s2)?s1:s2};w.scaredUntil=performance.now()+w.flee.t*1000;n++}return n}
+// ออนไลน์: บอทอยู่บนเซิร์ฟเวอร์ เครื่องเราแค่โชว์ ❗ เหนือหัวบอทที่โดนหวูด
+function hornMarkRemote(x,y,k){const P=hornPerk(k);for(const w of worms)if(w.isBot&&w.alive&&Math.hypot(w.pts[0].x-x,w.pts[0].y-y)<P.r+w.r())w.scaredUntil=performance.now()+P.t*(w.isBoss?500:1000)}
 function hornSfx(k,vol){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime,v=Math.max(.05,vol||1);try{switch(k){
   case'deep':tone(110,t,1.1,'sawtooth',.13*v);tone(138.6,t,1.1,'sawtooth',.1*v);tone(82,t,1.1,'triangle',.12*v);break;
   case'chime':[1318,1568,2093,1568].forEach((f,i)=>tone(f,t+i*.12,.6,'sine',.12*v));break;
@@ -701,8 +728,8 @@ function hornSfx(k,vol){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime,
   case'thunder':noise(t,.5,.35*v,180);tone(98,t,1,'sawtooth',.14*v,55);tone(196,t+.05,.8,'square',.06*v,98);[1568,1175].forEach((f,i)=>tone(f,t+.02+i*.06,.12,'square',.05*v));break;
   case'dragon':tone(73,t,1.3,'sawtooth',.15*v,110);tone(146,t,1.3,'sawtooth',.09*v,220);tone(220,t+.1,1.1,'square',.05*v,330);noise(t+.05,.9,.18*v,600);break;
   default:for(const[d,l]of[[0,.45],[.55,.35]]){tone(587,t+d,l,'square',.06*v);tone(740,t+d,l,'square',.05*v);tone(880,t+d,l,'sine',.04*v)}}}catch(e){}}
-function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornCD=HORN_CD;audioInit();hornSfx(prof.eq.horn,1);
-  const h=player.pts[0];texts.push({x:h.x,y:h.y-55,txt:'📯 ปู๊น ๆ! หลีกไป!',t:1.2,c:'#9be7ff'});if(NET){booms.push({x:h.x,y:h.y,t:0,horn:hornPerk(prof.eq.horn).r});netSend({t:'horn',k:prof.eq.horn,x:Math.round(h.x),y:Math.round(h.y)})}else hornScare(h.x,h.y,prof.eq.horn,player)}
+function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornCD=HORN_CD;hornUI();audioInit();hornSfx(prof.eq.horn,1);
+  const h=player.pts[0];texts.push({x:h.x,y:h.y-55,txt:'📯 ปู๊น ๆ! หลีกไป!',t:1.2,c:'#9be7ff'});if(NET){booms.push({x:h.x,y:h.y,t:0,horn:hornPerk(prof.eq.horn).r,k:prof.eq.horn,seed:Math.random()*6});hornMarkRemote(h.x,h.y,prof.eq.horn);netSend({t:'horn',k:prof.eq.horn,x:Math.round(h.x),y:Math.round(h.y)})}else hornScare(h.x,h.y,prof.eq.horn,player)}
 // =====================================================================
 //  เพลงประกอบ — แต่งเองทั้งหมด สังเคราะห์ด้วย WebAudio (ไม่มีไฟล์เพลง)
 //  เพลงปกติเลือกได้ใน ⚙️ (`TRACKS`, localStorage trainMus2): main 🚂 (ค่าเริ่มต้น D minor 150) / country 🤠 / chip 👾 / electro 🌃 / calm 🌿 / off
@@ -1103,7 +1130,8 @@ const input={angle:0,boost:false,joy:null,keyL:false,keyR:false,keyB:false};
 function mouseAngle(e){input.angle=Math.atan2(e.clientY-VH/2,e.clientX-VW/2)}
 // คอม: คลิกซ้ายค้าง = เร่ง, คลิกขวา = ระเบิด (ใช้ mousedown เพื่อให้กดขวาได้แม้กำลังกดซ้ายค้างอยู่)
 let lastTouch=-1e9;
-cv.addEventListener('mousedown',e=>{if(performance.now()-lastTouch<1000)return;mouseAngle(e);if(e.button===2){e.preventDefault();useBomb()}else if(e.button===0)input.boost=true});
+cv.addEventListener('mousedown',e=>{if(performance.now()-lastTouch<1000)return;mouseAngle(e);if(e.button===2){e.preventDefault();useBomb()}else if(e.button===1){e.preventDefault();honk()}else if(e.button===0)input.boost=true});
+cv.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault()});   // ปุ่มกลาง (ล้อเมาส์) = หวูด ไม่ให้เบราว์เซอร์เลื่อนจอ
 addEventListener('mouseup',e=>{if(e.button===0)input.boost=false});
 cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){}else lastTouch=performance.now();if(e.pointerType==='mouse'){}else if(!input.joy){input.joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY}}});
 cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')mouseAngle(e);else if(input.joy&&e.pointerId===input.joy.id){const j=input.joy;j.x=e.clientX;j.y=e.clientY;const dx=j.x-j.ox,dy=j.y-j.oy,d=Math.hypot(dx,dy);if(d>6)input.angle=Math.atan2(dy,dx);if(d>65){j.ox=j.x-dx/d*65;j.oy=j.y-dy/d*65}}});
@@ -1209,7 +1237,7 @@ function updBtns(){
   const bs=player.bombT.length?Math.ceil(player.bombT[0]):0,e=player.energy,k=e.toFixed(1)+'|'+player.tgs+'|'+player.alive+'|'+bs+'|'+(hornCD>0);if(k===lastBtn)return;lastBtn=k;
   bb.innerHTML='เร่ง!<br><small>'+e.toFixed(1)+' วิ</small>';bb.style.opacity=e>0?1:.45;
   if(IS_TOUCH)bb.classList.toggle('hidden',!player.alive);
-  $('horn').classList.toggle('hidden',!player.alive);$('horn').classList.toggle('cd',hornCD>0);
+  $('horn').classList.toggle('hidden',!player.alive);$('horn').classList.toggle('cd',hornCD>0);hornUI();
   $('bomb').classList.toggle('hidden',!(player.tgs>0&&player.alive));$('bomb').innerHTML=ICON_HTML.B+'<br><small>×'+player.tgs+(bs?' · '+bs+'วิ':'')+'</small>';$('bomb').classList.toggle('warn',bs>0&&bs<=5);
 }
 const ally=(a,b)=>!!(NET&&a.team&&a.team===b.team);
@@ -1299,7 +1327,7 @@ function step(f,dt){
     while(player.bombT.length&&player.bombT[0]<=0){player.bombT.shift();player.tgs=Math.max(0,player.tgs-1);if(player.alive){announce('{B} ระเบิดหมดเวลา หายไปแล้ว!');sfx('die')}}}
   if(player&&player.gold&&player.goldT!==undefined){player.goldT-=dt;if(player.goldT<=0){player.gold=false;player.goldT=undefined;if(player.alive){announce('{G} ร่างทองหมดเวลาแล้ว!');sfx('die')}}}
   if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);trackMax('maxLen',player.mass)}}
-  if(hornCD>0)hornCD-=dt;
+  if(hornCD>0){hornCD=Math.max(0,hornCD-dt);hornUI()}
   for(const t of texts){t.t-=dt;t.y-=30*dt}texts=texts.filter(t=>t.t>0);
   if(state==='play'&&mode==='time'){timeLeft-=dt;if(timeLeft<=0){timeLeft=0;finish(true)}}
   if(state==='dead'){deadT-=dt;if(deadT<=0)finish(false)}
@@ -1418,6 +1446,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.isBoss&&w.alive){const hs=13,hy=c.y-W-24-Math.max(13,r*.75)-hs,hv=w.hp??BOSS_HEARTS,fs0=ctx.fillStyle;   // หัวใจบอส ❤❤❤ เหนือชื่อ
     for(let i=0;i<BOSS_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.25)';heart(c.x+(i-1)*hs*2.5,hy,hs)}ctx.fillStyle=fs0}
   const fs=Math.max(13,r*.75);ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,c.x,c.y-W-12);
+  if(w.scaredUntil&&w.alive&&performance.now()<w.scaredUntil){const jy=c.y-W-12-fs-10+Math.sin(frame*.6)*3;ctx.font=`700 ${Math.round(fs*1.3)}px sans-serif`;ctx.textAlign='center';ctx.fillText('❗',c.x,jy)}   // โดนหวูดไล่
   if(w.rk!==undefined&&w.alive){const nw=ctx.measureText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name).width,E=fs*.95;drawRankBadge(c.x-nw/2-E*.95,c.y-W-12-fs*.36,E,w.rk)}   // แรงก์อยู่ข้างชื่อ (เจ้าของสั่ง 7 พ.ย. 13:15 — ไม่เอาบนหัวรถไฟ)
   if(w.alive&&carryBomb(w)){const nm=(w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,bs=Math.max(26,fs*1.7),bob=Math.sin(frame*.12)*3,bx=c.x+ctx.measureText(nm).width/2+bs*.62,by=c.y-W-12-fs*.38+bob,
       warn=w===player&&player.bombT.length&&player.bombT[0]<=5,pl=.5+.5*Math.sin(frame*(warn?.5:.2));   // ระเบิดลอยข้างหัว (คนอื่นเห็นด้วย) · 5 วิสุดท้ายกะพริบแดง
@@ -1534,7 +1563,7 @@ function render(){
   drawSmoke();
   for(const w of list)drawWorm(w,vx0,vy0,vx1,vy1);
   drawPortalMouths(vx0,vy0,vx1,vy1);
-  for(const e of booms){if(e.horn){const p=Math.min(1,e.t/.6),a=Math.max(0,1-e.t/1);for(const k of[1,.72,.44]){ctx.strokeStyle=`rgba(155,231,255,${a*k})`;ctx.lineWidth=(6*a+1.5)*k;ctx.beginPath();ctx.arc(e.x,e.y,e.horn*p*k,0,TAU);ctx.stroke()}continue}
+  for(const e of booms){if(e.horn){drawHornWave(e);continue}
     const R=e.ice?FREEZE_R:bombR(),p=Math.min(1,e.t/.45),a=Math.max(0,1-e.t/1.1);
     ctx.fillStyle=e.ice?`rgba(155,231,255,${.25*a})`:`rgba(255,220,120,${.35*a})`;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.fill();
     ctx.strokeStyle=e.ice?`rgba(200,245,255,${a})`:`rgba(255,140,40,${a})`;ctx.lineWidth=18*a+2;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.stroke();
@@ -1711,7 +1740,7 @@ function renderBotSheet(b){
 }
 $('again').onclick=()=>{autoFS();if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
-$('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · H หวูด · M ปิดเสียง';
+$('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · คลิกปุ่มกลาง(ล้อเมาส์)/H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
   ['💍 เครื่องประดับ','แหวน / สร้อยคอ / ต่างหู โผล่นาน ๆ ที เก็บ 1 ชิ้น = ได้เท่าพลอย 5 เม็ด'],
   ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ 20 วิ · หัวจักรที่ดีกว่าสะสมได้ถึง 50 วิ)'],
@@ -1720,7 +1749,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ (หัวจักรที่ดีกว่าได้นานถึง 60 วิ)'],
   ['{B} ระเบิด','ระเบิดวงรอบหัวเรา: โดน<b>หัว</b>ศัตรู = ตาย · โดนแค่ลำตัว = ตัดเฉพาะส่วนที่อยู่ในวงกลายเป็นพลอย · ต้องใช้ภายใน 15 วิ (หัวจักรที่ดีกว่าได้นานถึง 30 วิ)'],
   ['🚂 หัวจักร','หัวที่ดีกว่าในร้านค้า: เก็บพลอยได้ไกลขึ้น · ระเบิดและร่างทองอยู่ได้นานขึ้น · พลังเร่งเก็บได้มากกว่า 20 วิ'],
-  ['📯 หวูดไล่ศัตรู','กด 📯 (คอม: ปุ่ม H) บอทในวงจะตกใจหนีออกด้านข้างชั่วครู่ ใช้หนีหรือเปิดทาง · ใช้ได้ทุก 8 วิ · หวูดแพงในร้านค้า ไล่ได้วงกว้างกว่าและหนีนานกว่า (บอสหนีแค่ครึ่งเดียว)'],
+  ['📯 หวูดไล่ศัตรู','กด 📯 (คอม: คลิกปุ่มกลางเมาส์ หรือ H) บอทในวงจะตกใจหนีออกด้านข้างชั่วครู่ ใช้หนีหรือเปิดทาง · ใช้ได้ทุก 8 วิ · หวูดแพงในร้านค้า ไล่ได้วงกว้างกว่าและหนีนานกว่า (บอสหนีแค่ครึ่งเดียว)'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','โผล่ทุก ๆ 2 นาที มีหัวใจ ❤️❤️❤️ (เห็นเหนือชื่อบอส)'],
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
@@ -2118,7 +2147,7 @@ function netMsg(m){
       if(m.v===NET.id&&player&&player.alive){let bi=8,bd=1e9;player.pts.forEach((q,i)=>{const d=(q.x-m.x)**2+(q.y-m.y)**2;if(d<bd){bd=d;bi=i}});cutSelf(player,Math.max(bi,8),true);texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:m.by===0?'👑 โดนบอสชนขาด!':'💥 โดนร่างทองชนขาด!',t:2,c:'#ff5e5e'})}break;
     case'frz':{booms.push({x:m.x,y:m.y,t:0,ice:1});const by=NET.players.get(m.by);if(player&&player.alive&&by&&!(by.team&&by.team===player.team)&&Math.hypot(player.pts[0].x-m.x,player.pts[0].y-m.y)<FREEZE_R){player.slow=FREEZE_T;sfx('freeze')}break}
     case'horn':{const w=worms.find(o=>o.netId===m.by&&o.alive);if(w&&player){const h=w.pts[0],d=Math.hypot(h.x-player.pts[0].x,h.y-player.pts[0].y);
-      if(d<1600){hornSfx(m.k,1-d/1600);texts.push({x:h.x,y:h.y-55,txt:'📯',t:1.2,c:'#9be7ff'});booms.push({x:h.x,y:h.y,t:0,horn:hornPerk(m.k).r})}}break}
+      if(d<1600){hornSfx(m.k,1-d/1600);texts.push({x:h.x,y:h.y-55,txt:'📯',t:1.2,c:'#9be7ff'});booms.push({x:h.x,y:h.y,t:0,horn:hornPerk(m.k).r,k:m.k,seed:Math.random()*6});hornMarkRemote(h.x,h.y,m.k)}}break}
     case'left':{worms=worms.filter(o=>o.netId!==m.id);NET.players.delete(m.id);refreshSheet();break}
     case'end':netEnd(m);break;
   }
