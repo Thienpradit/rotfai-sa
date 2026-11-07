@@ -359,7 +359,7 @@ for(let j=0;j<3;j++){const S=96,g=document.createElement('canvas');g.width=g.hei
     x.beginPath();x.moveTo(cx,-19);x.lineTo(cx,-6);gold(3);x.beginPath();x.arc(cx,-4,5,0,TAU);x.fillStyle='#ffd23f';x.fill();gem(cx,14,15,'#7cfc9a')}
   JEWELS.push(g)}
 const PU_TYPES={magnet:{icon:'🧲',col:'#ff5e5e',label:'แม่เหล็ก'},x3:{icon:'⭐',col:'#ffd23f',label:'โต x3'},speed:{icon:'⚡',col:'#77ccff',label:'ความเร็ว'},freeze:{icon:'❄️',col:'#9be7ff',label:'แช่แข็ง'}};
-const GROW=.7,FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=480,FREEZE_R=650;
+const GROW=.7,FREEZE_T=6,WHITE_N=60,MAX_EN=20,BOMB_R=240,FREEZE_R=650;
 const ICON_HTML={G:'<svg viewBox="0 0 24 18" width="1.35em" height="1em" style="vertical-align:-.15em"><g fill="#ffd23f" stroke="#8a5a00" stroke-width="1.2"><path d="M1 17h10l-2-5H3z"/><path d="M13 17h10l-2-5h-6z"/><path d="M7 11h10l-2-5H9z"/></g></svg>',
   B:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" style="vertical-align:-.2em"><circle cx="10" cy="14" r="8" fill="#22252f" stroke="#7a82a8" stroke-width="1.2"/><circle cx="7" cy="11" r="2.2" fill="#fff" opacity=".55"/><rect x="13" y="4.5" width="4" height="4" fill="#8a6a3a" transform="rotate(35 15 6.5)"/><path d="M16.5 5q2.5-4 5.5-2" stroke="#c9a36a" fill="none" stroke-width="1.6"/><circle cx="22" cy="3" r="2" fill="#ffd23f"/></svg>'};
 const iconize=h=>h.replace(/\{([GB])\}/g,(_,k)=>ICON_HTML[k]);
@@ -856,8 +856,9 @@ function addFood(x,y,v,ttl){if(NET)return;let ci;
 function addPu(){const[x,y]=randInWorld(150),k=Object.keys(PU_TYPES);pups.push({x,y,type:k[(Math.random()*k.length)|0],dead:false,ph:Math.random()*TAU})}
 function addWhite(){const[x,y]=gemInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
 const key=(cx,cy)=>(cx+500)*1000+(cy+500);
-// บอสโกรธ (เจ้าของสั่ง 7 พ.ย.): เสียหัวใจ 1 ดวง → เร็วขึ้น 12% เลี้ยวไว 15% ไล่ไกลขึ้น เร่งบ่อยขึ้น (ต้องตรงกับ botsim.js)
-const RAGE_SPD=.12,RAGE_TURN=.15;
+// บอสโกรธ (เจ้าของสั่ง 7 พ.ย.): เสียหัวใจ 1 ดวง → เร็วขึ้น (×1.4 / ชีวิตสุดท้าย ×2 = เท่าเร่งเพชร) เลี้ยวไว 15% ไล่ไกลขึ้น เร่งบ่อยขึ้น (ต้องตรงกับ botsim.js)
+const RAGE_SPD=[1,1.4,2],RAGE_TURN=.15;   // ความเร็วปกติของบอสตามหัวใจที่เสีย 0/1/2 · ชีวิตสุดท้าย = เท่าเราเร่งด้วยเพชร และ**ไม่เร็วกว่าเราเร่ง**เด็ดขาด (BOSS_CAP)
+const BOSS_CAP=2.7*2;
 const bossRage=w=>w.isBoss?Math.max(0,(w.maxHp||BOSS_HEARTS)-(w.hp??w.maxHp??BOSS_HEARTS)):0;
 function bossRageMsg(left,max){const e=$('bossDown');e.classList.add('rage');
   e.innerHTML=`💢 บอสโกรธแล้ว! เร็วขึ้น<small>เหลือ ${'❤️'.repeat(left)}${'🤍'.repeat(Math.max(0,(max||BOSS_HEARTS)-left))}</small>`;
@@ -895,11 +896,12 @@ class Worm{
     const r=this.r();
     let d=this.target-this.angle;d=Math.atan2(Math.sin(d),Math.cos(d));
     const rg=bossRage(this),tr=.12/(1+r/30)*f*(1+RAGE_TURN*rg);this.angle+=Math.max(-tr,Math.min(tr,d));
-    let sp=2.7*(1+RAGE_SPD*rg);if(this.pu.speed>0)sp*=1.4;
+    let sp=2.7*(this.isBoss?RAGE_SPD[Math.min(2,rg)]:1);if(this.pu.speed>0)sp*=1.4;
     this.onRail=onRail(this.pts[0],this.angle);if(this.onRail)sp*=1.6;
-    if(this.slow>0){this.slow-=dt;sp*=.45}
+    const slowed=this.slow>0;if(slowed){this.slow-=dt;sp*=.45}
     const boosting=this.boost&&this.energy>0;
     if(boosting){sp*=2;this.energy=Math.max(0,this.energy-dt);if(this.isP)sfx('whistle')}
+    if(this.isBoss)sp=Math.min(sp,BOSS_CAP*(this.onRail?1.6:1)*(slowed?.45:1));   // บอสไม่มีทางเร็วกว่าเราเร่งด้วยเพชร
     const h=this.pts[0];h.x+=Math.cos(this.angle)*sp*f;h.y+=Math.sin(this.angle)*sp*f;
     this.follow();
     for(const k in this.pu)if(this.pu[k]>0)this.pu[k]-=dt;
@@ -922,6 +924,16 @@ class Worm{
       if(NET&&!NET.ffa){NET.respawnT=3}else{state='dead';deadT=1.3}}
   }
 }
+// ระเบิด (เจ้าของสั่ง 7 พ.ย.): รัศมีครึ่งเดิม (240) · โดนหัว (จุด 0–7) = ตาย · โดนแค่ลำตัว = ตัดเฉพาะส่วนที่อยู่ในวง (ท้ายขบวนต่อกลับมาเอง) กลายเป็นพลอย
+const BOMB_HEAD=8;
+function bombHit(w,x,y){const p=w.pts,R2=BOMB_R*BOMB_R,rh=(BOMB_R+w.r())**2;
+  for(let i=0;i<Math.min(BOMB_HEAD,p.length);i++)if((p[i].x-x)**2+(p[i].y-y)**2<rh)return'head';
+  tunFlush(w);const keep=[],gone=[];p.forEach((q,i)=>((i>=BOMB_HEAD&&(q.x-x)**2+(q.y-y)**2<R2)?gone:keep).push(q));if(!gone.length)return false;
+  const old=w.mass;w.mass=Math.max(10,old-gone.length/.45);w.pts=keep;if(keep.length>w.nPts())keep.length=w.nPts();
+  const lost=Math.max(0,old-w.mass),cnt=Math.max(3,Math.min(80,Math.floor(gone.length/3))),drop=[];
+  if(lost>0)for(let i=0;i<cnt;i++){const q=gone[Math.floor(i/cnt*gone.length)];drop.push([Math.round(q.x+rnd(-8,8)),Math.round(q.y+rnd(-8,8))])}
+  if(drop.length){if(NET){if(w.isP)netSend({t:'drop',drop,v:lost*.5/cnt})}else for(const[a,b]of drop)addFood(a,b,lost*.5/cnt)}
+  w.selfCD=.8;if(w.isP){sfx('cut');const h=w.pts[0];texts.push({x:h.x,y:h.y-30,txt:'💥 โดนระเบิด ขบวนขาด! -'+Math.floor(lost),t:1.6,c:'#ff5e5e'})}return'cut'}
 function cutSelf(w,idx,byGold){
   const p=w.pts;if(idx>=p.length)return;const removed=p.slice(idx),old=w.mass;
   w.mass=Math.max(10,(idx-14)/.45);p.length=Math.min(p.length,w.nPts());
@@ -1124,9 +1136,9 @@ function useBomb(){
   player.tgs--;player.bombT.shift();track('bombsUsed');const h=player.pts[0];booms.push({x:h.x,y:h.y,t:0});shake=.5;sfx('bomb');
   if(NET){netSend({t:'bomb',x:Math.round(h.x),y:Math.round(h.y)});NET.bombAt=performance.now();texts.push({x:h.x,y:h.y-60,txt:'💥 ระเบิด!',t:2,c:'#ffd23f'});updBtns();return}
   bombing=true;bombHits=0;
-  for(const w of worms){if(w===player||!w.alive)continue;let hit=false;for(let i=0;i<w.pts.length;i+=3){const q=w.pts[i];if((q.x-h.x)**2+(q.y-h.y)**2<BOMB_R*BOMB_R){hit=true;break}}if(hit){if(!w.isBoss)w.die(player)}}
+  let bombCuts=0;for(const w of worms){if(w===player||!w.alive||w.isBoss)continue;const r=bombHit(w,h.x,h.y);if(r==='head')w.die(player);else if(r)bombCuts++}
   bombing=false;track('bombKills',bombHits);trackMax('bestBomb',bombHits);
-  texts.push({x:h.x,y:h.y-60,txt:'💥 ระเบิด! กำจัด '+bombHits+' ขบวน',t:2,c:'#ffd23f'});updBtns();
+  texts.push({x:h.x,y:h.y-60,txt:'💥 ระเบิด! กำจัด '+bombHits+' ขบวน'+(bombCuts?' · ตัดขาด '+bombCuts:''),t:2,c:'#ffd23f'});updBtns();
 }
 let lastBtn='';
 function updBtns(){
@@ -1644,11 +1656,11 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['🛤️ ราง / 🚇 อุโมงค์','วิ่งบนรางเร็วขึ้น ×1.6 · ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
   ['🚉 สถานี','ขับผ่านสถานีเพื่อแลกตู้เป็นเหรียญ'],
   ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ (หัวจักรที่ดีกว่าได้นานถึง 60 วิ)'],
-  ['{B} ระเบิด','กำจัดทุกขบวนรอบตัว ต้องใช้ภายใน 15 วิ (หัวจักรที่ดีกว่าได้นานถึง 30 วิ)'],
+  ['{B} ระเบิด','ระเบิดวงรอบหัวเรา: โดน<b>หัว</b>ศัตรู = ตาย · โดนแค่ลำตัว = ตัดเฉพาะส่วนที่อยู่ในวงกลายเป็นพลอย · ต้องใช้ภายใน 15 วิ (หัวจักรที่ดีกว่าได้นานถึง 30 วิ)'],
   ['🚂 หัวจักร','หัวที่ดีกว่าในร้านค้า: เก็บพลอยได้ไกลขึ้น · ระเบิดและร่างทองอยู่ได้นานขึ้น · พลังเร่งเก็บได้มากกว่า 20 วิ'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','โผล่ทุก ๆ 2 นาที มีหัวใจ ❤️❤️❤️ (เห็นเหนือชื่อบอส)'],
-  ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
+  ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ที่ 1/2–3 โหมดจับเวลา +10/+5 · ชนะ 2v2 +15<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบฤดูกาลได้ตามขั้นแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
@@ -1959,7 +1971,7 @@ function netMsg(m){
       if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');trackMax('killsGame',player.kills);if(!NET.ffa)track('vsKills');if(m.b){NET.bombN=(performance.now()-(NET.bombAt||0)<1500?NET.bombN||0:0)+1;track('bombKills');trackMax('bestBomb',NET.bombN)}const h=player.pts[0];if(!(bi&&bi.boss))texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+((bi||NET.players.get(m.v))?.name||'')+'!',t:1.6,c:'#ffd23f'});
         if(bi&&bi.boss){addCoins(BOSS_COINS);track('boss')}}break}
     case'bomb':{booms.push({x:m.x,y:m.y,t:0});sfx('bomb');const by=NET.players.get(m.by);
-      if(player&&player.alive&&by&&!(by.team&&by.team===player.team)&&player.safe<=0&&player.pts.some(q=>(q.x-m.x)**2+(q.y-m.y)**2<BOMB_R*BOMB_R))player.die({netId:m.by});
+      if(player&&player.alive&&by&&!(by.team&&by.team===player.team)&&player.safe<=0&&!(player.ghost>0)){const r=bombHit(player,m.x,m.y);if(r==='head')player.die({netId:m.by})}
       break}
     case'cut':
       if(m.v===NET.id&&player&&player.alive){let bi=8,bd=1e9;player.pts.forEach((q,i)=>{const d=(q.x-m.x)**2+(q.y-m.y)**2;if(d<bd){bd=d;bi=i}});cutSelf(player,Math.max(bi,8),true);texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:m.by===0?'👑 โดนบอสชนขาด!':'💥 โดนร่างทองชนขาด!',t:2,c:'#ff5e5e'})}break;
