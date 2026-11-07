@@ -7,6 +7,8 @@ const BOSS_HEARTS = 3, BOSS_HIT_CD = 1.5;   // บอส 👑 มีหัวใ
 const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, DROP_TTL = 30;
 const RAGE_SPD = [1, 1.4, 2], RAGE_TURN = .15, BOSS_CAP = 2.7 * 2;   // บอสเสียหัวใจ → เร็วขึ้น ×1.4 / ชีวิตสุดท้าย ×2 (= ผู้เล่นเร่งเพชร) และไม่เร็วกว่านั้น (ต้องตรงกับ index.html)
 const bossRage = w => w.isBoss ? Math.max(0, (w.maxHp || BOSS_HEARTS) - w.hp) : 0;
+// หวูดไล่ศัตรู: ต้องตรงกับ HORN_PERK ใน index.html
+const HORN_PERK = { classic: { r: 250, t: 1 }, deep: { r: 320, t: 1.3 }, chime: { r: 380, t: 1.6 }, tune: { r: 450, t: 1.9 }, siren: { r: 530, t: 2.3 }, thunder: { r: 620, t: 2.7 }, dragon: { r: 720, t: 3.2 } };
 const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: BOSS_HEARTS };   // ระดับ Normal
 const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
 const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
@@ -133,6 +135,7 @@ function aiThink(S, room, w, f, trains) {
     if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : 850)) ai.hunt = null;
     else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 + 150 * bossRage(w) && w.mass > 18; } }
   else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
+  if (w.flee && w.flee.t > 0) { w.flee.t -= f / 60; tx = h.x + Math.cos(w.flee.a) * 400; ty = h.y + Math.sin(w.flee.a) * 400; boost = false; }   // โดนหวูดไล่
   if (Math.hypot(h.x, h.y) > arenaR(room) - 350) { tx = 0; ty = 0; boost = false; }
   const want = Math.atan2(ty - h.y, tx - h.x), lk = w.isBoss ? 1.3 : D.look, near = (r * 1.4 + 25) * lk, look = (r * 3 + 65) * lk;
   const blocked = a => bodyNear(S, room, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r + 12, w) || bodyNear(S, room, h.x + Math.cos(a) * look, h.y + Math.sin(a) * look, r + 18, w);
@@ -280,9 +283,13 @@ function bombHitBot(room, w, x, y) { const BR = room.ffa ? BOMB_R_FFA : BOMB_R_V
     for (let i = 0; i < cnt; i++) { const q = gone[Math.floor(i / cnt * gone.length)]; drop.push([Math.round(q.x + rnd(-8, 8)), Math.round(q.y + rnd(-8, 8))]); }
     room.sim.drop(room, drop, lost * .5 / cnt); }
   w.selfCD = .8; return 'cut'; }
+function onHorn(room, by, x, y, k) { const P = HORN_PERK[k] || HORN_PERK.classic;
+  for (const w of room.bots.values()) { if (!w.alive || (by.team && w.team === by.team)) continue; const h = w.pts[0]; if (Math.hypot(h.x - x, h.y - y) > P.r + rOf(w.mass)) continue;
+    const away = Math.atan2(h.y - y, h.x - x), s1 = w.angle + Math.PI / 2, s2 = w.angle - Math.PI / 2;
+    w.flee = { t: P.t * (w.isBoss ? .5 : 1), a: Math.cos(s1 - away) >= Math.cos(s2 - away) ? s1 : s2 }; } }
 function onFreeze(room, by, x, y) { for (const w of room.bots.values()) if (w.alive && !(by.team && w.team === by.team) && Math.hypot(w.pts[0].x - x, w.pts[0].y - y) < FREEZE_R) w.slow = FREEZE_T; }
 function onCut(room, by, v, x, y) { const w = room.bots.get(v); if (!w || !w.alive || (by.team && w.team === by.team)) return; cutBot(room, w, nearestIdx(w, x, y)); }
 function onBossHit(room, by, id) { const w = room.bots.get(id); if (w && w.isBoss) hurtBoss(room, w, by.body || { human: true, pid: by.id }); }
 function clear(room) { room.bots.clear(); if (room.sim) { room.sim.boss = null; room.sim.vsT = { A: 0, B: 0 }; } }
 
-module.exports = { step, onBomb, onFreeze, onCut, onBossHit, clear, buildWorld };
+module.exports = { step, onBomb, onFreeze, onHorn, onCut, onBossHit, clear, buildWorld };

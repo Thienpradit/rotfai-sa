@@ -103,4 +103,12 @@ for (let i = 0; i < 1400; i++) { const a = Math.random() * 6.28, r = Math.sqrt(M
 step(room, 20); const t0 = process.hrtime.bigint(); step(room, 200); const ms = Number(process.hrtime.bigint() - t0) / 1e6 / 200;
 ok(ms < 8, 'เวลาคำนวณต่อ tick ' + ms.toFixed(2) + ' ms (< 8 ms)');
 
+// หวูดไล่ศัตรู: บอทในวงหนีออกด้านข้าง · หวูดแพง = วงกว้าง + หนีนาน
+{ const r = mkRoom(true); r.players.set(1, { id: 1, kills: 0, st: { x: 0, y: 0, a: 0, m: 40, f: 4 } }); step(r, 3);
+  const bs = live(r).slice(0, 2); const place = (w, d) => { const dx = d - w.pts[0].x, dy = -w.pts[0].y; for (const q of w.pts) { q.x += dx; q.y += dy; } w.flee = null; };
+  place(bs[0], 230); place(bs[1], 600); botsim.onHorn(r, { id: 1 }, 0, 0, 'classic');
+  ok(bs[0].flee && bs[0].flee.t === 1 && !bs[1].flee, 'หวูดไอน้ำ (250): บอทใกล้หนี 1 วิ บอทไกลไม่หนี');
+  place(bs[0], 230); place(bs[1], 600); botsim.onHorn(r, { id: 1 }, 0, 0, 'dragon');
+  ok(bs[0].flee && bs[1].flee && bs[1].flee.t === 3.2, 'แตรมังกร (720): ไล่ได้ไกลถึง 600 หนี 3.2 วิ');
+  const ad = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))), a0 = bs[1].angle, fa = bs[1].flee.a; step(r, 10); ok(!bs[1].alive || ad(bs[1].angle, fa) < ad(a0, fa) - .3 || ad(bs[1].angle, fa) < .2, 'บอทเลี้ยวไปทางหนีจริง'); }
 console.log(fail ? `\n${fail} ข้อไม่ผ่าน` : '\nผ่านทั้งหมด'); process.exit(fail ? 1 : 0);

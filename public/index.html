@@ -378,7 +378,7 @@ const SHOP={
   smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:10000,ic:'✨'},{id:'rainbow',n:'ควันสีรุ้ง',p:20000,ic:'🌈'}],
   skin:[{id:'candy',n:'สีลูกกวาด',p:10000,c:['#ff9ecb','#ffffff','#9ef0ff']},{id:'galaxy',n:'สีกาแล็กซี',p:15000,c:['#2b1055','#7597de','#d6e0ff']},{id:'lava',n:'สีลาวา',p:15000,c:['#ff4e00','#2b0a00','#ffb300']},{id:'neon',n:'สีนีออน',p:25000,c:['#39ff14','#ff00e6','#00e5ff']}],
   kfx:[{id:'none',n:'ไม่มีเอฟเฟกต์',p:0,ic:'➖'},{id:'firework',n:'พลุ',p:15000,ic:'🎆'},{id:'gems',n:'ประกายเพชร',p:20000,ic:'💠'},{id:'coins',n:'ฝนเหรียญ',p:35000,ic:'🪙'}],
-  horn:[{id:'classic',n:'หวูดไอน้ำ',p:0,ic:'📯'},{id:'deep',n:'หวูดเรือใหญ่',p:8000,ic:'🛳️'},{id:'chime',n:'หวูดกระดิ่ง',p:12000,ic:'🔔'},{id:'tune',n:'หวูดทำนอง',p:18000,ic:'🎵'}],
+  horn:[{id:'classic',n:'หวูดไอน้ำ',p:0,ic:'📯'},{id:'deep',n:'หวูดเรือใหญ่',p:8000,ic:'🛳️'},{id:'chime',n:'หวูดกระดิ่ง',p:12000,ic:'🔔'},{id:'tune',n:'หวูดทำนอง',p:18000,ic:'🎵'},{id:'siren',n:'ไซเรนรถด่วน',p:30000,ic:'🚨'},{id:'thunder',n:'แตรฟ้าผ่า',p:60000,ic:'⚡'},{id:'dragon',n:'แตรมังกร',p:120000,ic:'🐉'}],
   title:[{id:'speed',n:'สายซิ่ง',p:10000,ic:'⚡'},{id:'gemking',n:'ราชาพลอย',p:25000,ic:'💎'},{id:'rich',n:'เศรษฐีรางเหล็ก',p:60000,ic:'🤑'}],
 };
 // หัวจักรแต่ละแบบ: เก็บพลอย/เพชรขาวได้ไกลขึ้น (px เพิ่มจากรัศมีปกติ) + คำอธิบายในร้าน
@@ -686,13 +686,23 @@ function bossSfx(k,t){const c=SND.ctx,out=c.createGain();out.connect(SND.master)
       for(const[fr,v]of[[277.2,1],[349.2,.8],[415.3,.7],[138.6,.5]]){const o=c.createOscillator(),og=c.createGain();o.type='sawtooth';og.gain.value=v*.4;o.frequency.setValueAtTime(fr*.97,t0);o.frequency.linearRampToValueAtTime(fr,t0+.12);o.connect(og);og.connect(g);o.start(t0);o.stop(t0+len+.05)}}}}
 // หวูดรถไฟ (ร้านค้า หมวดหวูด) — กด 📯 หรือ H
 let hornCD=0;
+// หวูดไล่ศัตรู (เจ้าของสั่ง 7 พ.ย.): กดแล้วบอทในรัศมี r หนีออกด้านข้างนาน t วิ · หวูดแพงขึ้น = วงกว้างขึ้น + หนีนานขึ้น (หนีไกลขึ้น) · ใช้ได้ทุก HORN_CD วิ · บอสหนีครึ่งเดียว · ต้องตรงกับ botsim.js
+const HORN_CD=8,HORN_PERK={classic:{r:250,t:1},deep:{r:320,t:1.3},chime:{r:380,t:1.6},tune:{r:450,t:1.9},siren:{r:530,t:2.3},thunder:{r:620,t:2.7},dragon:{r:720,t:3.2}};
+const hornPerk=k=>HORN_PERK[k]||HORN_PERK.classic;
+function hornScare(x,y,k,src){const P=hornPerk(k);booms.push({x,y,t:0,horn:P.r});let n=0;   // ศัตรูในวงหนีออกด้านข้าง (ด้านที่ห่างจากคนกด)
+  for(const w of worms){if(w===src||!w.alive||w.isP||w.isRemote||(src&&ally(w,src)))continue;const h=w.pts[0],d=Math.hypot(h.x-x,h.y-y);if(d>P.r+w.r())continue;
+    const away=Math.atan2(h.y-y,h.x-x),s1=w.angle+Math.PI/2,s2=w.angle-Math.PI/2,c=a=>Math.cos(a-away);
+    w.flee={t:P.t*(w.isBoss?.5:1),a:c(s1)>=c(s2)?s1:s2};n++}return n}
 function hornSfx(k,vol){if(!SND.ctx||!SND.on)return;const t=SND.ctx.currentTime,v=Math.max(.05,vol||1);try{switch(k){
   case'deep':tone(110,t,1.1,'sawtooth',.13*v);tone(138.6,t,1.1,'sawtooth',.1*v);tone(82,t,1.1,'triangle',.12*v);break;
   case'chime':[1318,1568,2093,1568].forEach((f,i)=>tone(f,t+i*.12,.6,'sine',.12*v));break;
   case'tune':[784,988,1175,988,1568].forEach((f,i)=>tone(f,t+i*.13,.22,'square',.05*v));break;
+  case'siren':for(let i=0;i<3;i++){tone(660,t+i*.36,.18,'square',.06*v,880);tone(880,t+i*.36+.18,.18,'square',.06*v,660)}break;
+  case'thunder':noise(t,.5,.35*v,180);tone(98,t,1,'sawtooth',.14*v,55);tone(196,t+.05,.8,'square',.06*v,98);[1568,1175].forEach((f,i)=>tone(f,t+.02+i*.06,.12,'square',.05*v));break;
+  case'dragon':tone(73,t,1.3,'sawtooth',.15*v,110);tone(146,t,1.3,'sawtooth',.09*v,220);tone(220,t+.1,1.1,'square',.05*v,330);noise(t+.05,.9,.18*v,600);break;
   default:for(const[d,l]of[[0,.45],[.55,.35]]){tone(587,t+d,l,'square',.06*v);tone(740,t+d,l,'square',.05*v);tone(880,t+d,l,'sine',.04*v)}}}catch(e){}}
-function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornCD=2.5;audioInit();hornSfx(prof.eq.horn,1);
-  const h=player.pts[0];texts.push({x:h.x,y:h.y-55,txt:'📯 ปู๊น ๆ!',t:1.2,c:'#9be7ff'});if(NET)netSend({t:'horn',k:prof.eq.horn})}
+function honk(){if(!player||!player.alive||state!=='play'||hornCD>0)return;hornCD=HORN_CD;audioInit();hornSfx(prof.eq.horn,1);
+  const h=player.pts[0];texts.push({x:h.x,y:h.y-55,txt:'📯 ปู๊น ๆ! หลีกไป!',t:1.2,c:'#9be7ff'});if(NET){booms.push({x:h.x,y:h.y,t:0,horn:hornPerk(prof.eq.horn).r});netSend({t:'horn',k:prof.eq.horn,x:Math.round(h.x),y:Math.round(h.y)})}else hornScare(h.x,h.y,prof.eq.horn,player)}
 // =====================================================================
 //  เพลงประกอบ — แต่งเองทั้งหมด สังเคราะห์ด้วย WebAudio (ไม่มีไฟล์เพลง)
 //  เพลงปกติเลือกได้ใน ⚙️ (`TRACKS`, localStorage trainMus2): main 🚂 (ค่าเริ่มต้น D minor 150) / country 🤠 / chip 👾 / electro 🌃 / calm 🌿 / off
@@ -1040,6 +1050,7 @@ function aiThink(w,f){
     if(d>(w.isBoss?1600+300*bossRage(w):850))ai.hunt=null;
     else{const lead=60+o.r()*3+d*.45;tx=oh.x+Math.cos(o.angle)*lead;ty=oh.y+Math.sin(o.angle)*lead;boost=d<450+150*bossRage(w)&&w.mass>18}
   }else if(ai.boostT>0){ai.boostT-=f;boost=true}
+  if(w.flee&&w.flee.t>0){w.flee.t-=f/60;tx=h.x+Math.cos(w.flee.a)*400;ty=h.y+Math.sin(w.flee.a)*400;boost=false}   // โดนหวูดไล่ → หนีด้านข้าง
   if(Math.hypot(h.x,h.y)>AR-350){tx=0;ty=0;boost=false}
   const want=Math.atan2(ty-h.y,tx-h.x);
   const lk=w.isBoss?1.3:D().look,near=(r*1.4+25)*lk,look=(r*3+65)*lk;
@@ -1396,7 +1407,6 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
     ctx.fillStyle='#fff59a';ctx.beginPath();ctx.arc(L*.47,0,r*.22,0,TAU);ctx.fill();
   }
   ctx.restore();
-  if(w.rk!==undefined&&w.alive&&vis(c))drawRankBadge(c.x,c.y,Math.max(13,W*.62),w.rk);   // แรงก์ติดบนหัวรถไฟ
   const elec=(w.loco==='bullet'||w.loco==='tram'||w.loco==='metro')&&w.smokeT==='normal',sk2=w.loco==='comet'&&w.smokeT==='normal'?'comet':w.smokeT;
   if(vis(c)&&!elec&&frame%((boosting||sk2==='comet'?3:9)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL])smoke.push({x:c.x+Math.cos(c.a)*smX,y:c.y+Math.sin(c.a)*smX,r:smR,t:1,k:sk2,h:frame*4%360});
   if(w.slow>0){glowAlong(w,'rgba(155,231,255,.35)',1.2,vx0,vy0,vx1,vy1,M)}
@@ -1408,6 +1418,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.isBoss&&w.alive){const hs=13,hy=c.y-W-24-Math.max(13,r*.75)-hs,hv=w.hp??BOSS_HEARTS,fs0=ctx.fillStyle;   // หัวใจบอส ❤❤❤ เหนือชื่อ
     for(let i=0;i<BOSS_HEARTS;i++){ctx.fillStyle=i<hv?'#ff4d6d':'rgba(255,255,255,.25)';heart(c.x+(i-1)*hs*2.5,hy,hs)}ctx.fillStyle=fs0}
   const fs=Math.max(13,r*.75);ctx.fillText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,c.x,c.y-W-12);
+  if(w.rk!==undefined&&w.alive){const nw=ctx.measureText((w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name).width,E=fs*.95;drawRankBadge(c.x-nw/2-E*.95,c.y-W-12-fs*.36,E,w.rk)}   // แรงก์อยู่ข้างชื่อ (เจ้าของสั่ง 7 พ.ย. 13:15 — ไม่เอาบนหัวรถไฟ)
   if(w.alive&&carryBomb(w)){const nm=(w.slow>0?'❄️ ':'')+(w.isP&&NET?'⭐ ':'')+w.name,bs=Math.max(26,fs*1.7),bob=Math.sin(frame*.12)*3,bx=c.x+ctx.measureText(nm).width/2+bs*.62,by=c.y-W-12-fs*.38+bob,
       warn=w===player&&player.bombT.length&&player.bombT[0]<=5,pl=.5+.5*Math.sin(frame*(warn?.5:.2));   // ระเบิดลอยข้างหัว (คนอื่นเห็นด้วย) · 5 วิสุดท้ายกะพริบแดง
     ctx.fillStyle=warn?`rgba(255,60,60,${.25+.3*pl})`:`rgba(255,140,40,${.18+.17*pl})`;ctx.beginPath();ctx.arc(bx,by,bs*.62,0,TAU);ctx.fill();drawBombIcon(bx,by,bs)}
@@ -1523,7 +1534,8 @@ function render(){
   drawSmoke();
   for(const w of list)drawWorm(w,vx0,vy0,vx1,vy1);
   drawPortalMouths(vx0,vy0,vx1,vy1);
-  for(const e of booms){const R=e.ice?FREEZE_R:bombR(),p=Math.min(1,e.t/.45),a=Math.max(0,1-e.t/1.1);
+  for(const e of booms){if(e.horn){const p=Math.min(1,e.t/.6),a=Math.max(0,1-e.t/1);for(const k of[1,.72,.44]){ctx.strokeStyle=`rgba(155,231,255,${a*k})`;ctx.lineWidth=(6*a+1.5)*k;ctx.beginPath();ctx.arc(e.x,e.y,e.horn*p*k,0,TAU);ctx.stroke()}continue}
+    const R=e.ice?FREEZE_R:bombR(),p=Math.min(1,e.t/.45),a=Math.max(0,1-e.t/1.1);
     ctx.fillStyle=e.ice?`rgba(155,231,255,${.25*a})`:`rgba(255,220,120,${.35*a})`;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.fill();
     ctx.strokeStyle=e.ice?`rgba(200,245,255,${a})`:`rgba(255,140,40,${a})`;ctx.lineWidth=18*a+2;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.stroke();
     ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=5;ctx.beginPath();ctx.arc(e.x,e.y,R*p*.7,0,TAU);ctx.stroke()}
@@ -1601,7 +1613,7 @@ function drawHUD2(){
 function drawGoldIcon(x,y,s){const lw=Math.max(1,s*.08),b=(bx,by)=>{ctx.beginPath();ctx.moveTo(bx-s*.5,by+s*.2);ctx.lineTo(bx+s*.5,by+s*.2);ctx.lineTo(bx+s*.3,by-s*.2);ctx.lineTo(bx-s*.3,by-s*.2);ctx.closePath();ctx.fillStyle='#ffd23f';ctx.fill();ctx.strokeStyle='#8a5a00';ctx.lineWidth=lw;ctx.stroke()};
   b(x-s*.42,y+s*.24);b(x+s*.42,y+s*.24);b(x,y-s*.18)}
 const carryBomb=w=>w.isRemote?!!w.hasBomb:w.tgs>0&&w.bombT.length>0;   // ถือระเบิดอยู่ (คนอื่นออนไลน์รู้จาก flag 64)
-function drawRankBadge(x,y,R,rk){rk=Math.max(0,rk|0);const t=Math.min(RANKS.length-1,Math.floor(rk/3));   // เหรียญแรงก์ (รูปเดียวกับในเมนู) ติดบนหัวรถไฟ
+function drawRankBadge(x,y,R,rk){rk=Math.max(0,rk|0);const t=Math.min(RANKS.length-1,Math.floor(rk/3));   // เหรียญแรงก์ (รูปเดียวกับในเมนู) ข้างชื่อรถไฟ
   ctx.drawImage(rankCanvas(t,t===RANKS.length-1?null:rk%3),x-R,y-R,R*2,R*2)}
 function drawBombIcon(x,y,s){ctx.fillStyle='#22252f';ctx.beginPath();ctx.arc(x,y+s*.08,s*.42,0,TAU);ctx.fill();ctx.strokeStyle='#7a82a8';ctx.lineWidth=Math.max(1,s*.05);ctx.stroke();
   ctx.fillStyle='rgba(255,255,255,.55)';ctx.beginPath();ctx.arc(x-s*.14,y-s*.06,s*.1,0,TAU);ctx.fill();
@@ -1708,6 +1720,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ (หัวจักรที่ดีกว่าได้นานถึง 60 วิ)'],
   ['{B} ระเบิด','ระเบิดวงรอบหัวเรา: โดน<b>หัว</b>ศัตรู = ตาย · โดนแค่ลำตัว = ตัดเฉพาะส่วนที่อยู่ในวงกลายเป็นพลอย · ต้องใช้ภายใน 15 วิ (หัวจักรที่ดีกว่าได้นานถึง 30 วิ)'],
   ['🚂 หัวจักร','หัวที่ดีกว่าในร้านค้า: เก็บพลอยได้ไกลขึ้น · ระเบิดและร่างทองอยู่ได้นานขึ้น · พลังเร่งเก็บได้มากกว่า 20 วิ'],
+  ['📯 หวูดไล่ศัตรู','กด 📯 (คอม: ปุ่ม H) บอทในวงจะตกใจหนีออกด้านข้างชั่วครู่ ใช้หนีหรือเปิดทาง · ใช้ได้ทุก 8 วิ · หวูดแพงในร้านค้า ไล่ได้วงกว้างกว่าและหนีนานกว่า (บอสหนีแค่ครึ่งเดียว)'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','โผล่ทุก ๆ 2 นาที มีหัวใจ ❤️❤️❤️ (เห็นเหนือชื่อบอส)'],
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
@@ -1820,7 +1833,7 @@ function refreshSheet(){if(sheetRender&&!$('sheet').classList.contains('hidden')
 $('sheetClose').onclick=()=>{$('sheet').classList.add('hidden');if(NET&&state==='lobby')netLeave();showBest();renderSkins()};
 let shopTab='deal';
 const SHOP_TABS=[['deal','⭐ วันนี้'],['loco','🚂 หัวจักร'],['wagon','🚃 ตู้รถ'],['smoke','💨 ควัน'],['skin','🎨 สี'],['kfx','🎆 กำจัด'],['horn','📯 หวูด'],['title','🏷️ ฉายา']];
-const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปใหญ่และรายละเอียด · ความเร็วเท่ากันทุกหัว · หัวที่ดีกว่า: เก็บพลอยไกลขึ้น 🧲, ระเบิดใช้ได้นานขึ้น {B}, ร่างทองนานขึ้น {G}, พลังเร่งเก็บได้มากขึ้น 💎',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'กดปุ่ม 📯 (หรือ H) ระหว่างเล่น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
+const SHOP_NOTE={loco:'แตะที่หัวจักรเพื่อดูรูปใหญ่และรายละเอียด · ความเร็วเท่ากันทุกหัว · หัวที่ดีกว่า: เก็บพลอยไกลขึ้น 🧲, ระเบิดใช้ได้นานขึ้น {B}, ร่างทองนานขึ้น {G}, พลังเร่งเก็บได้มากขึ้น 💎',wagon:'เปลี่ยนหน้าตาตู้ทุกตู้ในขบวน · ออนไลน์คนอื่นเห็นด้วย',kfx:'เอฟเฟกต์ตอนคุณกำจัดศัตรู · ออนไลน์คนอื่นเห็นด้วย',horn:'กดปุ่ม 📯 (หรือ H) บอทในวงจะหนีออกด้านข้าง (ใช้ได้ทุก 8 วิ) · หวูดแพงขึ้น = ไล่ได้วงกว้างขึ้น + ศัตรูหนีนานขึ้น · ออนไลน์คนใกล้ ๆ ได้ยินด้วย',title:'ฉายาโชว์เหนือชื่อรถไฟ · ได้จากร้าน เหรียญตรา และรางวัลจบฤดูกาล',smoke:'ของพิเศษบางชิ้นขายเฉพาะวันในแท็บ ⭐ วันนี้'};
 function openShop(tab){if(tab)shopTab=tab;openSheet('🛒 ร้านค้า',renderShop)}
 const isOwned=(cat,id)=>cat==='title'&&id.startsWith('a:')?!!prof.ach[id.slice(2)]:prof.owned[cat].includes(id);
 const isEq=(cat,id)=>cat==='skin'?allSkins()[selSkin]?.id===id:prof.eq[cat]===id;
@@ -1958,7 +1971,7 @@ function shopRow(L,cat,it,o={}){
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p;
   const d=document.createElement('div');d.className='item'+(o.deal?' deal':'');
   const real=cat==='loco'||cat==='wagon',icon=it.c?`<div class="ic" style="background:conic-gradient(${it.c.join(',')},${it.c[0]})"></div>`:real?`<div class="ic real"><canvas class="lic" width="96" height="96"></canvas></div>`:`<div class="ic" style="background:#1f2650">${it.ic||'🏷️'}</div>`;
-  const P=LOCO_PERK[it.id],pk=cat==='loco'&&P&&P.pick?iconize(`<em class="perk">🧲+${P.pick} · {B}${BOMB_LIFE+P.bomb}วิ · {G}${GOLD_LIFE+P.gold}วิ · 💎${P.en}วิ</em>`):'',canView=PREVIEW_CATS.includes(cat);
+  const P=LOCO_PERK[it.id],HP=cat==='horn'?hornPerk(it.id):null,pk=cat==='loco'&&P&&P.pick?iconize(`<em class="perk">🧲+${P.pick} · {B}${BOMB_LIFE+P.bomb}วิ · {G}${GOLD_LIFE+P.gold}วิ · 💎${P.en}วิ</em>`):HP?`<em class="perk">📢 ไล่ศัตรูรัศมี ${HP.r} · หนี ${HP.t} วิ</em>`:'',canView=PREVIEW_CATS.includes(cat);
   if(canView){d.classList.add('tap');d.onclick=e=>{if(!e.target.closest('button'))openItem(cat,it,o)}}
   d.innerHTML=`${icon}<div class="tx">${it.n}${o.tag?'<span class="tag">'+o.tag+'</span>':''}${pk}<small>${own?(eq?'กำลังใช้อยู่':'มีแล้ว'):o.lock?o.lock:(o.price!==undefined&&o.price!==it.p?'<span class="old">'+it.p.toLocaleString()+'</span>':'')+'ราคา '+price.toLocaleString()+' 🪙'}</small></div>`;if(canView)d.querySelector('.ic').insertAdjacentHTML('beforeend','<span class="zoom">🔍</span>');
   if(real)drawItemIcon(d.querySelector('.lic'),cat,it.id);
@@ -2105,7 +2118,7 @@ function netMsg(m){
       if(m.v===NET.id&&player&&player.alive){let bi=8,bd=1e9;player.pts.forEach((q,i)=>{const d=(q.x-m.x)**2+(q.y-m.y)**2;if(d<bd){bd=d;bi=i}});cutSelf(player,Math.max(bi,8),true);texts.push({x:player.pts[0].x,y:player.pts[0].y-40,txt:m.by===0?'👑 โดนบอสชนขาด!':'💥 โดนร่างทองชนขาด!',t:2,c:'#ff5e5e'})}break;
     case'frz':{booms.push({x:m.x,y:m.y,t:0,ice:1});const by=NET.players.get(m.by);if(player&&player.alive&&by&&!(by.team&&by.team===player.team)&&Math.hypot(player.pts[0].x-m.x,player.pts[0].y-m.y)<FREEZE_R){player.slow=FREEZE_T;sfx('freeze')}break}
     case'horn':{const w=worms.find(o=>o.netId===m.by&&o.alive);if(w&&player){const h=w.pts[0],d=Math.hypot(h.x-player.pts[0].x,h.y-player.pts[0].y);
-      if(d<1600){hornSfx(m.k,1-d/1600);texts.push({x:h.x,y:h.y-55,txt:'📯',t:1.2,c:'#9be7ff'})}}break}
+      if(d<1600){hornSfx(m.k,1-d/1600);texts.push({x:h.x,y:h.y-55,txt:'📯',t:1.2,c:'#9be7ff'});booms.push({x:h.x,y:h.y,t:0,horn:hornPerk(m.k).r})}}break}
     case'left':{worms=worms.filter(o=>o.netId!==m.id);NET.players.delete(m.id);refreshSheet();break}
     case'end':netEnd(m);break;
   }
