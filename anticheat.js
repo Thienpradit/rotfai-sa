@@ -12,7 +12,7 @@ const SHOP = {
   smoke: { normal: 0, sparkle: 10000, rainbow: 20000 },
   skin: { candy: 10000, galaxy: 15000, lava: 15000, neon: 25000 },
   kfx: { none: 0, firework: 15000, gems: 20000, coins: 35000 },
-  horn: { classic: 0, deep: 8000, chime: 12000, tune: 18000, siren: 30000, thunder: 60000, dragon: 120000 },
+  horn: { classic: 0, deep: 20000, chime: 35000, tune: 60000, siren: 100000, thunder: 180000, dragon: 300000 },
   title: { speed: 10000, gemking: 25000, rich: 60000 },
 };
 const LIMITED = [['skin', 'sunset', 22000], ['skin', 'ocean', 22000], ['skin', 'sakura', 24000], ['skin', 'aurora', 28000], ['skin', 'royal', 30000],
