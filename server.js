@@ -22,6 +22,7 @@ const PUBLIC = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
+  if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ })); }
   if (p === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
   // ย้ายเซิร์ฟเวอร์: ตั้ง env REDIRECT_TO=https://ที่อยู่ใหม่ แล้วลิงก์เก่าจะพาไปที่ใหม่เอง (เก็บ ?w=โค้ดโลก ไว้ด้วย)
   if (process.env.REDIRECT_TO) { res.writeHead(301, { Location: process.env.REDIRECT_TO.replace(/\/$/, '') + (req.url || '/') }); return res.end(); }
@@ -130,7 +131,10 @@ function endMatch(room) {
 // ปิดได้ด้วย env WS_DEFLATE=0
 const DEFLATE = process.env.WS_DEFLATE === '0' ? false : { threshold: 256, serverMaxWindowBits: 13, clientMaxWindowBits: 13, zlibDeflateOptions: { level: 3, memLevel: 7 } };
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: 64 * 1024, perMessageDeflate: DEFLATE });
-wss.on('connection', ws => {
+const WSZ = { offered: 0, negotiated: 0 };   // ตรวจว่าการบีบอัดใช้ได้จริงไหม (เปิดดู /wsinfo)
+wss.on('connection', (ws, req) => {
+  if (/permessage-deflate/.test(req.headers['sec-websocket-extensions'] || '')) WSZ.offered++;
+  if (/permessage-deflate/.test(ws.extensions || '')) WSZ.negotiated++;
   let room = null, me = null;
   ws.on('message', raw => {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
