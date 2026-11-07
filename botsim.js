@@ -5,6 +5,8 @@ const TAU = Math.PI * 2, CS = 100, SELF_IDX = 20, GROW = .7, BOMB_R = 480, FREEZ
 const LAG_STEPS = 12;
 const BOSS_HEARTS = 3, BOSS_HIT_CD = 1.5;   // บอส 👑 มีหัวใจ 3 ดวง เสียเฉพาะตอนบอสเอาหัวชนตัวผู้เล่น (เครื่องผู้เล่นส่ง bhit มา) · บอทธรรมดาชนครั้งเดียวตายเหมือนเดิม
 const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, DROP_TTL = 30;
+const RAGE_SPD = .12, RAGE_TURN = .15;   // บอสเสียหัวใจ 1 ดวง → เร็วขึ้น 12% เลี้ยวไว 15% (ต้องตรงกับ index.html)
+const bossRage = w => w.isBoss ? Math.max(0, (w.maxHp || BOSS_HEARTS) - w.hp) : 0;
 const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: BOSS_HEARTS };   // ระดับ Normal
 const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
 const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
@@ -112,8 +114,8 @@ function bodyNear(S, room, x, y, rad, self) {
 function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
   if (ai.t <= 0) {
-    ai.t = rnd(D.think[0], D.think[1]); ai.hunt = null;
-    let bh = null, bd0 = 1100;
+    ai.t = rnd(D.think[0], D.think[1]) / (1 + .4 * bossRage(w)); ai.hunt = null;
+    let bh = null, bd0 = 1100 + 250 * bossRage(w);
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
     else if (w.mass > 22) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human;
@@ -128,8 +130,8 @@ function aiThink(S, room, w, f, trains) {
   }
   let tx = ai.tx, ty = ai.ty, boost = false;
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
-    if (d > (w.isBoss ? 1300 : 850)) ai.hunt = null;
-    else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 && w.mass > 18; } }
+    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : 850)) ai.hunt = null;
+    else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 + 150 * bossRage(w) && w.mass > 18; } }
   else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
   if (Math.hypot(h.x, h.y) > arenaR(room) - 350) { tx = 0; ty = 0; boost = false; }
   const want = Math.atan2(ty - h.y, tx - h.x), lk = w.isBoss ? 1.3 : D.look, near = (r * 1.4 + 25) * lk, look = (r * 3 + 65) * lk;
@@ -144,8 +146,8 @@ function aiThink(S, room, w, f, trains) {
 function portalOpen(room, p) { const q = room.sim.world.portals[p.pair], AR = arenaR(room); return Math.hypot(q.x, q.y) < AR - PORTAL_EDGE && Math.hypot(p.x, p.y) < AR - 60; }
 function moveBot(S, room, w, f, dt) {
   const r = rOf(w.mass); let d = w.target - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d));
-  const tr = .12 / (1 + r / 30) * f; w.angle += Math.max(-tr, Math.min(tr, d));
-  let sp = 2.7; if (onRail(S.world, w.pts[0], w.angle)) sp *= 1.6; if (w.slow > 0) { w.slow -= dt; sp *= .45; }
+  const rg = bossRage(w), tr = .12 / (1 + r / 30) * f * (1 + RAGE_TURN * rg); w.angle += Math.max(-tr, Math.min(tr, d));
+  let sp = 2.7 * (1 + RAGE_SPD * rg); if (onRail(S.world, w.pts[0], w.angle)) sp *= 1.6; if (w.slow > 0) { w.slow -= dt; sp *= .45; }
   if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
   const h = w.pts[0]; h.x += Math.cos(w.angle) * sp * f; h.y += Math.sin(w.angle) * sp * f; follow(w);
   (w.hist || (w.hist = [])).push(h.x, h.y); if (w.hist.length > LAG_STEPS * 2 + 2) w.hist.splice(0, 2);   // ตำแหน่งหัวย้อนหลัง (ไว้ชดเชยดีเลย์)
@@ -153,7 +155,7 @@ function moveBot(S, room, w, f, dt) {
   if (w.tunCD > 0) w.tunCD -= dt; else for (const p of S.world.portals) if ((h.x - p.x) ** 2 + (h.y - p.y) ** 2 < 38 * 38) { if (!portalOpen(room, p)) break;
     tunStart(S.world, w, p); w.hist = null; w.tunCD = 1.5; w.safe = Math.max(w.safe, TUNNEL_SAFE); break; }
   if (w.mass > w.maxLen) w.maxLen = w.mass;
-  if (w.isBoss && w.energy < 20) w.energy += dt * .5;
+  if (w.isBoss && w.energy < 20) w.energy += dt * .5 * (1 + bossRage(w));
   if (h.x * h.x + h.y * h.y > (arenaR(room) - r * .5) ** 2) killBot(room, w, null);
 }
 

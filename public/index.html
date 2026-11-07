@@ -105,7 +105,7 @@ input:focus{border-color:#77ccff}
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
 #bossDown{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;width:max-content;max-width:72vw;line-height:1.25;text-align:center;background:rgba(15,19,48,.88);border:1.5px solid rgba(255,210,63,.55);border-radius:12px;padding:4px 14px;
   font:700 clamp(14px,4vw,22px) Mitr,sans-serif;color:#ffd23f;text-shadow:0 0 8px rgba(255,170,0,.5),0 2px 0 rgba(60,30,0,.85);opacity:0}
-#bossDown b{color:#fff}#bossDown small{display:block;font-size:.72em;color:#ffe9a8}
+#bossDown b{color:#fff}#bossDown.rage{color:#ff6b6b;border-color:rgba(255,80,80,.6);text-shadow:0 0 8px rgba(255,0,0,.5),0 2px 0 rgba(60,0,0,.85)}#bossDown small{display:block;font-size:.72em;color:#ffe9a8}
 #bossDown.go{animation:bossDownA 4.5s ease-out forwards}
 @keyframes bossDownA{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}8%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
 @keyframes bossBlink{0%{opacity:0;transform:translateX(-50%) scale(1.25)}10%{opacity:1;transform:translateX(-50%) scale(1)}28%{opacity:.15}45%{opacity:1}75%{opacity:1}100%{opacity:0}}
@@ -856,9 +856,15 @@ function addFood(x,y,v,ttl){if(NET)return;let ci;
 function addPu(){const[x,y]=randInWorld(150),k=Object.keys(PU_TYPES);pups.push({x,y,type:k[(Math.random()*k.length)|0],dead:false,ph:Math.random()*TAU})}
 function addWhite(){const[x,y]=gemInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
 const key=(cx,cy)=>(cx+500)*1000+(cy+500);
+// บอสโกรธ (เจ้าของสั่ง 7 พ.ย.): เสียหัวใจ 1 ดวง → เร็วขึ้น 12% เลี้ยวไว 15% ไล่ไกลขึ้น เร่งบ่อยขึ้น (ต้องตรงกับ botsim.js)
+const RAGE_SPD=.12,RAGE_TURN=.15;
+const bossRage=w=>w.isBoss?Math.max(0,(w.maxHp||BOSS_HEARTS)-(w.hp??w.maxHp??BOSS_HEARTS)):0;
+function bossRageMsg(left,max){const e=$('bossDown');e.classList.add('rage');
+  e.innerHTML=`💢 บอสโกรธแล้ว! เร็วขึ้น<small>เหลือ ${'❤️'.repeat(left)}${'🤍'.repeat(Math.max(0,(max||BOSS_HEARTS)-left))}</small>`;
+  e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}
 // ล้มบอส: แบนเนอร์ทองบนสุดของจอ บอกทุกคนว่าใครล้ม (ไม่บังรถไฟ · เจ้าของสั่ง 7 พ.ย.) · name=null = เราเอง
 function bossDown(name,me){const e=$('bossDown'),esc=t=>String(t).replace(/[<>&]/g,'');
-  e.innerHTML=me?`👑 คุณล้มบอสรถไฟยักษ์ได้!<small>+${BOSS_COINS.toLocaleString()} 🪙</small>`:name?`👑 <b>${esc(name)}</b><small>ล้มบอสรถไฟยักษ์ได้!</small>`:'👑 บอสรถไฟยักษ์ถูกทำลายแล้ว';
+  e.classList.remove('rage');e.innerHTML=me?`👑 คุณล้มบอสรถไฟยักษ์ได้!<small>+${BOSS_COINS.toLocaleString()} 🪙</small>`:name?`👑 <b>${esc(name)}</b><small>ล้มบอสรถไฟยักษ์ได้!</small>`:'👑 บอสรถไฟยักษ์ถูกทำลายแล้ว';
   e.classList.remove('go');void e.offsetWidth;e.classList.add('go');$('bossWarn').classList.remove('go');if(me)sfx('coin')}
 function bossWarn(){const e=$('bossWarn');e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}   // บอสโผล่: ตัวหนังสือแดงบนสุดกะพริบ 2 ที (เจ้าของสั่ง 6 พ.ย. 22:55)
 let annT=null;function announce(m){const a=$('ann');a.innerHTML=iconize(String(m).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'})[c]));a.classList.add('show');clearTimeout(annT);annT=setTimeout(()=>a.classList.remove('show'),3000)}
@@ -888,8 +894,8 @@ class Worm{
   update(f,dt){
     const r=this.r();
     let d=this.target-this.angle;d=Math.atan2(Math.sin(d),Math.cos(d));
-    const tr=.12/(1+r/30)*f;this.angle+=Math.max(-tr,Math.min(tr,d));
-    let sp=2.7;if(this.pu.speed>0)sp*=1.4;
+    const rg=bossRage(this),tr=.12/(1+r/30)*f*(1+RAGE_TURN*rg);this.angle+=Math.max(-tr,Math.min(tr,d));
+    let sp=2.7*(1+RAGE_SPD*rg);if(this.pu.speed>0)sp*=1.4;
     this.onRail=onRail(this.pts[0],this.angle);if(this.onRail)sp*=1.6;
     if(this.slow>0){this.slow-=dt;sp*=.45}
     const boosting=this.boost&&this.energy>0;
@@ -900,7 +906,7 @@ class Worm{
     if(this.safe>0)this.safe-=dt;if(this.ghost>0)this.ghost-=dt;if(this.selfCD>0)this.selfCD-=dt;
     if(this.tun)this.tun.t+=dt;if(this.tunCD>0)this.tunCD-=dt;else checkTunnel(this);
     if(this.mass>this.maxMass)this.maxMass=this.mass;
-    if(this.isBoss&&this.energy<maxEn(this))this.energy+=dt*.5;
+    if(this.isBoss&&this.energy<maxEn(this))this.energy+=dt*.5*(1+bossRage(this));
     if(h.x*h.x+h.y*h.y>(AR-r*.5)**2)this.die(null);
   }
   die(killer){
@@ -950,8 +956,8 @@ const BOSS_HEARTS=3,BOSS_HIT_CD=1.5;
 function aiThink(w,f){
   const h=w.pts[0],r=w.r(),ai=w.ai;ai.t-=f;
   if(ai.t<=0){
-    ai.t=rnd(D().think[0],D().think[1]);ai.hunt=null;if(D().regen)w.energy=Math.min(maxEn(w),w.energy+D().regen*ai.t/60);
-    let bh=null,bd0=1500;if(w.isBoss)for(const o of worms){if(!o.alive||!isHum(o)||o.safe>0)continue;const d=Math.hypot(o.pts[0].x-h.x,o.pts[0].y-h.y);if(d<bd0){bd0=d;bh=o}}
+    ai.t=rnd(D().think[0],D().think[1])/(1+.4*bossRage(w));ai.hunt=null;if(D().regen)w.energy=Math.min(maxEn(w),w.energy+D().regen*ai.t/60);
+    let bh=null,bd0=1500+300*bossRage(w);if(w.isBoss)for(const o of worms){if(!o.alive||!isHum(o)||o.safe>0)continue;const d=Math.hypot(o.pts[0].x-h.x,o.pts[0].y-h.y);if(d<bd0){bd0=d;bh=o}}
     if(bh)ai.hunt=bh;
     else if(w.mass>22){let bd=1e9;for(const o of worms){if(o===w||!o.alive||ally(o,w))continue;const oh=o.pts[0],d=Math.hypot(oh.x-h.x,oh.y-h.y);
       const hu=isHum(o);if(!(hu&&o.safe>0)&&d<(hu?D().huntR:380)&&d<bd&&Math.random()<(hu?D().huntP:D().others)){bd=d;ai.hunt=o}}}
@@ -966,8 +972,8 @@ function aiThink(w,f){
   let tx=ai.tx,ty=ai.ty,boost=false;
   if(ai.hunt&&ai.hunt.alive){
     const o=ai.hunt,oh=o.pts[0],d=Math.hypot(oh.x-h.x,oh.y-h.y);
-    if(d>(w.isBoss?1600:850))ai.hunt=null;
-    else{const lead=60+o.r()*3+d*.45;tx=oh.x+Math.cos(o.angle)*lead;ty=oh.y+Math.sin(o.angle)*lead;boost=d<450&&w.mass>18}
+    if(d>(w.isBoss?1600+300*bossRage(w):850))ai.hunt=null;
+    else{const lead=60+o.r()*3+d*.45;tx=oh.x+Math.cos(o.angle)*lead;ty=oh.y+Math.sin(o.angle)*lead;boost=d<450+150*bossRage(w)&&w.mass>18}
   }else if(ai.boostT>0){ai.boostT-=f;boost=true}
   if(Math.hypot(h.x,h.y)>AR-350){tx=0;ty=0;boost=false}
   const want=Math.atan2(ty-h.y,tx-h.x);
@@ -986,8 +992,9 @@ const LOCOS=['classic','classic','diesel','bullet'];
 // ---------- บอสมีพลังชีวิต (HP) ----------
 const BOSS_COINS=500,BOSS_DMG={body:12,head:35,gold:25,bomb:50};
 function bossHurt(b,by){if(!b||!b.alive||!b.isBoss)return;const h=b.pts[0];b.hitFx=.35;const left=Math.max(0,(b.hp??BOSS_HEARTS)-1);
-  texts.push({x:h.x,y:h.y-80,txt:left?'💔 บอสเหลือ '+left+' หัวใจ':'💔 บอสหมดหัวใจ!',t:1.6,c:'#ff7b9a'});if(by&&by.isP)track('bossHits');
-  if(b.isRemote){netSend({t:'bhit',id:b.netId});b.hp=Math.max(1,left);return}   // ออนไลน์: เซิร์ฟเวอร์ลดหัวใจจริงแล้วส่งกลับมา
+  if(by&&by.isP)track('bossHits');
+  if(b.isRemote){netSend({t:'bhit',id:b.netId});const o=b.hp;b.hp=Math.max(1,left);if(b.hp<o)bossRageMsg(b.hp,b.maxHp);return}
+  if(left>0)bossRageMsg(left,b.maxHp||BOSS_HEARTS);   // ออนไลน์: เซิร์ฟเวอร์ลดหัวใจจริงแล้วส่งกลับมา
   b.hp=left;b.angle+=Math.PI;b.target=b.angle;b.safe=Math.max(b.safe,BOSS_HIT_CD);if(b.hp<=0)b.die(by)}
 // ชนบอส (เจ้าของสั่ง 6 พ.ย. 21:40): เอาหัวชน "ตัว" บอส = ตาย เหมือนชนขบวนอื่น · ชนได้เฉพาะ "หัว" บอส (หัวชนหัว) = บอสเสีย 1 หัวใจ เราเด้งกลับ + เกราะ 1.5 วิ
 const BOSS_HEAD_IDX=8;
@@ -1247,7 +1254,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(w.team)glowAlong(w,w.team==='A'?'rgba(255,94,94,.16)':'rgba(77,163,255,.16)',1.45,vx0,vy0,vx1,vy1,M);
   if(w.gold){const pl=.5+.5*Math.sin(frame*.15);glowAlong(w,`rgba(255,210,63,${.18+.17*pl})`,1.9,vx0,vy0,vx1,vy1,M);
     if(frame%(4*QSMOKE[QUAL])===0)smoke.push({x:p[(Math.random()*n)|0].x+rnd(-r,r),y:p[(Math.random()*n)|0].y+rnd(-r,r),r:3,t:.6,k:'gold'})}
-  if(w.isBoss)glowAlong(w,`rgba(255,40,40,${.12+.08*Math.sin(frame*.1)})`,1.7,vx0,vy0,vx1,vy1,M);
+  if(w.isBoss){const rg=bossRage(w);glowAlong(w,`rgba(255,${40-15*rg},${40-15*rg},${.12+.1*rg+(.08+.06*rg)*Math.sin(frame*(.1+.08*rg))})`,1.7+.35*rg,vx0,vy0,vx1,vy1,M)}
   // ขบวนที่มีเกราะ (ออกจากอุโมงค์/เด้งจากบอส) หัวชนใครก็ไม่ตาย → วาดโล่สีทองรอบหัวให้เห็นชัด จะได้ไม่งงว่าทำไมชนแล้วไม่ตาย
   if(w.safe>0&&!(w.ghost>0)&&w.alive){const h0=p[0],pl=.5+.5*Math.sin(frame*.3);ctx.strokeStyle=`rgba(255,210,63,${.55+.35*pl})`;ctx.lineWidth=3.5;ctx.beginPath();ctx.arc(h0.x,h0.y,r*1.9+5*pl,0,TAU);ctx.stroke();
     ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='center';ctx.fillStyle='#ffd23f';ctx.fillText('🛡️',h0.x,h0.y-r*1.9-10)}
@@ -1641,7 +1648,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['🚂 หัวจักร','หัวที่ดีกว่าในร้านค้า: เก็บพลอยได้ไกลขึ้น · ระเบิดและร่างทองอยู่ได้นานขึ้น · พลังเร่งเก็บได้มากกว่า 20 วิ'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','โผล่ทุก ๆ 2 นาที มีหัวใจ ❤️❤️❤️ (เห็นเหนือชื่อบอส)'],
-  ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
+  ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ที่ 1/2–3 โหมดจับเวลา +10/+5 · ชนะ 2v2 +15<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบฤดูกาลได้ตามขั้นแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
@@ -1933,7 +1940,7 @@ function netMsg(m){
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
         if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||BOSS_HEARTS;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
-        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;w.hasBomb=!!(fl&64);if(hp!==undefined&&w.isBoss)w.hp=hp}
+        netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;w.hasBomb=!!(fl&64);if(hp!==undefined&&w.isBoss){if(w.alive&&hp>0&&hp<(w.hp??hp))bossRageMsg(hp,w.maxHp||BOSS_HEARTS);w.hp=hp}}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
     case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;
