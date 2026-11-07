@@ -1638,12 +1638,12 @@ function render(){
     if(t.me){meT.push(t);continue}
     ctx.globalAlpha=Math.min(1,t.t);ctx.font='600 18px Mitr,sans-serif';ctx.fillStyle=t.c;ctx.textAlign='center';fillTextIcons(t.txt,t.x,t.y)}
   ctx.globalAlpha=1;ctx.restore();
-  if(meT.length)drawMeToasts(meT.slice(-3));
   if(player&&(state==='play'||state==='dead'||state==='over'))drawHUD();
+  if(meT.length)drawMeToasts(meT.slice(-3));   // วาดทับแถบข้อมูล/มินิแมป
 }
-function drawMeToasts(list){const LSc=VH-SAFE.t-SAFE.b<500,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y0=LSc?SAFE.t+62:VH-SAFE.b-170;   // แนวตั้ง: เหนือปุ่มล่างจอ เรียงขึ้น · แนวนอน (จอเตี้ย): ใต้ประกาศบนสุด เรียงลง
+function drawMeToasts(list){const LSc=VH-SAFE.t-SAFE.b<500,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y0=SAFE.t+(LSc?62:128);   // ข้างบนจอใต้ประกาศ เรียงลง (เจ้าของสั่ง 20:06) · แนวตั้งเลยแถบข้อมูลบนจอลงมา
   ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='600 15px Mitr,sans-serif';
-  list.slice().reverse().forEach((t,i)=>{const y=LSc?y0+i*26:y0-i*26,a=Math.min(1,t.t*1.5);ctx.globalAlpha=a;
+  list.slice().reverse().forEach((t,i)=>{const y=y0+i*26,a=Math.min(1,t.t*1.5);ctx.globalAlpha=a;
     const w=Math.min(VW*.9,ctx.measureText(t.txt.replace(/\{[A-Z]\}/g,'  ')).width+26);ctx.fillStyle='rgba(10,13,35,.62)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-11,w,22,11):ctx.rect(x-w/2,y-11,w,22);ctx.fill();
     ctx.fillStyle=t.c;fillTextIcons(t.txt,x,y+5)});
   ctx.restore()}
