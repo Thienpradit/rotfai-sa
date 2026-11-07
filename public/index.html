@@ -99,6 +99,7 @@ input:focus{border-color:#77ccff}
 @keyframes pulse{50%{transform:scale(1.08)}}
 #ann{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);z-index:8;background:rgba(15,19,48,.9);border:2px solid #ffd23f;padding:10px 16px;border-radius:14px;font-size:16px;text-align:center;max-width:84vw;pointer-events:none;opacity:0;transition:opacity .3s}
 #ann.show{opacity:1}
+#ann.low{top:calc(6px + env(safe-area-inset-top));transform:translate(-50%,0);font-size:13.5px;padding:6px 12px;max-width:70vw;background:rgba(15,19,48,.78);border-width:1.5px}   /* ระหว่างเล่น: ขึ้นบนสุดของจอ ไม่บังหัวรถไฟ (เจ้าของสั่ง 7 พ.ย. 20:03) */
 /* บอสโผล่: ตัวหนังสือแดงจาง ๆ บนสุดของจอ กะพริบ 2 ครั้งแล้วหาย (ไม่บังจอเล่น) */
 #bossWarn{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;
   font:800 clamp(18px,5.2vw,28px) Mitr,sans-serif;letter-spacing:2px;color:rgba(255,40,40,.78);text-shadow:0 0 10px rgba(255,0,0,.55),0 2px 0 rgba(60,0,0,.8);opacity:0}
@@ -1019,7 +1020,7 @@ function bossDown(name,me){const e=$('bossDown'),esc=t=>String(t).replace(/[<>&]
   e.classList.remove('rage');e.innerHTML=me?`👑 คุณล้มบอสรถไฟยักษ์ได้!<small>+${BOSS_COINS.toLocaleString()} 🪙</small>`:name?`👑 <b>${esc(name)}</b><small>ล้มบอสรถไฟยักษ์ได้!</small>`:'👑 บอสรถไฟยักษ์ถูกทำลายแล้ว';
   e.classList.remove('go');void e.offsetWidth;e.classList.add('go');$('bossWarn').classList.remove('go');if(me)sfx('coin')}
 function bossWarn(){const e=$('bossWarn');e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}   // บอสโผล่: ตัวหนังสือแดงบนสุดกะพริบ 2 ที (เจ้าของสั่ง 6 พ.ย. 22:55)
-let annT=null;function announce(m){const a=$('ann');a.innerHTML=iconize(String(m).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'})[c]));a.classList.add('show');clearTimeout(annT);annT=setTimeout(()=>a.classList.remove('show'),3000)}
+let annT=null;function announce(m){const a=$('ann');a.classList.toggle('low',state==='play'||state==='dead');a.innerHTML=iconize(String(m).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'})[c]));a.classList.add('show');clearTimeout(annT);annT=setTimeout(()=>a.classList.remove('show'),3000)}
 function calcAR(){const tl=NET?NET.timeLeft:timeLeft;if(mode==='time'||mode==='online'){const S=mode==='online'?(NET&&NET.shrink||120):150;if(tl<S)return WR*(.3+.7*Math.max(0,tl)/S)}return WR}
 
 // =====================================================================
@@ -1631,10 +1632,21 @@ function render(){
     ctx.strokeStyle=e.ice?`rgba(200,245,255,${a})`:`rgba(255,140,40,${a})`;ctx.lineWidth=18*a+2;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.stroke();
     ctx.strokeStyle=`rgba(255,255,255,${a})`;ctx.lineWidth=5;ctx.beginPath();ctx.arc(e.x,e.y,R*p*.7,0,TAU);ctx.stroke()}
   drawParts();
-  for(const t of texts){ctx.globalAlpha=Math.min(1,t.t);ctx.font='600 18px Mitr,sans-serif';ctx.fillStyle=t.c;ctx.textAlign='center';fillTextIcons(t.txt,t.x,t.y)}
+  // ข้อความลอยที่เกิดตรงหัวรถไฟเรา (เก็บของ/กำจัด/ขบวนขาด ฯลฯ) → ย้ายไปแถบล่างจอ ไม่บังหัวรถไฟ (เจ้าของสั่ง 7 พ.ย. 20:03)
+  const meT=[];
+  for(const t of texts){if(t.me===undefined){const h=player&&player.pts&&player.pts[0];t.me=!!(h&&state!=='menu'&&Math.hypot(t.x-h.x,t.y-h.y)<120)}
+    if(t.me){meT.push(t);continue}
+    ctx.globalAlpha=Math.min(1,t.t);ctx.font='600 18px Mitr,sans-serif';ctx.fillStyle=t.c;ctx.textAlign='center';fillTextIcons(t.txt,t.x,t.y)}
   ctx.globalAlpha=1;ctx.restore();
+  if(meT.length)drawMeToasts(meT.slice(-3));
   if(player&&(state==='play'||state==='dead'||state==='over'))drawHUD();
 }
+function drawMeToasts(list){const LSc=VH-SAFE.t-SAFE.b<500,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y0=LSc?SAFE.t+62:VH-SAFE.b-170;   // แนวตั้ง: เหนือปุ่มล่างจอ เรียงขึ้น · แนวนอน (จอเตี้ย): ใต้ประกาศบนสุด เรียงลง
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='600 15px Mitr,sans-serif';
+  list.slice().reverse().forEach((t,i)=>{const y=LSc?y0+i*26:y0-i*26,a=Math.min(1,t.t*1.5);ctx.globalAlpha=a;
+    const w=Math.min(VW*.9,ctx.measureText(t.txt.replace(/\{[A-Z]\}/g,'  ')).width+26);ctx.fillStyle='rgba(10,13,35,.62)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-11,w,22,11):ctx.rect(x-w/2,y-11,w,22);ctx.fill();
+    ctx.fillStyle=t.c;fillTextIcons(t.txt,x,y+5)});
+  ctx.restore()}
 function drawHUD(){
   const W0=VW,H0=VH;VW-=SAFE.l+SAFE.r;VH-=SAFE.t+SAFE.b;ctx.save();ctx.translate(SAFE.l,SAFE.t);try{drawHUD2()}finally{ctx.restore();VW=W0;VH=H0}
 }
