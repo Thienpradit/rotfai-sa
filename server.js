@@ -241,7 +241,7 @@ wss.on('connection', (ws, req) => {
         if (!room.ffa && a.team === me.team) break;
         if (now - (a.crashT || 0) < 1500) break;
         const b = me.body; let near = false;
-        if (b) for (let i = 0; i < b.pts.length; i += 3) { const q = b.pts[i]; if ((q.x - a.st.x) ** 2 + (q.y - a.st.y) ** 2 < 400 * 400) { near = true; break; } }
+        if (b) for (let i = 0; i < b.pts.length; i += 3) { const q = b.pts[i]; if ((q.x - a.st.x) ** 2 + (q.y - a.st.y) ** 2 < 260 * 260) { near = true; break; } }
         if (!near) break;
         a.crashT = now; send(a.ws, { t: 'crash', k: me.id }); break;
       }

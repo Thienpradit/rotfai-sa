@@ -1118,6 +1118,12 @@ function bodyNear(x,y,rad,self){
 //  AI
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
+// คนชนคน (8 พ.ย. 2026 เจ้าของสั่ง): ตายเฉพาะ "ปลายหัว" (จมูกรถจักร) แตะขบวนอื่น · เฉียดข้างหัวกัน = คนที่เอาปลายหัวชนตายคนเดียว · หัวชนหัวตรง ๆ = ตายทั้งคู่
+// ผู้เล่นที่เพิ่งโผล่บนจอเรา (ยังโหลดไม่ครบ PVP_SEEN ms) ยังชนกันไม่ได้ ทั้งเราชนเขาและเขาชนเรา
+const TIP_F=.5,TIP_R=.45,PVP_SEEN=600,CRASH_TOL=160;
+function tipOf(w){const h=w.pts[0],r=w.r();return{x:h.x+Math.cos(w.angle)*r*TIP_F,y:h.y+Math.sin(w.angle)*r*TIP_F,r:r*TIP_R}}
+const pvpPair=(w,o)=>o!==w&&isHum(w)&&isHum(o);
+const pvpFresh=o=>o.isRemote&&!o.isBot&&performance.now()-(o.seenAt||0)<PVP_SEEN;
 // บอส 👑 มีหัวใจ 3 ดวง (เจ้าของสั่ง 6 พ.ย. 2026): บอสเสียหัวใจ "เฉพาะตอนบอสเอาหัวมาชนตัวเรา" (ชนแล้วบอสเด้งกลับ เราไม่ขาด) ครบ 3 ครั้งบอสตาย
 // เราพุ่งชนบอส / ระเบิด / ร่างทอง ไม่ลดหัวใจบอส · บอทธรรมดาเหมือนเดิม (ชนตัวเราครั้งเดียวตาย)
 const BOSS_HEARTS=3,BOSS_HIT_CD=1.5;
@@ -1326,10 +1332,11 @@ function step(f,dt){
   // collisions
   for(const w of worms){
     if(!w.alive||w.safe>0||w.isRemote)continue;const h=w.pts[0],r=w.r(),cx=Math.floor(h.x/CS),cy=Math.floor(h.y/CS);
-    let hit=null,hitIdx=0,cut=-1;
+    let hit=null,hitIdx=0,cut=-1,tip=null;
     for(let gx=cx-1;gx<=cx+1&&!hit;gx++)for(let gy=cy-1;gy<=cy+1&&!hit;gy++){const a=bgrid.get(key(gx,gy));if(!a)continue;
       for(let k=0;k<a.length;k+=2){const o=a[k],idx=a[k+1];if(!o.alive)continue;if(o===w&&(idx<SELF_IDX||w.selfCD>0))continue;if(o!==w&&(ally(o,w)||o.ghost>0))continue;
-        const q=o.pts[idx];if(!q)continue;const rr=r*.7+o.r()*.9,dx=q.x-h.x,dy=q.y-h.y;
+        const q=o.pts[idx];if(!q)continue;let rr=r*.7+o.r()*.9,dx=q.x-h.x,dy=q.y-h.y;
+        if(pvpPair(w,o)){if(pvpFresh(o))continue;tip=tip||tipOf(w);rr=tip.r+o.r()*.85;dx=q.x-tip.x;dy=q.y-tip.y}   // คนชนคน: ใช้ปลายหัว
         if(dx*dx+dy*dy<rr*rr){if(o===w){if(cut<0||idx<cut)cut=idx}else if(!(idx>0&&inMouth(q))){hit=o;hitIdx=idx;break}}}}
     if(hit&&w.isBoss&&hit.isP){shake=.4;booms.push({x:w.pts[0].x,y:w.pts[0].y,t:.6});sfx('kill');bossHurt(w,hit)}   // บอสชนเรา → บอสเสียหัวใจ เด้งกลับ (เราไม่ขาด)
     else if(hit&&w.isBoss){   // บอสชนบอทตัวอื่น → ขบวนนั้นขาด (บอสไม่ตาย)
@@ -1347,8 +1354,8 @@ function step(f,dt){
   // ออนไลน์ คนชนคน: หัวผู้เล่นคนอื่น (ตามที่เราเห็นบนจอ) แตะลำตัวเรา → แจ้งเซิร์ฟเวอร์ให้คนนั้นตาย (เดิมแต่ละเครื่องเห็นอีกฝ่ายช้ากว่าจริง ตัดหน้าแล้วอีกฝ่ายวิ่งผ่านไปได้)
   if(NET&&player&&player.alive&&!(player.ghost>0)){const P=player.pts,pr=player.r();
     for(const w of worms){if(!w.alive||!w.isRemote||w.isBot||ally(w,player)||w.ghost>0||w.safe>0||(w.hitT&&performance.now()-w.hitT<1500))continue;
-      const h=w.pts[0],rr=w.r()*.7+pr*.9;
-      for(let i=4;i<P.length;i+=2){const q=P[i];if((q.x-h.x)**2+(q.y-h.y)**2<rr*rr){if(!inMouth(q)){w.hitT=performance.now();netSend({t:'hitme',id:w.netId})}break}}}}
+      if(pvpFresh(w))continue;const h=tipOf(w),rr=h.r+pr*.85;   // ปลายหัวของเขาแตะตัวเรา (รวมข้างหัวเรา)
+      for(let i=0;i<P.length;i+=2){const q=P[i];if((q.x-h.x)**2+(q.y-h.y)**2<rr*rr){if(!(i>0&&inMouth(q))){w.hitT=performance.now();netSend({t:'hitme',id:w.netId})}break}}}}
   // eating
   for(const w of worms){
     if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,lb=LOCO_PICK[w.loco]||0,reach=r+mr+14+lb,mult=w.pu.x3>0?3:1;
@@ -2297,7 +2304,7 @@ function netMsg(m){
       for(const a of m.p){let[id,x,y,an,ms,fl,ts,hp]=a;if(m.T){if(id<0)id=id-1e8+1;ts=m.T+(ts||0)}if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;
         const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
-        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||BOSS_HEARTS;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
+        if(alive&&(!w||!w.alive)){worms=worms.filter(o=>o!==w);w=new Worm(info.name,info.skin,x,y,false,{loco:info.loco,smoke:info.smoke,wag:info.wag,kfx:info.kfx,title:info.title,a:an});w.isRemote=true;w.netId=id;w.seenAt=performance.now();if(bi){w.isBot=true;if(bi.team)w.team=bi.team;if(bi.boss){w.isBoss=true;w.maxHp=bi.mhp||BOSS_HEARTS;w.hp=w.maxHp;bossActive=w}}else{w.team=info.team;w.rk=info.rk}w.mass=ms;worms.push(w)}
         if(!w)continue;if(!alive){w.alive=false;continue}
         netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;w.hasBomb=!!(fl&64);w.hslow=fl&128?1:0;if(hp!==undefined&&w.isBoss){if(w.alive&&hp>0&&hp<(w.hp??hp))bossRageMsg(hp,w.maxHp||BOSS_HEARTS);w.hp=hp}}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
@@ -2309,7 +2316,8 @@ function netMsg(m){
     case'pa':for(const a of m.p)pups.push({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false});break;
     case'pr':for(const p of pups)if(p.id===m.id)p.dead=true;break;
     case'it':{const hadG=!!goldItem,hadT=!!tgsItem;setItems(m.items);if(!hadG&&goldItem)announce('{G} ทองคำแท่งปรากฏแล้ว!');if(!hadT&&tgsItem)announce('{B} ระเบิดปรากฏแล้ว!');break}
-    case'crash':if(player&&player.alive&&!(player.ghost>0)&&!(player.safe>0)){const k=worms.find(o=>o.netId===m.k);const h=player.pts[0];   // อีกฝ่ายเห็นเราชนลำตัวเขา
+    case'crash':if(player&&player.alive&&!(player.ghost>0)&&!(player.safe>0)){const k=worms.find(o=>o.netId===m.k);const h=player.pts[0];
+      if(!crashOk(k,h))break;   // ไม่เห็นขบวนนั้นบนจอเรา / เพิ่งโผล่ / อยู่ไกลจากหัวเรา → ไม่ตาย   // อีกฝ่ายเห็นเราชนลำตัวเขา
       texts.push({x:h.x,y:h.y-40,txt:'💥 ชนขบวน '+(k?k.name:'')+'!',t:1.6,c:'#ff5e5e'});player.die(k||null)}break;
     case'kill':{const w=worms.find(o=>o.netId===m.v);
       if(m.v>0&&m.k>0&&m.v!==m.k)pvpFeed(m.k,m.v);   // ผู้เล่นจริงกำจัดผู้เล่นจริง → ประกาศให้ทุกคนเห็น
@@ -2360,6 +2368,10 @@ function netSpawnMe(sp){
 }
 // ---- การเคลื่อนไหวของรถไฟคนอื่นให้ลื่น: เก็บสถานะพร้อมเวลาของเครื่องผู้ส่ง แล้ววาดย้อนหลัง INTERP ms โดยเลื่อนระหว่างสองสถานะ ----
 const INTERP=130;
+function crashOk(k,h){   // เครื่องอื่นบอกว่าเราเอาหัวชนเขา → ยอมตายเฉพาะเมื่อบนจอเราเห็นเขาจริงและหัวเราอยู่ใกล้ตัวเขา
+  if(!k||!k.alive||!k.pts||!k.pts.length||pvpFresh(k))return false;
+  const lim=(player.r()+k.r()+CRASH_TOL)**2;for(let i=0;i<k.pts.length;i+=2){const q=k.pts[i];if((q.x-h.x)**2+(q.y-h.y)**2<lim)return true}
+  return false}
 function netSnap(w,x,y,a,m,ts){
   const now=Date.now();ts=+ts||now;const s=w.snaps||(w.snaps=[]);
   if(s.length&&ts<=s[s.length-1].t)return;                       // ซ้ำหรือมาช้ากว่าอันล่าสุด ข้าม
