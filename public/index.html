@@ -513,17 +513,12 @@ function ensureDaily(){const k=todayKey(),old=prof.daily;
   while(ms.length<DAILY_N){const d=pick(i=>!MG_VS.includes(i));if(!d)break;ms.push(mkMission(d))}
   prof.daily={date:k,m:ms};saveProf()}
 ensureDaily();
-// ⚔️ 2v2 ไม่นับเข้าสถิติ/แรงก์/ตารางอันดับ (เจ้าของสั่ง 10 พ.ย. 2026) — นับเฉพาะของที่เป็นของ 2v2 เอง (ภารกิจ 2v2, เหรียญตราชนะ 2v2) · เหรียญยังได้
-const VS_KEEP=new Set(['vsGames','vsKills','teamWin']);
-const vsNoStat=k=>!!(NET&&!NET.ffa)&&!VS_KEEP.has(k);
 function track(k,n=1){
-  if(vsNoStat(k))return;
   prof.st[k]=(prof.st[k]||0)+n;
   for(const m of prof.daily.m){const d=MP[m.id];if(d&&d.ev===k&&!d.max)m.p=Math.min(m.n,m.p+n)}
   profDirty=true;checkAch();
 }
 function trackMax(k,v){
-  if(vsNoStat(k))return;
   if(v>(prof.st[k]||0))prof.st[k]=v;
   for(const m of prof.daily.m){const d=MP[m.id];if(d&&d.ev===k&&d.max)m.p=Math.min(m.n,Math.max(m.p,Math.floor(v)))}
   profDirty=true;checkAch();
@@ -652,7 +647,7 @@ function prizeTableHTML(n,pos){const f=prizeScale(n),rows=[[1,1,'🥇 ที่ 
     ${ACCT.mode==='acct'?`<div class="przme">${pos>=1?`ถ้าจบตอนนี้ คุณอยู่อันดับที่ <b>${pos}</b> → ได้ <b>${mine.toLocaleString()} 🪙</b>`:'เล่นให้มี RP ในเดือนนี้ก่อน ถึงจะติดอันดับรับรางวัล'}</div>`:'<div class="przme">เข้าสู่ระบบ (ลงทะเบียน) ถึงจะติดอันดับรับรางวัลได้</div>'}
     <small>+ ฉายาประจำฤดูกาลตามขั้นแรงก์ · ขึ้นเดือนใหม่ RP ลดเหลือครึ่งหนึ่ง</small></div>`}
 function deathPenalty(score){const t=rankOf(prof.rp).t;return t>=1&&score<rpNeed(t)?rpLoss(t):0}
-function addRP(n){if(!n||(NET&&!NET.ffa))return;const b=rankOf(prof.rp);prof.rp=Math.max(0,prof.rp+n);prof.onrp=Math.min(prof.rp,Math.max(0,(prof.onrp||0)+n));/* onrp = RP ออนไลน์ (ตารางอันดับ/รางวัลจบเดือน) */roundRP+=n;profDirty=true;const a=rankOf(prof.rp);
+function addRP(n){if(!n)return;const b=rankOf(prof.rp);prof.rp=Math.max(0,prof.rp+n);prof.onrp=Math.min(prof.rp,Math.max(0,(prof.onrp||0)+n));/* onrp = RP ออนไลน์ (ตารางอันดับ/รางวัลจบเดือน) */roundRP+=n;profDirty=true;const a=rankOf(prof.rp);
   if(player)player.rk=a.code;
   if(a.code>b.code){announce('🎉 เลื่อนแรงก์เป็น '+a.ic+' '+a.name+'!');sfx('gold')}else if(a.code<b.code)announce('📉 แรงก์ตกเป็น '+a.ic+' '+a.name)}
 function rankHTML(earn){const r=rankOf(prof.rp);
@@ -689,12 +684,12 @@ function openProfile(name){openSheet('👤 '+name,b=>{b.innerHTML='<div class="h
     b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)}).catch(e=>{b.innerHTML=`<div class="help">❌ ${e.message||'โหลดไม่ได้'}</div><button class="btn alt" id="pfBack">‹ กลับ</button>`;b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)})})}
 // อธิบายการได้/เสียแรงก์ (เจ้าของขอ 6 พ.ย. 22:30) — ใช้ในหน้า 🏆 แรงก์ และ ❓ วิธีเล่น · ตัวเลขดึงจากค่าจริง (rpNeed/rpLoss/DIFF_RP/RANKS)
 function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-align:right;white-space:nowrap">${b2}</td></tr>`,tb=r=>`<table class="rkt">${r}</table>`;
-  return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2'))}
-    <div class="help" style="text-align:left;margin:4px 0 0">🌍 ได้ RP เฉพาะ<b>โหมดออนไลน์</b> เท่านั้น (⚔️ 2v2 ไม่นับ) · ตารางอันดับนับเฉพาะคะแนนจากโหมดออนไลน์<br>ตัวอย่าง: ยาว 600 + กำจัด 3 ตัว (ออนไลน์) = 10 + 6 = <b>+16 RP</b></div></div>
+  return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2')+row('ชนะ 2v2 / แพ้ 2v2','+15 / −5'))}
+    <div class="help" style="text-align:left;margin:4px 0 0">🌍 ได้ RP เฉพาะ<b>โหมดออนไลน์</b> และ <b>⚔️ 2v2</b> เท่านั้น · ตารางอันดับนับเฉพาะคะแนนจากโหมดออนไลน์<br>ตัวอย่าง: ยาว 600 + กำจัด 3 ตัว (ออนไลน์) = 10 + 6 = <b>+16 RP</b></div></div>
   <div class="rkbox"><b style="color:#ff7b7b">📉 แรงก์ลดเมื่อ</b>
     <div class="help" style="text-align:left;margin:4px 0">1) <b>ตายตอนขบวนยังสั้น</b> (ตั้งแต่แรงก์เงินขึ้นไป · ทองแดงไม่โดนหัก)</div>
     ${tb('<tr><th style="text-align:left">แรงก์</th><th style="text-align:right">ต้องยาวอย่างน้อย</th><th style="text-align:right">ไม่ถึงโดนหัก</th></tr>'+RANKS.slice(1).map((K,i)=>`<tr><td>${rankImg(i+1,null,18)} ${K.n}</td><td style="text-align:right">${rpNeed(i+1)}</td><td style="text-align:right;color:#ff7b7b">−${rpLoss(i+1)} RP</td></tr>`).join(''))}
-    <div class="help" style="text-align:left;margin:6px 0 0">2) <b>ขึ้นเดือนใหม่</b> RP เหลือครึ่งหนึ่ง แต่ได้เหรียญ + ฉายาตามขั้นที่ทำได้<br>ถ้า RP ต่ำกว่าเกณฑ์ของขั้นนั้น แรงก์จะตกลงทันที</div></div>
+    <div class="help" style="text-align:left;margin:6px 0 0">2) <b>แพ้ 2v2</b> −5 RP (ถ้าเล่นได้น้อยอาจติดลบ)<br>3) <b>ขึ้นเดือนใหม่</b> RP เหลือครึ่งหนึ่ง แต่ได้เหรียญ + ฉายาตามขั้นที่ทำได้<br>ถ้า RP ต่ำกว่าเกณฑ์ของขั้นนั้น แรงก์จะตกลงทันที</div></div>
   <div class="help" style="text-align:left">💡 เคล็ดลับ: แรงก์สูงแล้วอย่ารีบตาย — เก็บพลอยให้ยาวเกินเกณฑ์ก่อนค่อยไปไล่ล่า</div>`}
 // ตารางอันดับผู้เล่น: แรงก์ (ฤดูกาลนี้) / ยาวสุด / เหรียญ · เรียงอันดับ 1, 2, 3, ... + อันดับของเรา
 let lbBy='rp';const LB_TABS=[['rp','🏅 แรงก์'],['kills','💀 กำจัด'],['len','🚂 ยาวสุด']];   // เอาแท็บเหรียญออก (เจ้าของสั่ง 7 พ.ย. 13:05 — เหรียญใช้แล้วหมด ไม่ใช่ตัววัดฝีมือ)
@@ -709,7 +704,7 @@ function loadLb(b){const el=b.querySelector('#lbList');if(!el)return;el.innerHTM
     h+=j.top.length?j.top.map((u,i)=>row(u,i,ACCT.name&&u.name===ACCT.name)).join(''):'<div>ยังไม่มีใครติดอันดับ — เล่นเลยเพื่อเป็นคนแรก!</div>';
     if(j.me&&j.me.pos>j.top.length)h+=`<div class="gap">⋯</div>`+row({name:ACCT.name,val:j.me.val,rp:prof.rp,tid:prof.eq.title},j.me.pos-1,true);
     setTimeout(()=>el.querySelectorAll('.lbrow[data-name]').forEach(r=>{r.style.cursor='pointer';r.onclick=()=>openProfile(r.dataset.name)}));
-    el.innerHTML=h+'<div class="lbnote">🌍 นับเฉพาะคะแนนจากโหมดออนไลน์ (⚔️ 2v2 ไม่นับ)</div>'+(ACCT.mode==='guest'?'<div class="lbnote">👻 Guest ไม่ขึ้นตารางอันดับ — ลงทะเบียนเพื่อแข่งกับคนอื่น</div>':j.me?`<div class="lbnote">คุณอยู่อันดับที่ <b>${j.me.pos}</b>${by==='rp'&&typeof j.n==='number'?` · ถ้าจบเดือนตอนนี้ได้ <b style="color:#ffd23f">${seasonPrize(j.me.pos,j.n).toLocaleString()} 🪙</b>`:''}</div>`:'');
+    el.innerHTML=h+'<div class="lbnote">🌍 นับเฉพาะคะแนนจากโหมดออนไลน์และ 2v2</div>'+(ACCT.mode==='guest'?'<div class="lbnote">👻 Guest ไม่ขึ้นตารางอันดับ — ลงทะเบียนเพื่อแข่งกับคนอื่น</div>':j.me?`<div class="lbnote">คุณอยู่อันดับที่ <b>${j.me.pos}</b>${by==='rp'&&typeof j.n==='number'?` · ถ้าจบเดือนตอนนี้ได้ <b style="color:#ffd23f">${seasonPrize(j.me.pos,j.n).toLocaleString()} 🪙</b>`:''}</div>`:'');
     const pb=el.querySelector('#lbPz');if(pb)pb.onclick=openPrizes})
   .catch(()=>{if(lbBy===by)el.innerHTML='<div>โหลดอันดับไม่ได้</div>'})}
 const allSkins=()=>[...SKINS.map((c,i)=>({id:'b'+i,c,own:true})),...SHOP.skin.map(s=>({id:s.id,c:s.c,own:prof.owned.skin.includes(s.id),p:s.p})),...LIMITED.filter(s=>s.cat==='skin'&&prof.owned.skin.includes(s.id)).map(s=>({id:s.id,c:s.c,own:true,p:s.p}))];
@@ -1813,7 +1808,7 @@ function finish(timeUp,quit,noPen){
   const alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   const score=Math.floor(timeUp?player.mass:player.maxMass),rk=alive.indexOf(player)+1;
   state='over';bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');input.boost=false;bb.classList.remove('on');
-  if(score>best&&!(NET&&!NET.ffa)){best=score;prof.best[bestKey()]=best}
+  if(score>best){best=score;prof.best[bestKey()]=best}
   track('games');trackMax('maxLen',score);if(netOn())trackMax('omaxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
   addCoins(Math.floor(score/10)+player.kills*5);
   {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);if((!timeUp||quit)&&!noPen)rp-=deathPenalty(score);if(netOn())addRP(rp)}   // RP ได้เฉพาะโหมดออนไลน์ (ออฟไลน์ตอนต่อเซิร์ฟเวอร์ไม่ได้ = ไม่ได้ RP)
@@ -1867,7 +1862,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['👑 บอสยักษ์','โผล่ทุก ๆ 2 นาที มีหัวใจ ❤️❤️❤️ (เห็นเหนือชื่อบอส)'],
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
-  ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · <b>ได้เฉพาะโหมดออนไลน์</b> (⚔️ 2v2 ไม่นับสถิติ แรงก์ ตารางอันดับ)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
+  ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ชนะ 2v2 +15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบเดือนแจกตามอันดับแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
 let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
 $('bHelp').onclick=()=>openSheet('❓ วิธีเล่น',b=>{const T=helpTab==='tips';
@@ -2419,12 +2414,12 @@ function netTick(dt){
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
-  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));track('vsGames');if(win)track('teamWin');saveProf()}
+  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(player.maxMass,player.kills,win?15:-5,1));track('games');track('vsGames');trackMax('maxLen',player.maxMass);trackMax('omaxLen',player.maxMass);if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   openSheet(m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้',b=>{
     b.innerHTML=`<div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
     ${m.players.map(p=>`<div class="item"><div class="ic" style="background:${TEAM_COL[p.team]}33">${p.id===m.mvp?'🏅':p.bot?'🤖':'🚂'}</div><div class="tx">${String(p.name).replace(/[<>&]/g,'')}<small>💀 ${p.kills} · ยาวสุด ${Math.floor(p.maxLen)}</small></div></div>`).join('')}
-    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div><div class="help">⚔️ 2v2 ไม่นับเข้าสถิติ แรงก์ และตารางอันดับ</div>
+    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div>${rankHTML(roundRP)}
     <button class="btn team" id="toLobby">กลับห้องรอ</button><button class="btn alt" id="leave2">ออกจากห้อง</button>`;
     b.querySelector('#toLobby').onclick=()=>openSheet('🌐 ห้อง '+NET.room,renderLobby);
     b.querySelector('#leave2').onclick=()=>netLeave()});
