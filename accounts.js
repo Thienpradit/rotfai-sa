@@ -100,7 +100,7 @@ const LB_VAL = { rp: u => Math.floor(+(u.data || {}).onrp || 0), len: u => Math.
 // โปรไฟล์สาธารณะของผู้เล่น (แตะชื่อในตารางอันดับ) — ส่งเฉพาะสถิติ ไม่ส่งข้อมูลส่วนตัว
 const PUB_ST = ['kills', 'boss', 'maxLen', 'games', 'teamWin', 'vsGames', 'killsGame', 'jewels', 'stations'];
 function pubProfile(u) { const d = u.data || {}, st = d.st || {}, o = {}; for (const k of PUB_ST) o[k] = Math.floor(+st[k] || 0);
-  return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', ach: Object.keys(d.ach || {}).length, st: o }; }
+  return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', horn: (d.eq || {}).horn || '', ach: Object.keys(d.ach || {}).length, st: o }; }
 const LB_SQL = { rp: "floor(COALESCE((data->>'onrp')::float,0))", len: "floor(COALESCE((data->'st'->>'omaxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))", kills: "floor(COALESCE((data->'st'->>'okills')::float,0))" };
 
 // ---------- helpers ----------

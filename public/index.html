@@ -672,12 +672,20 @@ function renderRanks(b){const r=rankOf(prof.rp);
 // สถิติผู้เล่น (โปรไฟล์ตัวเอง + โปรไฟล์คนอื่นจากตารางอันดับ) — เจ้าของขอให้นับการกำจัด (7 พ.ย. 2026)
 function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString(),kg=+st.killsGame>0;   // killsGame เริ่มเก็บ 7 พ.ย. 2026 → ยังไม่มี = "—" ไม่ใช่ 0
   return `<div class="stg">${[['💀',f('kills'),'กำจัดทั้งหมด'],['👑',f('boss'),'ล้มบอส'],['🎯',kg?f('killsGame'):'—',kg?'กำจัดสูงสุด/เกม':'กำจัดสูงสุด/เกม (เริ่มนับ 7 พ.ย.)'],['🚂',f('maxLen'),'ยาวสุด'],['🎮',f('games'),'เกมที่เล่น'],['🤝',f('teamWin'),'ชนะ 2v2']].map(([i,v,t])=>`<div><b>${i} ${v}</b><small>${t}</small></div>`).join('')}</div>`}
+// หัวจักร + หวูดที่ใช้อยู่ (เจ้าของสั่ง 10 พ.ย. 2026) — แสดงในหน้าสถิติของเราและโปรไฟล์คนอื่น · รูปหัวจักรวาดจริงด้วย gearDraw หลังใส่ HTML
+function gearHTML(loco,horn){const L=SHOP.loco.find(x=>x.id===loco)||SHOP.loco[0],H=SHOP.horn.find(x=>x.id===horn)||SHOP.horn[0],lp=LOCO_PERK[L.id]||LOCO_PERK.classic,hp=hornPerk(H.id);
+  const lt=L.id==='classic'?'หัวจักรเริ่มต้น · เร่งสูงสุด '+lp.en+' วิ':'เก็บพลอย +'+lp.pick+' · ระเบิด +'+lp.bomb+' วิ · ทอง +'+lp.gold+' วิ · เร่ง '+lp.en+' วิ';
+  const ht=hp.r?'ไล่ศัตรู '+hp.r+' · หนี '+hp.t+' วิ · 🐌 คนช้าลง '+Math.round((1-(HORN_SLOW[H.id]||1))*100)+'%':'🔈 เสียงอย่างเดียว ไม่ไล่ศัตรู';
+  return `<div class="lbl" style="margin:10px 2px 4px">🚂 หัวจักรและหวูดที่ใช้อยู่</div><div class="gear" data-l="${L.id}">
+    <div class="item"><div class="ic real"><canvas class="lic" width="96" height="96"></canvas></div><div class="tx">${L.n}<small>${lt}</small></div></div>
+    <div class="item"><div class="ic">${H.ic}</div><div class="tx">${H.n}<small>${ht}</small></div></div></div>`}
+function gearDraw(b){const g=b.querySelector('.gear');if(g)try{drawItemIcon(g.querySelector('.lic'),'loco',g.dataset.l)}catch(e){}}
 function openProfile(name){openSheet('👤 '+name,b=>{b.innerHTML='<div class="help">กำลังโหลด...</div>';
   api('/api/profile?name='+encodeURIComponent(name)).then(u=>{const k=rankOf(u.rp),tt=u.tid&&titleText(u.tid),esc=t=>String(t).replace(/[<>&]/g,'');
     b.innerHTML=`<div style="font-size:22px;font-weight:600">${esc(u.name)}</div>${tt?`<div class="help" style="margin:2px 0;color:#ffd23f">${esc(tt)}</div>`:''}
       <div class="item" style="border:2px solid ${k.col}"><div class="ic rk" style="background:${k.col}22">${rankImgC(k.code,40)}</div><div class="tx">${k.name}<small>${(u.rp||0).toLocaleString()} RP · ฤดูกาลนี้</small></div></div>
-      <div class="lbl" style="margin:10px 2px 4px">📊 สถิติ</div>${statsHTML(u.st)}<div class="help">🏅 เหรียญตรา ${u.ach||0} อัน</div>
-      <button class="btn alt" id="pfBack" style="margin-top:10px">‹ กลับไปตารางอันดับ</button>`;
+      <div class="lbl" style="margin:10px 2px 4px">📊 สถิติ</div>${statsHTML(u.st)}<div class="help">🏅 เหรียญตรา ${u.ach||0} อัน</div>${gearHTML(u.loco,u.horn)}
+      <button class="btn alt" id="pfBack" style="margin-top:10px">‹ กลับไปตารางอันดับ</button>`;gearDraw(b);
     b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)}).catch(e=>{b.innerHTML=`<div class="help">❌ ${e.message||'โหลดไม่ได้'}</div><button class="btn alt" id="pfBack">‹ กลับ</button>`;b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)})})}
 // อธิบายการได้/เสียแรงก์ (เจ้าของขอ 6 พ.ย. 22:30) — ใช้ในหน้า 🏆 แรงก์ และ ❓ วิธีเล่น · ตัวเลขดึงจากค่าจริง (rpNeed/rpLoss/DIFF_RP/RANKS)
 function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-align:right;white-space:nowrap">${b2}</td></tr>`,tb=r=>`<table class="rkt">${r}</table>`;
@@ -1903,11 +1911,12 @@ function showRecovery(code,again){openSheet('🔑 รหัสกู้คืน
   b.querySelector('#rcOk').onclick=()=>$('sheet').classList.add('hidden')})}
 function renderAccount(b,first){
   if(ACCT.mode==='acct'){
-    b.innerHTML=`<div style="font-size:22px;font-weight:600">👤 ${escH(ACCT.name)}</div>${rankHTML()}<div class="lbl" style="margin:10px 2px 4px">📊 สถิติของคุณ</div>${statsHTML(prof.st)}
+    b.innerHTML=`<div style="font-size:22px;font-weight:600">👤 ${escH(ACCT.name)}</div>${rankHTML()}<div class="lbl" style="margin:10px 2px 4px">📊 สถิติของคุณ</div>${statsHTML(prof.st)}${gearHTML(prof.eq.loco,prof.eq.horn)}
       <div class="help" style="margin:6px 0">🪙 ${prof.coins.toLocaleString()} เหรียญ · ✅ บันทึกบนเซิร์ฟเวอร์แล้ว เข้าสู่ระบบเครื่องไหนก็เล่นต่อได้</div>
       <button class="btn alt" id="acClose">เล่นต่อ</button>
       <div class="row4" style="grid-template-columns:1fr 1fr"><button class="mbtn" id="acPw">🔒<br>เปลี่ยนรหัสผ่าน</button><button class="mbtn" id="acRc">🔑<br>รหัสกู้คืนใหม่</button></div>
       <div id="acMore"></div><button class="btn gray" id="acOut">ออกจากระบบ</button>`;
+    gearDraw(b);
     b.querySelector('#acClose').onclick=()=>$('sheet').classList.add('hidden');
     b.querySelector('#acOut').onclick=()=>{pushProf();try{localStorage.removeItem('rsAuth')}catch(e){}setProfile('guest',null);announce('ออกจากระบบแล้ว');renderAccount(b)};
     b.querySelector('#acRc').onclick=async()=>{try{const j=await api('/api/recovery',{});showRecovery(j.code,true)}catch(e){announce('❌ '+e.message)}};
