@@ -5,7 +5,7 @@ from playwright.async_api import async_playwright
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def run(port,ver,extra={}): return subprocess.Popen(['node','server.js'],cwd=ROOT,env={**os.environ,'PORT':str(port),'APP_VERSION':ver,**extra},stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
 async def main():
-    A=run(3461,'oldver'); time.sleep(1.2)
+    A=run(3461,'oldver',{'SELF_URL':'http://127.0.0.1:3462','RESET_SECS':'6','VERSION_POLL_MS':'1000'}); time.sleep(1.2)
     try:
         async with async_playwright() as p:
             b=await p.chromium.launch();ctx=await b.new_context(**p.devices['iPhone 13']);pg=await ctx.new_page();errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
@@ -15,13 +15,8 @@ async def main():
             await pg.evaluate("document.getElementById('sheet').classList.add('hidden');playEndless()");await pg.wait_for_timeout(2500)
             await pg.evaluate("player.mass=player.maxMass=900;prof.rp=700");rp0=await pg.evaluate('prof.rp')
             # เปิดเครื่องใหม่ (B) แล้วให้ A คอยถาม B
-            B=run(3462,'newver');time.sleep(1.0)
-            A.terminate();A.wait();A2=run(3461,'oldver',{'SELF_URL':'http://127.0.0.1:3462','RESET_SECS':'6','VERSION_POLL_MS':'1000'})
-            time.sleep(1.2)
-            # หน้าเว็บต่อ A2 ใหม่ (A เดิมปิดไปแล้ว) → เข้าโลกอีกครั้ง
-            await pg.reload();await pg.wait_for_timeout(800);loads.clear()
-            await pg.evaluate("document.getElementById('sheet').classList.add('hidden');playEndless()");await pg.wait_for_timeout(1500)
-            await pg.evaluate("player.mass=player.maxMass=900");rp0=await pg.evaluate('prof.rp')
+            # เปิดเครื่องใหม่ (B) — B ถามกลับไปโดนเครื่องเก่า (A) ต้องไม่รีเซ็ตตัวเอง (เครื่องเก่าเปิดก่อน) · A เจอ B ใหม่กว่า → รีเซ็ต
+            B=run(3462,'newver',{'SELF_URL':'http://127.0.0.1:3461','VERSION_POLL_MS':'1000'});A2=A
             await pg.wait_for_timeout(1500)
             print('banner:',await pg.evaluate("document.getElementById('resetBar').classList.contains('hidden')?'(hidden)':document.getElementById('resetTxt').innerText.replace(/\\n/g,' | ')"))
             await pg.screenshot(path='/tmp/claude-0/-home-claude/25cb9392-c762-56ab-9405-b678b539416b/scratchpad/reset_bar.png')
@@ -31,6 +26,8 @@ async def main():
             print('page reloaded:',len(loads)>0,'| errors',errs[:3])
             # เมนู: เวอร์ชันไม่ตรง → 15 วิ
             pg2=await ctx.new_page();await pg2.goto('http://127.0.0.1:3462/');await pg2.wait_for_timeout(600)
+            import json,urllib.request
+            vb=json.loads(urllib.request.urlopen('http://127.0.0.1:3462/version').read());print('new server not resetting itself:',vb['reset']==0,vb)
             await pg2.evaluate("startResetCountdown(inGameNow()||NET?60:15)");await pg2.wait_for_timeout(400)
             print('menu banner:',await pg2.evaluate("document.getElementById('resetTxt').innerText.replace(/\\n/g,' | ')"))
             await b.close()

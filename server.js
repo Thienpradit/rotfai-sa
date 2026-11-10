@@ -23,6 +23,7 @@ const TICK = 1 / 20;   // ส่งสถานะ 20 ครั้ง/วิน�
 const VERSION = (process.env.RENDER_GIT_COMMIT || process.env.APP_VERSION || require('crypto').createHash('sha1').update(fs.readFileSync(path.join(__dirname, 'public', 'index.html'))).update(fs.readFileSync(__filename)).digest('hex')).slice(0, 10);
 const RESET_SECS = +process.env.RESET_SECS || 60;
 const SELF_URL = (process.env.SELF_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
+const BOOT = Date.now();   // เวลาเปิดเครื่องนี้ · ใช้แยกว่าใครใหม่กว่า (10 พ.ย.: เครื่องใหม่เคยถามไปโดนเครื่องเก่าแล้วรีเซ็ตตัวเอง)
 let resetAt = 0;   // เวลา (ms) ที่จะรีเซ็ต · 0 = ยังไม่รีเซ็ต
 function startReset(secs, why) {
   if (resetAt) return; resetAt = Date.now() + secs * 1000; console.log(`reset countdown ${secs}s (${why})`);
@@ -33,7 +34,7 @@ function startReset(secs, why) {
 function checkNewVersion() {
   if (resetAt || !SELF_URL) return;
   const req = (SELF_URL.startsWith('https') ? require('https') : http).get(SELF_URL + '/version?from=' + VERSION, { timeout: 4000 }, r => {
-    let b = ''; r.on('data', d => b += d); r.on('end', () => { try { const v = JSON.parse(b).v; if (r.statusCode === 200 && v && v !== VERSION) startReset(RESET_SECS, 'new version ' + v); } catch (e) {} });
+    let b = ''; r.on('data', d => b += d); r.on('end', () => { try { const j = JSON.parse(b), v = j.v; if (r.statusCode === 200 && v && v !== VERSION && +j.boot > BOOT) startReset(RESET_SECS, 'new version ' + v); } catch (e) {} });
   });
   req.on('error', () => {}); req.on('timeout', () => req.destroy());
 }
@@ -46,7 +47,7 @@ const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ })); }
-  if (p === '/version') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ v: VERSION, reset: resetAt ? Math.max(0, Math.ceil((resetAt - Date.now()) / 1000)) : 0 })); }
+  if (p === '/version') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ v: VERSION, boot: BOOT, reset: resetAt ? Math.max(0, Math.ceil((resetAt - Date.now()) / 1000)) : 0 })); }
   if (p === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
   // ย้ายเซิร์ฟเวอร์: ตั้ง env REDIRECT_TO=https://ที่อยู่ใหม่ แล้วลิงก์เก่าจะพาไปที่ใหม่เอง (เก็บ ?w=โค้ดโลก ไว้ด้วย)
   if (process.env.REDIRECT_TO) { res.writeHead(301, { Location: process.env.REDIRECT_TO.replace(/\/$/, '') + (req.url || '/') }); return res.end(); }
