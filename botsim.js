@@ -103,15 +103,22 @@ function bodyNear(S, room, x, y, rad, self) {
 // ---------- AI (เหมือน aiThink ในเกม ระดับ Normal) ----------
 // ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (11 พ.ย. 2026 · ต้องตรงกับ index.html bigTier)
 const BIG_START = 2000, BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human && (o.mass || 0) >= BIG_START ? Math.min(BIG_MAX, 1 + Math.floor(((o.mass || 0) - BIG_START) / BIG_STEP)) : 0;   // เริ่ม 2,000 (เจ้าของปรับ 11 พ.ย. 17:42)
+// ⚔️ 2v2: บอทโหดขึ้น (เจ้าของสั่ง 12 พ.ย. 00:45 — ไล่ล่า โจมตี หลบเก่ง) · ใช้เฉพาะห้อง 2v2 (!room.ffa) · โลกออนไลน์ใช้ D เดิม
+const DV = { huntP: .97, huntR: 1500, others: .85, othersR: 1600, look: 1.3, think: [5, 12], leadK: .6, boostR: 750, regen: .55, dodge: 1 };
+const enemyHeadNear = (room, w, x, y, rr, trains) => { for (const o of trains) { if (o === w || !o.alive || ally(o, w) || o.ghost > 0) continue;   // หลบหัวศัตรูที่กำลังพุ่งมา (คาดตำแหน่งล่วงหน้า ~0.3 วิ)
+    const oh = o.pts[0], oa = o.angle || 0, sp = (o.boost ? 5.4 : 2.7) * 18, px = oh.x + Math.cos(oa) * sp, py = oh.y + Math.sin(oa) * sp, R = rr + rOf(o.mass) + 14;
+    if ((px - x) ** 2 + (py - y) ** 2 < R * R || (oh.x - x) ** 2 + (oh.y - y) ** 2 < R * R) return true; } return false; };
 function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
+  const vs = !room.ffa && !w.isBoss, P = vs ? DV : D;
+  if (vs && w.energy < 6) w.energy += f / 60 * DV.regen;   // 2v2: บอทเติมพลังเร่งเองช้า ๆ ไว้พุ่งตัดหน้า/หนี
   if (ai.t <= 0) {
-    ai.t = rnd(D.think[0], D.think[1]) / (1 + .4 * bossRage(w)); ai.hunt = null;
+    ai.t = rnd(P.think[0], P.think[1]) / (1 + .4 * bossRage(w)); ai.hunt = null;
     let bh = null, bd0 = 1100 + 250 * bossRage(w);
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
-    else if (w.mass > 22) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt);
-      if (!(hu && (o.safe || o.ghost)) && d < (hu ? D.huntR + 200 * bt : 380) && de < bd && Math.random() < (hu ? D.huntP + (1 - D.huntP) * Math.min(1, .1 * bt) : D.others)) { bd = de; ai.hunt = o; } } }
+    else if (w.mass > (vs ? 12 : 22)) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt) / (vs && hu ? 1.8 : 1);   // 2v2: เล็งคนจริงก่อนบอท
+      if (!(hu ? (o.safe || o.ghost) : vs && (o.safe > 0 || o.ghost > 0)) && d < (hu ? P.huntR + 200 * bt : vs ? DV.othersR : 380) && de < bd && Math.random() < (hu ? P.huntP + (1 - P.huntP) * Math.min(1, .1 * bt) : P.others)) { bd = de; ai.hunt = o; } } }
     if (!ai.hunt) {
       let best = null, bs = 0; const cx = Math.floor(h.x / CS), cy = Math.floor(h.y / CS);
       for (let gx = cx - 4; gx <= cx + 4; gx++) for (let gy = cy - 4; gy <= cy + 4; gy++) { const a = S.fgrid.get(key(gx, gy)); if (!a) continue;
@@ -122,17 +129,22 @@ function aiThink(S, room, w, f, trains) {
   }
   let tx = ai.tx, ty = ai.ty, boost = false;
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
-    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : 850 + 200 * bigTier(o))) ai.hunt = null;
+    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : vs ? 1700 : 850 + 200 * bigTier(o)) || (vs && (o.ghost > 0))) ai.hunt = null;
+    else if (vs) {   // 2v2: วิ่งขนาน แล้วพุ่งตัดหน้าให้ศัตรูชนลำตัวเรา
+      const oa = o.angle || 0, osp = o.boost ? 5.4 : 2.7, lead = 90 + rOf(o.mass) * 4 + d * DV.leadK, side = Math.sign(Math.cos(oa) * (h.y - oh.y) - Math.sin(oa) * (h.x - oh.x)) || 1;
+      const off = d > 380 ? 140 * side : 0; tx = oh.x + Math.cos(oa) * lead - Math.sin(oa) * off; ty = oh.y + Math.sin(oa) * lead + Math.cos(oa) * off;
+      boost = w.mass > 14 && (d < DV.boostR || osp > 3) && w.energy > .4; }
     else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 + 150 * bossRage(w) && w.mass > 18; } }
   else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
   if (w.flee && w.flee.t > 0) { w.flee.t -= f / 60; tx = h.x + Math.cos(w.flee.a) * 400; ty = h.y + Math.sin(w.flee.a) * 400; boost = false; }   // โดนหวูดไล่
   if (Math.hypot(h.x, h.y) > arenaR(room) - 350) { tx = 0; ty = 0; boost = false; }
-  const want = Math.atan2(ty - h.y, tx - h.x), lk = w.isBoss ? 1.3 : D.look, near = (r * 1.4 + 25) * lk, look = (r * 3 + 65) * lk;
-  const blocked = a => bodyNear(S, room, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r + 12, w) || bodyNear(S, room, h.x + Math.cos(a) * look, h.y + Math.sin(a) * look, r + 18, w);
+  const want = Math.atan2(ty - h.y, tx - h.x), lk = w.isBoss ? 1.3 : P.look, near = (r * 1.4 + 25) * lk, look = (r * 3 + 65) * lk, mid = (r * 2.2 + 45) * lk;
+  const blocked = a => bodyNear(S, room, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r + 12, w) || bodyNear(S, room, h.x + Math.cos(a) * look, h.y + Math.sin(a) * look, r + 18, w)
+    || (vs && (bodyNear(S, room, h.x + Math.cos(a) * mid, h.y + Math.sin(a) * mid, r + 14, w) || enemyHeadNear(room, w, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r, trains)));
   let pk = want;
   if (blocked(want)) { pk = null; const side = Math.sign(Math.atan2(Math.sin(want - w.angle), Math.cos(want - w.angle))) || 1;
-    for (const o of [0, .6, -.6, 1.2, -1.2, 1.9, -1.9, 2.6, -2.6]) { const a = w.angle + o * side; if (!blocked(a)) { pk = a; break; } }
-    if (pk === null) pk = w.angle + Math.PI * side; boost = boost || (w.mass > 30 && Math.random() < .4); }
+    for (const o of vs ? [0, .35, -.35, .7, -.7, 1.1, -1.1, 1.6, -1.6, 2.2, -2.2, 2.8, -2.8] : [0, .6, -.6, 1.2, -1.2, 1.9, -1.9, 2.6, -2.6]) { const a = w.angle + o * side; if (!blocked(a)) { pk = a; break; } }
+    if (pk === null) pk = w.angle + Math.PI * side; boost = boost || (w.mass > (vs ? 14 : 30) && Math.random() < (vs ? .75 : .4)); }
   w.target = pk; w.boost = boost;
 }
 
