@@ -26,6 +26,8 @@ rotfai-sa/
 ├─ package.json         ← dependency: ws ^8, pg ^8
 ├─ render.yaml          ← Blueprint สำหรับ Render (แผนฟรี, healthCheckPath /health)
 ├─ tests/               ← สคริปต์ทดสอบ Playwright (Python)
+├─ design/*.dc.html     ← งานออกแบบหัวจักร/ตู้/หวูด (Claude Design) — ต้นฉบับของสไปรต์ในเกม
+├─ tools/gen_sprites.py ← แปลง design/ เป็นโค้ด SVG ใส่ index.html (ระหว่าง /*SPRITES-BEGIN*/…/*SPRITES-END*/)
 └─ extras/island/index.html ← เกมอีกเกม "เกาะนักขุด" (แยกขาด ไม่เกี่ยวกับรถไฟ)
 ```
 
@@ -54,7 +56,7 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
 | input | pointer events (เมาส์ = หันตามเมาส์, สัมผัส = จอยสติ๊กลอย), ปุ่มเร่ง, ปุ่มระเบิด, คีย์บอร์ด |
 | items | `useBomb()` (TGS), `updBtns()`, `freezeAround()` |
 | step | ลูปลอจิกต่อเฟรม: AI → อัปเดต → ชน → กิน → เกิดของ → ตัวจับเวลา |
-| render | `drawWorm()` (หัวจักร 3 แบบ: classic/diesel/bullet), `drawSmoke`, `drawRails`, `drawStations`, `drawPortals`, `render()`, `drawHUD()` (มินิแมป + ตารางอันดับ/คะแนนทีม) |
+| render | `drawWorm()` (หัวจักร 6 แบบ + ตู้ ใช้สไปรต์ `sprite('L'|'W',id,สีหลัก,สีคาด)` · ประหยัด/ยังไม่โหลด → วาดแบบเดิม · ดู §10 ข้อ 89), `drawSmoke`, `drawStations`, `drawPortals`, `render()`, `drawHUD()` (มินิแมป + ตารางอันดับ/คะแนนทีม) |
 | single-player flow | `startGame(mode)`, `finish()`, `setDiff()`, `toMenu()`, เมนูเลือกสี |
 | sheets | หน้าต่างเลื่อน: ร้านค้า, ภารกิจ, เหรียญตรา, แรงก์ + ตารางอันดับรวม (โค้ดเทียบคะแนนถูกเอาออกแล้วตามที่เจ้าของขอ) |
 | accounts | `ACCT{mode:'acct'|'guest'|'local',name,token}`, `normProf`, `legacyProf` (ย้ายข้อมูลเก่าในเครื่องเข้าบัญชีตอนลงทะเบียนครั้งแรก), `saveProf`/`pushProf`, `api()`, `setProfile`, `openAccount`/`renderAccount`, `bootAccount` · token เก็บใน localStorage `rsAuth` |
@@ -388,6 +390,15 @@ PORT=3456 MATCH_SECS=40 npm start   # แมตช์สั้นไว้ทด
    - งานออกแบบ (Design artifact): เอาบอร์ดรางสมจริงออก ภาพทั้งขบวนไม่มีรางแล้ว · ตู้ทุกแบบขนเพชรพลอยอย่างเดียว (ตู้พลอย/หีบสมบัติ/เพชรยักษ์/กระจกใส) · ยังไม่ได้ใส่หน้าตาใหม่ลงเกม
 
 88. (11 พ.ย. 2026 21:50) **ขึ้นเว็บจริงแล้ว** (เจ้าของสั่ง "กด deploy") — c457242 (ข้อ 87 เอารางออก) · เช็คเว็บจริง: `/version` c457242821, store=db, `rails`/`onRail` ไม่มีแล้ว, สถานี 4 อุโมงค์ 6, ภารกิจ rail ไม่อยู่ใน MPOOL, เข้าโลกออนไลน์ได้ (สถานะ `s` 27 ขบวน บอทวิ่งปกติ)
+
+89. (11 พ.ย. 2026 22:xx) **หัวจักร / ตู้ / หวูด แบบใหม่จากงานออกแบบ** (เจ้าของสั่ง "ใส่ในเกมได้เลย"):
+   - ต้นฉบับ `design/Main.dc.html` (หัวจักร 6) · `design/Wagons.dc.html` (ตู้ 4) · `design/Horns.dc.html` (หวูด 7) → `python3 tools/gen_sprites.py` สร้าง `LOCO_SVG`/`WAG_DEFS`/`HORN_DEFS` ใส่ index.html (**แก้ดีไซน์ = แก้ไฟล์ใน design/ แล้วรันสคริปต์ใหม่** ห้ามแก้บล็อก SPRITES ตรง ๆ)
+   - `sprite(kind,id,main,sec)`: SVG ใส่สี (`{{c.main}}` ฯลฯ ผ่าน `sprCols`/`mixHex`) → `Image` → วาดลง canvas ครั้งเดียว (×`SPR_RES`=1.25) แคชใน `SPR` ต่อ (แบบ,สี) · ยังไม่พร้อม → คืน null วาดแบบเดิม · `sprPreload(curSkin())` ตอนเปิดเกม · ภาพนิ่ง (ไอคอนร้าน/รายละเอียด/เคล็ดลับ) ใช้ `sprAfter(fn)` วาดซ้ำตอนโหลดเสร็จ
+   - หัวจักร: สเกล `W/156` วาดทั้งภาพ `LOCO_VB` (ไม่มีเงา/ล้อแบบเดิม · ควันออกตำแหน่งตามดีไซน์ `SMX`) · ไฟหน้าเป็นไล่สีจางลง · ตู้: `drawWagon` สเกล `W/154` (`WAG_VB`) สีหลัก = สีตู้นั้น สีคาด = สีถัดไปในชุด · id ร้านเดิม: `cargo` = **ตู้หีบสมบัติ** · `coach` = **ตู้เพชรยักษ์** (ราคาเดิม anticheat ไม่ต้องแก้) · แบบเดิมของ cargo/coach (ประหยัด) เปลี่ยนเป็นหีบ/เพชรด้วย
+   - กราฟิก 🔋 ประหยัด (`QUAL` 0) → วาดแบบเดิมทั้งหมด
+   - หวูด: `hornURL(id)`/`hornImg(id,px)` (<img> SVG) ในร้านค้า, หน้ารายละเอียด (รูปใหญ่ `.hbig`), ตารางเทียบ, หน้าสถิติ และ**ปุ่มหวูดในเกม** (`#horn .hsvg` เป็น <img> เปลี่ยนตามหวูดที่ใส่ใน `hornUI`, ไม่มี badge อีโมจิแล้ว)
+   - ภาพตัวอย่างร้านค้า (`drawPreview`) ไม่มีรางแล้ว ซูมใกล้ขึ้น · คำอธิบายหัวจักร/ตู้ (`ITEM_DESC`) ตามดีไซน์
+   - วัด (headless, 30 ขบวน): วาดขบวนทั้งหมด เดิม 12.3 → ใหม่ ~7 ms/เฟรม · CPU ช้า 6 เท่า 84 → ~40–53 ms (เร็วขึ้น ~40%) · เน็ต/เซิร์ฟเวอร์ไม่เปลี่ยน
 ## 11. ไอเดียต่อยอดที่ยังไม่ได้ทำ
 - จอยสติ๊กแบบตายตัว / ปรับความไวการเลี้ยว
 - บอท AI ในโหมด 2v2 (เติมทีมที่คนไม่ครบ)
