@@ -19,7 +19,10 @@ async def main():
         # ชนหิน = ตาย
         await pg.evaluate("(()=>{player.ghost=0;player.safe=0;const o=OBST.find(o=>o.k==='rock');const h=player.pts[0];const dx=o.x-h.x,dy=o.y-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}})()");await pg.wait_for_timeout(400)
         dead=await pg.evaluate("player.alive");await pg.wait_for_timeout(1800)
-        fail=await pg.evaluate("[state,document.getElementById('overTitle').textContent,document.getElementById('again').textContent,prof.coins]")
+        resp=await pg.evaluate("[STAGE_LIFE,state,player.alive]")   # ❤️ 3 ชีวิต: ตายครั้งแรกเกิดใหม่ในด่านเดิม
+        await pg.evaluate("STAGE_LIFE=1;player.ghost=0;player.safe=0;player.die(null)");await pg.wait_for_timeout(1900)
+        fail=await pg.evaluate("[state,document.getElementById('overTitle').textContent,document.getElementById('again').textContent,prof.coins]");print('respawn',resp)
+        assert resp==[2,'play',True],resp
         # เล่นใหม่ → ผ่านด่าน (ยาวถึงเป้า) เร็ว ๆ = 3 ดาว
         await pg.click('#again');await pg.wait_for_timeout(800)
         await pg.evaluate("player.mass=STAGE.g[1]+5");await pg.wait_for_timeout(500)
@@ -36,6 +39,6 @@ async def main():
         await pg.evaluate("(()=>{const o=OBST.find(o=>o.k==='gate');const h=player.pts[0];const dx=o.x-120*Math.cos(o.a-Math.PI/2)-h.x,dy=o.y-120*Math.sin(o.a-Math.PI/2)-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}player.angle=o.a-Math.PI/2;cam.x=o.x;cam.y=o.y})()")
         await pg.wait_for_timeout(600);await pg.screenshot(path=SP+'/adv_stage15.png')
         print('cards',len(cards),sum('lock' in c for c in cards),'| locked click mode',locked);print('stage1',r1);print('rock death',dead,fail);print('clear',win);print('next',nxt);print('stage15',g)
-        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'ไม่ผ่าน' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
+        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'หมด 3 ชีวิต' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
         print('errors',errs[:3]);print('PASS' if ok and not errs else 'FAIL');await b.close()
 asyncio.run(main())
