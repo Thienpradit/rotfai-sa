@@ -244,6 +244,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 @media (max-width:370px){.topbar .ibtn{width:32px;height:32px;font-size:15px;padding:0}.topbar .coin{padding:3px 7px;font-size:13px}.topbar .acct{max-width:92px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
 .seg{display:flex;gap:6px;margin:6px 0 2px}
 .seg div{flex:1;padding:9px 4px;border-radius:12px;background:#0f1330;border:2px solid #3a4590;cursor:pointer;color:#aab3e6;font-size:14px;line-height:1.35}
+.rnbox{margin-top:10px;padding:10px;border:1px solid #3a4590;border-radius:12px;background:#ffffff08}
 .advbar{height:6px;border-radius:3px;background:#ffffff1a;margin-top:5px;overflow:hidden}.advbar i{display:block;height:100%;background:linear-gradient(90deg,#3bd16f,#ffd23f)}
 .stg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:4px 0}.stg div{background:#121634;border:1px solid #2f3870;border-radius:10px;padding:7px 4px;text-align:center}.stg b{display:block;font-size:16px;color:#fff}.stg small{font-size:11px;color:#8f98d8}
 .rkbox{background:#121634;border:1px solid #2f3870;border-radius:12px;padding:10px 12px;margin:6px 0;text-align:left}.rkt{width:100%;border-collapse:collapse;font-size:13px;margin-top:4px}.rkt td,.rkt th{padding:3px 2px;border-bottom:1px solid #232a5a;color:#d7dcff;font-weight:400}.rkt th{color:#8f98d8;font-size:12px}
@@ -2090,17 +2091,30 @@ function showRecovery(code,again){openSheet('🔑 รหัสกู้คืน
     <div class="rcode">${code}</div><button class="btn alt" id="rcCopy">📋 คัดลอกรหัส</button><button class="btn" id="rcOk">จดแล้ว เล่นต่อ</button>`;
   b.querySelector('#rcCopy').onclick=()=>{try{navigator.clipboard.writeText(code).then(()=>announce('📋 คัดลอกรหัสกู้คืนแล้ว'),()=>{})}catch(e){}};
   b.querySelector('#rcOk').onclick=()=>$('sheet').classList.add('hidden')})}
+const RENAME_COST=20000;   // ✏️ ค่าเปลี่ยนชื่อ — ต้องตรงกับ accounts.js
 function renderAccount(b,first){
   if(ACCT.mode==='acct'){
     b.innerHTML=`<div style="font-size:22px;font-weight:600">👤 ${escH(ACCT.name)}</div>${rankHTML()}<div class="lbl" style="margin:10px 2px 4px">📊 สถิติของคุณ</div>${statsHTML(prof.st)}${advHTML(advOf(prof.stage))}${gearHTML(prof.eq.loco,prof.eq.horn)}
       <div class="help" style="margin:6px 0">🪙 ${prof.coins.toLocaleString()} เหรียญ · ✅ บันทึกบนเซิร์ฟเวอร์แล้ว เข้าสู่ระบบเครื่องไหนก็เล่นต่อได้</div>
       <button class="btn alt" id="acClose">เล่นต่อ</button>
-      <div class="row4" style="grid-template-columns:1fr 1fr"><button class="mbtn" id="acPw">🔒<br>เปลี่ยนรหัสผ่าน</button><button class="mbtn" id="acRc">🔑<br>รหัสกู้คืนใหม่</button></div>
+      <div class="row4" style="grid-template-columns:1fr 1fr 1fr"><button class="mbtn" id="acRn">✏️<br>เปลี่ยนชื่อ<br><small>${RENAME_COST.toLocaleString()} 🪙</small></button><button class="mbtn" id="acPw">🔒<br>เปลี่ยนรหัสผ่าน</button><button class="mbtn" id="acRc">🔑<br>รหัสกู้คืนใหม่</button></div>
       <div id="acMore"></div><button class="btn gray" id="acOut">ออกจากระบบ</button>`;
     gearDraw(b);
     b.querySelector('#acClose').onclick=()=>$('sheet').classList.add('hidden');
     b.querySelector('#acOut').onclick=()=>{pushProf();try{localStorage.removeItem('rsAuth')}catch(e){}setProfile('guest',null);announce('ออกจากระบบแล้ว');renderAccount(b)};
     b.querySelector('#acRc').onclick=async()=>{try{const j=await api('/api/recovery',{});showRecovery(j.code,true)}catch(e){announce('❌ '+e.message)}};
+    b.querySelector('#acRn').onclick=()=>{const m=b.querySelector('#acMore'),enough=prof.coins>=RENAME_COST;   // ✏️ เปลี่ยนชื่อ จ่าย 20,000 🪙 (เจ้าของสั่ง 11 พ.ย. 2026)
+      m.innerHTML=`<div class="rnbox"><b>✏️ เปลี่ยนชื่อผู้เล่น</b><div class="help" style="margin:4px 0 0">ชื่อปัจจุบัน: <b>${escH(ACCT.name)}</b> · ค่าเปลี่ยนชื่อ <b style="color:#ffd23f">${RENAME_COST.toLocaleString()} 🪙</b> (คุณมี ${prof.coins.toLocaleString()} 🪙)<br>เหรียญ แรงก์ ของ สถิติ อยู่ครบเหมือนเดิม · ครั้งหน้าเข้าสู่ระบบด้วย<b>ชื่อใหม่</b> (เครื่องอื่นต้องเข้าสู่ระบบใหม่)</div>
+        <input id="rnName" maxlength="14" placeholder="ชื่อใหม่ (2–14 ตัว)" style="margin-top:8px" autocomplete="off"><button class="btn" id="rnGo"${enough?'':' disabled'}>${enough?'จ่าย '+RENAME_COST.toLocaleString()+' 🪙 เปลี่ยนชื่อ':'เหรียญไม่พอ (ขาดอีก '+(RENAME_COST-prof.coins).toLocaleString()+' 🪙)'}</button><div class="status" id="rnSt"></div></div>`;
+      const st=m.querySelector('#rnSt'),go=m.querySelector('#rnGo'),inp=m.querySelector('#rnName');inp.focus();
+      go.onclick=async()=>{const nm=inp.value.replace(/\s+/g,' ').trim();if([...nm].length<2){st.textContent='❌ ชื่อต้องยาว 2–14 ตัวอักษร';return}
+        if(nm===ACCT.name){st.textContent='❌ ชื่อนี้เป็นชื่อปัจจุบันอยู่แล้ว';return}
+        if(go.dataset.ok!==nm){go.dataset.ok=nm;go.textContent='ยืนยัน: เปลี่ยนเป็น "'+nm+'" จ่าย '+RENAME_COST.toLocaleString()+' 🪙';st.textContent='แตะอีกครั้งเพื่อยืนยัน';return}
+        go.disabled=true;st.textContent='กำลังเปลี่ยนชื่อ...';clearTimeout(saveT);saveT=null;
+        try{const j=await api('/api/rename',{name:nm,data:prof});const old=ACCT.name;saveAuth(j.name,j.token);setProfile('acct',j.data,j.name,j.token);try{$('name').value=j.name}catch(e){}
+          sfx('coin');renderAccount(b);b.querySelector('#acMore').innerHTML='<div class="status" style="color:#7cfc9a">✅ เปลี่ยนชื่อจาก '+escH(old)+' เป็น <b>'+escH(j.name)+'</b> แล้ว (−'+RENAME_COST.toLocaleString()+' 🪙)</div>'}
+        catch(e){st.textContent='❌ '+e.message;go.disabled=false;delete go.dataset.ok;go.textContent='จ่าย '+RENAME_COST.toLocaleString()+' 🪙 เปลี่ยนชื่อ'}};
+      inp.oninput=()=>{if(go.dataset.ok){delete go.dataset.ok;go.textContent='จ่าย '+RENAME_COST.toLocaleString()+' 🪙 เปลี่ยนชื่อ';st.textContent=''}}};
     b.querySelector('#acPw').onclick=()=>{const m=b.querySelector('#acMore');
       m.innerHTML=`<input id="pw0" type="password" maxlength="64" placeholder="รหัสผ่านเดิม" style="margin-top:10px" autocomplete="current-password"><input id="pw1" type="password" maxlength="64" placeholder="รหัสผ่านใหม่ (4 ตัวขึ้นไป)" style="margin-top:8px" autocomplete="new-password"><input id="pw2" type="password" maxlength="64" placeholder="ยืนยันรหัสผ่านใหม่" style="margin-top:8px" autocomplete="new-password"><button class="btn" id="pwGo">บันทึกรหัสผ่านใหม่</button><div class="status" id="pwSt"></div>`;
       const st=m.querySelector('#pwSt'),go=m.querySelector('#pwGo');

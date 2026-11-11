@@ -7,6 +7,7 @@ const path = require('path');
 const DB_URL = process.env.DATABASE_URL || '';
 const SECRET = process.env.TOKEN_SECRET || crypto.createHash('sha256').update('rotfai:' + (DB_URL || 'dev-secret')).digest('hex');
 const MAX_DATA = 40 * 1024;
+const RENAME_COST = 20000;   // เปลี่ยนชื่อ (เจ้าของสั่ง 11 พ.ย. 2026) — ต้องตรงกับ RENAME_COST ใน public/index.html
 const AC = require('./anticheat');
 
 // ---------- storage ----------
@@ -24,6 +25,7 @@ function fileStore(note) {
     async save(l, data, rp) { if (db[l]) { db[l].data = data; db[l].rp = rp; db[l].updated = Date.now(); flush(); } },
     async setAuth(l, salt, hash) { if (db[l]) { db[l].salt = salt; db[l].hash = hash; flush(); } },
     async setRecovery(l, rhash) { if (db[l]) { db[l].rhash = rhash; flush(); } },
+    async rename(ol, nl, name, data, rp) { const u = db[ol]; if (!u || (nl !== ol && db[nl])) return false; delete db[ol]; Object.assign(u, { lname: nl, name, data, rp, updated: Date.now() }); db[nl] = u; flush(); return true; },
     async top(n, season, by, me) {   // by: rp (ฤดูกาลนี้) / len (ยาวสุดตลอดกาล) / coins (เหรียญที่มีตอนนี้)
       const all = Object.values(db).filter(u => by !== 'rp' || (u.data || {}).season === season).map(u => ({ name: u.name, lname: u.lname, val: LB_VAL[by](u), rp: +u.rp || 0, tid: ((u.data || {}).eq || {}).title || '' })).filter(u => u.val > 0).sort((a, b) => b.val - a.val);
       const i = me ? all.findIndex(u => u.lname === me) : -1;
@@ -67,6 +69,9 @@ if (DB_URL) {
     async save(l, data, rp) { await ready; if (store !== dbStore) return store.save(l, data, rp); await pool.query('UPDATE players SET data=$2, rp=$3, updated=now() WHERE lname=$1', [l, data, rp]); },
     async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
+    async rename(ol, nl, name, data, rp) { await ready; if (store !== dbStore) return store.rename(ol, nl, name, data, rp);
+      try { const r = await pool.query('UPDATE players SET lname=$2, name=$3, data=$4, rp=$5, updated=now() WHERE lname=$1', [ol, nl, name, data, rp]); return r.rowCount === 1; }
+      catch (e) { if (e.code === '23505') return false; throw e; } },
     async top(n, season, by, me) { await ready; if (store !== dbStore) return store.top(n, season, by, me);
       const ex = LB_SQL[by], w = by === 'rp' ? "data->>'season'=$1 AND " : '$1::text IS NOT NULL AND ';
       const r = await pool.query(`SELECT name, rp, ${ex} AS val, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE ${w}${ex} > 0 ORDER BY val DESC, updated ASC LIMIT $2`, [season, n]);
@@ -219,6 +224,20 @@ async function handleApi(req, res, p) {
       const pass = String(body.pass || ''); if (!passOk(pass)) return out(400, { err: 'รหัสผ่านใหม่ต้องยาว 4 ตัวขึ้นไป' });
       const salt = crypto.randomBytes(16).toString('hex'); await store.setAuth(u.lname, salt, await hashPass(pass, salt));
       return out(200, { token: makeToken({ lname: u.lname, salt }) });
+    }
+    if (p === '/api/rename') {   // เปลี่ยนชื่อ จ่าย RENAME_COST เหรียญ (หักบนเซิร์ฟเวอร์) · token ใหม่ (เครื่องอื่นต้องเข้าสู่ระบบด้วยชื่อใหม่)
+      if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
+      const name = cleanName(body.name); if ([...name].length < 2 || [...name].length > 14) return out(400, { err: 'ชื่อต้องยาว 2–14 ตัวอักษร' });
+      if (name === u.name) return out(400, { err: 'ชื่อนี้เป็นชื่อปัจจุบันของคุณอยู่แล้ว' });
+      const nl = lower(name); if (nl !== u.lname && await store.get(nl)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
+      if (await prizeOf(u)) return out(409, { err: 'กำลังรับรางวัลจบฤดูกาล ปิดแล้วเปิดเกมใหม่ แล้วลองเปลี่ยนชื่ออีกครั้ง' });
+      const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
+      const { data } = AC.validate(u.data || {}, raw, Date.now(), 0);   // บันทึกความคืบหน้าล่าสุดก่อน (ผ่านกันโกง) แล้วค่อยหักเหรียญ
+      if ((+data.coins || 0) < RENAME_COST) { await store.save(u.lname, data, rpOf(data)); return out(400, { err: 'เหรียญไม่พอ ต้องใช้ ' + RENAME_COST.toLocaleString() + ' 🪙', coins: data.coins }); }
+      data.coins -= RENAME_COST; data.renames = (+data.renames || 0) + 1;
+      if (!(await store.rename(u.lname, nl, name, data, rpOf(data)))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
+      console.log(`rename: ${u.name} → ${name}`);
+      return out(200, { token: makeToken({ lname: nl, salt: u.salt }), name, data: AC.seedOnline(data), cost: RENAME_COST });
     }
     if (p === '/api/recovery') { const rc = makeRecovery(); await store.setRecovery(u.lname, rc.rhash); return out(200, { code: rc.code }); }
     return out(404, { err: 'not found' });
