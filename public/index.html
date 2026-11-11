@@ -145,6 +145,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .card .skins::-webkit-scrollbar{display:none}.card .skin{flex:0 0 32px}
 #rankMenu .rankbox{margin-top:12px}
 @media (max-height:720px){#menu h1{font-size:32px}#menu .sub{margin-bottom:8px}.btn.play{padding:8px 10px 7px}.btn.play .bt{font-size:16px}}
+.btn.adv{background:linear-gradient(135deg,#2bb673,#1c7f9c);color:#fff}.stg3{display:grid;grid-template-columns:1fr 1fr;gap:8px}.stc{background:#1a2150;border:2px solid #2c3672;border-radius:14px;padding:9px 10px;text-align:left;cursor:pointer;position:relative}.stc b{font-size:15px;display:block}.stc small{color:#aab2e0;font-size:12px;display:block;line-height:1.35}.stc .sstars{color:#ffd23f;font-size:15px;letter-spacing:1px}.stc.lock{opacity:.45;cursor:default}.stc.cur{border-color:#7cfc9a}.chap{margin:12px 2px 6px;font-weight:600;color:#cfd6ff}
 .btn.play{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 12px 9px;margin-top:8px}
 .btn.play .bt{font-size:17px;line-height:1.25}
 .btn.play small{font-size:11.5px;font-weight:400;opacity:.82;line-height:1.3}
@@ -278,6 +279,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
     <div class="lbl" style="margin-top:12px">เลือกโหมด</div>
     <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>เจอผู้เล่นจริง · สูงสุด 30 ขบวน (คนไม่ครบเติมบอท)</small></button>
     <button class="btn team play" id="playOnline"><span class="bt">🌐 2v2 กับเพื่อน</span><small>สร้างห้องแข่งทีม · คนไม่ครบเติมบอทให้</small></button>
+    <button class="btn adv play" id="playAdv"><span class="bt">🗺️ ผจญภัย (เล่นคนเดียว)</span><small id="advSub">30 ด่าน · บอทเก่งขึ้นทุกด่าน · มีสิ่งกีดขวาง</small></button>
     <div id="rankMenu"></div>
     <div class="row4 four">
       <button class="mbtn" id="bRank"><b>🏆</b>แรงก์</button>
@@ -490,7 +492,7 @@ const PROF_KEY='trainProfile';
 function normProf(p){p=p&&typeof p==='object'?p:{};p.coins=Math.max(0,+p.coins||0);p.owned=p.owned||{};for(const k of CATS)p.owned[k]=Array.isArray(p.owned[k])?p.owned[k]:[];
   p.eq=Object.assign({},DEF_EQ,p.eq||{});for(const k of CATS)if(DEF_EQ[k]&&!p.owned[k].includes(DEF_EQ[k]))p.owned[k].push(DEF_EQ[k]);
   for(const k of CATS)if(k!=='skin'&&p.eq[k]&&!(k==='title'&&p.eq[k].startsWith('a:'))&&!p.owned[k].includes(p.eq[k]))p.eq[k]=DEF_EQ[k];   // ของที่ใช้อยู่ต้องเป็นของที่มีจริง
-  p.st=p.st||{};p.ach=p.ach||{};p.rp=Math.max(0,+p.rp||0);p.onrp=Math.min(p.rp,Math.max(0,+p.onrp||0));p.best=p.best||{};
+  p.st=p.st||{};p.ach=p.ach||{};p.stage=Array.isArray(p.stage)?p.stage.slice(0,60).map(v=>Math.max(0,Math.min(3,v|0))):[];p.rp=Math.max(0,+p.rp||0);p.onrp=Math.min(p.rp,Math.max(0,+p.onrp||0));p.best=p.best||{};
   for(const a of ACH)if(p.ach[a.id]&&!a.f(p.st))delete p.ach[a.id];   // เกณฑ์ใหม่ยากขึ้น: เหรียญตราที่ยังไม่ถึงเกณฑ์ใหม่ต้องทำใหม่
   return p}
 function legacyProf(){let p=null;try{p=JSON.parse(localStorage.getItem(PROF_KEY))}catch(e){}if(!p)return null;p=normProf(p);
@@ -534,7 +536,8 @@ function trackMax(k,v){
 }
 function checkAch(){for(const a of ACH){if(!prof.ach[a.id]&&a.f(prof.st)){prof.ach[a.id]=Date.now();prof.coins+=ACH_COINS;prof.st.coinsEarned=(prof.st.coinsEarned||0)+ACH_COINS;announce('🏅 ปลดล็อกเหรียญตรา: '+(a.ic.startsWith('<')?'{G}':a.ic)+' '+a.n+'  +'+ACH_COINS+' 🪙');saveProf();sfx('coin')}}}
 let roundCoins=0;
-function addCoins(n,label){if(n<=0)return;prof.coins+=n;roundCoins+=n;prof.st.coinsEarned=(prof.st.coinsEarned||0)+n;profDirty=true;
+function addCoins(n,label){if(n<=0||(STAGE_RUN&&label!=='stage'))return;   // ผจญภัย: ได้เหรียญเฉพาะรางวัลด่าน
+  prof.coins+=n;roundCoins+=n;prof.st.coinsEarned=(prof.st.coinsEarned||0)+n;profDirty=true;
   if(label&&player){const h=player.pts[0];texts.push({x:h.x,y:h.y-50,txt:label+'  +'+n+' 🪙',t:2,c:'#ffd23f'})}sfx('coin');checkAch()}
 // ---------- rank (แรงก์) ----------
 const RANKS=[
@@ -693,7 +696,7 @@ function openProfile(name){openSheet('👤 '+name,b=>{b.innerHTML='<div class="h
     b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)}).catch(e=>{b.innerHTML=`<div class="help">❌ ${e.message||'โหลดไม่ได้'}</div><button class="btn alt" id="pfBack">‹ กลับ</button>`;b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)})})}
 // อธิบายการได้/เสียแรงก์ (เจ้าของขอ 6 พ.ย. 22:30) — ใช้ในหน้า 🏆 แรงก์ และ ❓ วิธีเล่น · ตัวเลขดึงจากค่าจริง (rpNeed/rpLoss/DIFF_RP/RANKS)
 function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-align:right;white-space:nowrap">${b2}</td></tr>`,tb=r=>`<table class="rkt">${r}</table>`;
-  return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2')+row('ชนะ 2v2 / แพ้ 2v2','+15 / −5'))}
+  return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2')+row('⚔️ 2v2 (ไม่คิดความยาว)','กำจัด×2 · ชนะ +15 / แพ้ −5'))}
     <div class="help" style="text-align:left;margin:4px 0 0">🌍 ได้ RP เฉพาะ<b>โหมดออนไลน์</b> และ <b>⚔️ 2v2</b> เท่านั้น · ตารางอันดับนับเฉพาะคะแนนจากโหมดออนไลน์<br>ตัวอย่าง: ยาว 600 + กำจัด 3 ตัว (ออนไลน์) = 10 + 6 = <b>+16 RP</b></div></div>
   <div class="rkbox"><b style="color:#ff7b7b">📉 แรงก์ลดเมื่อ</b>
     <div class="help" style="text-align:left;margin:4px 0">1) <b>ตายตอนขบวนยังสั้น</b> (ตั้งแต่แรงก์เงินขึ้นไป · ทองแดงไม่โดนหัก)</div>
@@ -1008,14 +1011,14 @@ const DIFF={
 let diff='normal';try{diff=localStorage.getItem('wormDiff')||'normal';if(!DIFF[diff])diff='normal'}catch(e){}
 const ONLINE_DIFF='normal',FFA_MAX=30;   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 30 ขบวน (คนจริง + บอท)
 const netOn=()=>{try{return NET}catch(e){return null}};   // ปลอดภัยแม้เรียกก่อนประกาศ NET ตอนเริ่มเกม
-const D=()=>DIFF[netOn()?ONLINE_DIFF:diff];
+const D=()=>STAGE_D||DIFF[netOn()?ONLINE_DIFF:diff];
 const bestKey=()=>{const n=netOn();return n&&n.ffa?'online':diff};
 function loadBest(){best=+(prof.best&&prof.best[bestKey()])||0}
 loadBest();
 
 // พลอย/เพชรขาว กระจุกกลางสนามมากกว่าขอบ (เหมือน gemIn ใน server.js)
-function gemInWorld(m){const a=Math.random()*TAU,r=Math.pow(Math.random(),.8)*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
-function randInWorld(m){const a=Math.random()*TAU,r=Math.sqrt(Math.random())*Math.max(50,AR-m);return[Math.cos(a)*r,Math.sin(a)*r]}
+function gemInWorld(m){for(let i=0;;i++){const a=Math.random()*TAU,r=Math.pow(Math.random(),.8)*Math.max(50,AR-m),x=Math.cos(a)*r,y=Math.sin(a)*r;if(!OBST.length||i>8||!obstStatic(x,y,40))return[x,y]}}
+function randInWorld(m){for(let i=0;;i++){const a=Math.random()*TAU,r=Math.sqrt(Math.random())*Math.max(50,AR-m),x=Math.cos(a)*r,y=Math.sin(a)*r;if(!OBST.length||i>8||!obstStatic(x,y,60))return[x,y]}}
 function mkFood(x,y,v,id,ci,ttl){const j=ci>=7&&ci<=9?ci-7:undefined;return{id,x,y,v,ttl:+ttl||0,r:3+Math.sqrt(v)*2.4,c:FOOD_COLORS[j!==undefined?0:ci??((Math.random()*FOOD_COLORS.length)|0)],j,ph:Math.random()*TAU,dead:false}}
 const DROP_TTL=30;   // พลอยที่หล่นตอนตายอยู่ได้ 30 วิ ถ้าไม่มีใครเก็บจะหายไป
 // 💍 เกิดเครื่องประดับ 6% · รอบ ๆ ไม่มีพลอย (JEWEL_CLEAR) · เพดานพลอยนับเครื่องประดับเป็น 5 เม็ด (foodW) — ตรงกับ server.js
@@ -1073,6 +1076,7 @@ class Worm{
     const slowed=this.slow>0;if(slowed){this.slow-=dt;sp*=.45}if(this.hslow>0){this.hslow-=dt;sp*=this.hslowF||1}
     const boosting=this.boost&&this.energy>0;
     if(boosting){sp*=2;this.energy=Math.max(0,this.energy-dt);if(this.isP)sfx('whistle')}
+    if(MUDS.length&&inMud(this.pts[0]))sp*=MUD_SLOW;   // 🟫 โคลน (โหมดผจญภัย)
     if(this.isBoss)sp=Math.min(sp,BOSS_CAP*(this.onRail?1.6:1)*(slowed?.45:1));   // บอสไม่มีทางเร็วกว่าเราเร่งด้วยเพชร
     const h=this.pts[0];h.x+=Math.cos(this.angle)*sp*f;h.y+=Math.sin(this.angle)*sp*f;
     this.follow();
@@ -1082,6 +1086,7 @@ class Worm{
     if(this.mass>this.maxMass)this.maxMass=this.mass;
     if(this.isBoss&&this.energy<maxEn(this))this.energy+=dt*.5*(1+bossRage(this));
     if(h.x*h.x+h.y*h.y>(AR-r*.5)**2)this.die(null);
+    else if(OBST.length&&!this.tun&&!(this.ghost>0)&&obstHit(h.x,h.y,r*.5)){if(this.isP)texts.push({x:h.x,y:h.y-40,txt:'💥 ชนสิ่งกีดขวาง!',t:1.6,c:'#ff5e5e'});this.die(null)}
   }
   die(killer){
     if(!this.alive)return;this.alive=false;
@@ -1092,7 +1097,7 @@ class Worm{
     if(NET&&this.isP)netSend({t:'die',k:killer&&killer.netId||null,drop,v});else if(NET&&this.isBot)netSend({t:'bdie',id:this.netId,k:killer&&killer.netId||null,drop,v});else if(!NET)for(const[x,y]of drop)addFood(x,y,v,DROP_TTL);
     {const kf=killer&&(killer.isP?prof.eq.kfx:killer.kfx);if(kf&&kf!=='none'){const q=this.pts[0];killFx(q.x,q.y,kf)}}
     if(killer&&(!NET||this.isBot&&killer.isP)){killer.kills++;if(killer.isP){const h=killer.pts[0];if(!this.isBoss)texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+this.name+'!',t:1.6,c:'#ffd23f'});sfx('kill');track('kills');trackMax('killsGame',killer.kills);if(bombing)bombHits++}}
-    if(this.isBoss){bossActive=null;bossTimer=150;if(killer&&killer.isP){addCoins(BOSS_COINS);track('boss')}bossDown(killer&&killer.isP?null:killer&&killer.name||'',killer&&killer.isP)}
+    if(this.isBoss){bossActive=null;bossTimer=150;if(STAGE&&killer&&killer.isP)STAGE_BOSS=true;if(killer&&killer.isP){addCoins(BOSS_COINS);track('boss')}bossDown(killer&&killer.isP?null:killer&&killer.name||'',killer&&killer.isP)}
     if(this.isP){sfx('die');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
       if(NET&&!NET.ffa){NET.respawnT=3}else{state='dead';deadT=1.3}}
   }
@@ -1125,6 +1130,7 @@ function buildFoodGrid(){fgrid.clear();for(const fd of foods){const k=key(Math.f
 function buildBodyGrid(){bgrid.clear();for(const w of worms){if(!w.alive)continue;const p=w.pts;for(let i=0;i<p.length;i+=2){const k=key(Math.floor(p[i].x/CS),Math.floor(p[i].y/CS));let a=bgrid.get(k);if(!a)bgrid.set(k,a=[]);a.push(w,i)}}}
 function bodyNear(x,y,rad,self){
   if(x*x+y*y>(AR-30)**2)return true;
+  if(OBST.length&&obstHit(x,y,rad+4))return true;
   const cx=Math.floor(x/CS),cy=Math.floor(y/CS);
   for(let gx=cx-1;gx<=cx+1;gx++)for(let gy=cy-1;gy<=cy+1;gy++){const a=bgrid.get(key(gx,gy));if(!a)continue;
     for(let k=0;k<a.length;k+=2){const o=a[k];if(!o.alive||(o===self&&a[k+1]<SELF_IDX))continue;const q=o.pts[a[k+1]];if(!q)continue;const rr=rad+o.r(),dx=q.x-x,dy=q.y-y;if(dx*dx+dy*dy<rr*rr)return true}}
@@ -1136,7 +1142,7 @@ function bodyNear(x,y,rad,self){
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
 // ⚔️ 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด maxLen/omaxLen, ตารางอันดับ 🚂 ยาวสุด) — เจ้าของสั่ง 11 พ.ย. 2026 · กำจัด/RP/เกม ยังนับ
-const vsGame=()=>!!(NET&&!NET.ffa),VS_LEN_NOTE='⚠️ โหมด 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · กำจัด แรงก์ และเหรียญยังได้ตามปกติ';
+const vsGame=()=>!!(NET&&!NET.ffa),noLenStat=()=>vsGame()||mode==='stage',VS_LEN_NOTE='⚠️ โหมด 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์คิดจากกำจัด×2 + ชนะ 15 / แพ้ −5';
 // ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (เจ้าของสั่ง 11 พ.ย. 2026) · ต้องตรงกับ botsim.js
 // ระดับละ: รัศมีมองหา +200 · โอกาสเลือกไล่ +10% ของที่เหลือ · เลือกคนยาวก่อนคนใกล้ (ระยะหาร 1+0.4×ระดับ) · ไล่ไกลขึ้นก่อนเลิก +200 · สูงสุด 5 ระดับ
 const BIG_STEP=1000,BIG_MAX=5,bigTier=o=>isHum(o)?Math.min(BIG_MAX,Math.floor((o.mass||0)/BIG_STEP)):0;
@@ -1216,6 +1222,104 @@ function spawnBoss(){
   const w=new Worm('👑 บอสยักษ์',BOSS_SKIN,x,y,false,{loco:'diesel'});w.isBoss=true;w.ghost=w.safe=SPAWN_GHOST;w.mass=w.maxMass=D().bossM;w.energy=10;w.hp=w.maxHp=BOSS_HEARTS;
   worms.push(w);bossActive=w;bossWarn();sfx('siren');   // บอสมา: ไซเรน 3 ครั้งแล้วเงียบ (เจ้าของสั่ง 6 พ.ย. 22:22)
 }
+
+// =====================================================================
+//  🗺️ ผจญภัย — เล่นคนเดียว 30 ด่าน (เจ้าของสั่ง 11 พ.ย. 2026)
+//  ด่านละไม่เกิน 10 นาที · บอทเก่งขึ้นทุกด่าน · สิ่งกีดขวาง: 🪨 หิน / 🏚️ โกดัง / 🚧 ไม้กั้นทางข้าม (ตอนปิด) ชน = ตาย · 🟫 โคลน = ช้าลง
+//  ได้ดาว 1–3 ตามเวลาที่ใช้ · เหรียญเฉพาะดาวที่ได้ใหม่ (เล่นซ้ำได้นิดหน่อย) · ไม่ได้ RP ไม่เข้าตารางอันดับ ไม่นับความยาวเข้าสถิติ
+// =====================================================================
+const STAGE_T=600,MUD_SLOW=.55,GATE_LEN=230,STAGE_N=30;
+const CHAPTERS=[{n:'🌾 ทุ่งพลอย',rock:'#7d8296',roof:'#b5523b',mud:'#6b4a2b'},{n:'🏭 ย่านโกดัง',rock:'#6f7480',roof:'#4e6e9e',mud:'#5c4632'},{n:'🌋 หุบเขาไฟ',rock:'#6e3b35',roof:'#7b2d26',mud:'#4a2c1c'}];
+const STAGES=Array.from({length:STAGE_N},(_,i)=>{const t=i/(STAGE_N-1),c=Math.floor(i/10),k=i%5,R=Math.round;
+  const g=k===0||k===2?['len',R((300+65*i)/50)*50]:k===1?['kills',2+R(i*.4)]:k===3?['survive',R((180+6*i)/30)*30]:['boss',1];
+  return{i,code:(c+1)+'-'+(i%10+1),ch:c,g,ai:R(8+22*t),
+    d:{huntP:.12+.83*t,huntR:R(360+600*t),others:.08+.32*t,look:.55+.7*t,think:[R(26-20*t),R(50-36*t)],big:.04+.36*t,regen:t>.5?(t-.5)*.5:0},
+    boss:g[0]==='boss'?R(40-20*t):0,bossM:R(600+25*i),
+    ob:{rock:R(4+12*t),house:i<2?0:R(2+10*t),gate:i<4?0:R(2+8*t),mud:R(1+5*t)},
+    st:g[0]==='survive'?[R(600+40*i),R(300+20*i)]:[R(180+4*i),R(360+5*i)],coin:100+20*i}});
+const goalText=(g,cur)=>g[0]==='len'?'ยาว '+(cur!==undefined?Math.min(cur,g[1])+'/':'')+g[1]:g[0]==='kills'?'กำจัด '+(cur!==undefined?Math.min(cur,g[1])+'/':'')+g[1]+' ขบวน':g[0]==='survive'?'รอด '+(cur!==undefined?fmtT(Math.min(cur,g[1]))+'/':'')+fmtT(g[1]):'ล้มบอส 👑'+(cur!==undefined?' '+cur+'/1':'');
+const fmtT=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+let STAGE=null,STAGE_I=0,STAGE_D=null,STAGE_RES=null,STAGE_RUN=false,STAGE_BOSS=false,stageClock=0,OBST=[],MUDS=[];
+// ---- สิ่งกีดขวาง ----
+const gatePhase=o=>{const p=((stageClock+o.ph)%o.per)/o.per;return p<.5?'open':p<.6?'warn':'closed'};   // เปิด 50% · เตือน 10% · ปิด 40%
+function obstStatic(x,y,rad){for(const o of OBST){const dx=x-o.x,dy=y-o.y;if(Math.abs(dx)>320||Math.abs(dy)>320)continue;
+  if(o.k==='rock'){if(dx*dx+dy*dy<(o.r+rad)**2)return o}else if(o.k==='house'){const c=Math.cos(o.a),s=Math.sin(o.a),lx=dx*c+dy*s,ly=-dx*s+dy*c;if(Math.abs(lx)<o.w/2+rad&&Math.abs(ly)<o.h/2+rad)return o}}return null}
+function obstHit(x,y,rad){const o=obstStatic(x,y,rad);if(o)return o;
+  for(const g of OBST){if(g.k!=='gate')continue;const dx=x-g.x,dy=y-g.y;if(Math.abs(dx)>300||Math.abs(dy)>300)continue;
+    for(const s of[-1,1]){const px=dx-Math.cos(g.a)*s*GATE_LEN/2,py=dy-Math.sin(g.a)*s*GATE_LEN/2;if(px*px+py*py<(rad+14)**2)return g}   // เสาไม้กั้น 2 ข้าง ชนตายเสมอ
+    if(gatePhase(g)!=='closed')continue;const ux=Math.cos(g.a),uy=Math.sin(g.a),t=Math.max(-GATE_LEN/2,Math.min(GATE_LEN/2,dx*ux+dy*uy)),qx=dx-ux*t,qy=dy-uy*t;if(qx*qx+qy*qy<(rad+8)**2)return g}
+  return null}
+const inMud=h=>{for(const m of MUDS)if((h.x-m.x)**2+(h.y-m.y)**2<m.r*m.r)return true;return false};
+function railDist(x,y){let b=1e9;for(const s of rails){const t=Math.max(0,Math.min(s.l,(x-s.ax)*s.ux+(y-s.ay)*s.uy));b=Math.min(b,Math.hypot(x-s.ax-s.ux*t,y-s.ay-s.uy*t))}return b}
+function buildObstacles(S){OBST=[];MUDS=[];if(!S)return;const R=mulberry(hashStr('stage:'+S.i)),rr=(a,b)=>a+R()*(b-a);
+  const free=(x,y,rad,rail)=>{const d=Math.hypot(x,y);if(d>WR-260-rad||d<300+rad)return false;
+    for(const p of portals)if(Math.hypot(p.x-x,p.y-y)<rad+130)return false;for(const s of stations)if(Math.hypot(s.x-x,s.y-y)<rad+170)return false;
+    for(const o of OBST.concat(MUDS)){const or=o.k==='house'?Math.hypot(o.w,o.h)/2:o.k==='gate'?GATE_LEN/2+20:o.r;if(Math.hypot(o.x-x,o.y-y)<rad+or+110)return false}
+    return rail||railDist(x,y)>rad+40};
+  const place=(rad,f)=>{for(let k=0;k<80;k++){const a=R()*TAU,d=Math.sqrt(R())*(WR-300),x=Math.cos(a)*d,y=Math.sin(a)*d;if(free(x,y,rad))return f(x,y)}};
+  for(let n=0;n<S.ob.mud;n++){const r=rr(150,250);place(r,(x,y)=>MUDS.push({k:'mud',x,y,r,sd:R()}))}
+  for(let n=0;n<S.ob.rock;n++){const r=rr(42,80);place(r,(x,y)=>OBST.push({k:'rock',x,y,r,sd:R()}))}
+  for(let n=0;n<S.ob.house;n++){const w=rr(120,200),h=rr(80,130);place(Math.hypot(w,h)/2,(x,y)=>OBST.push({k:'house',x,y,w,h,a:R()*Math.PI}))}
+  for(let n=0;n<S.ob.gate;n++)for(let k=0;k<60;k++){const s=rails[(R()*rails.length)|0],t=rr(.2,.8)*s.l,x=s.ax+s.ux*t,y=s.ay+s.uy*t;   // ไม้กั้นขวางราง
+    if(free(x,y,GATE_LEN/2,true)){OBST.push({k:'gate',x,y,a:Math.atan2(s.uy,s.ux)+Math.PI/2,per:rr(6,9),ph:R()*9});break}}
+}
+function drawObstacles(vx0,vy0,vx1,vy1){const C=CHAPTERS[STAGE?STAGE.ch:0],vis=o=>o.x>vx0-300&&o.x<vx1+300&&o.y>vy0-300&&o.y<vy1+300;
+  for(const m of MUDS){if(!vis(m))continue;ctx.fillStyle=C.mud;ctx.globalAlpha=.75;ctx.beginPath();for(let k=0;k<=24;k++){const a=k/24*TAU,rr=m.r*(.86+.14*Math.sin(a*3+m.sd*9));k?ctx.lineTo(m.x+Math.cos(a)*rr,m.y+Math.sin(a)*rr):ctx.moveTo(m.x+Math.cos(a)*rr,m.y+Math.sin(a)*rr)}ctx.fill();
+    ctx.globalAlpha=.35;ctx.fillStyle='#000';for(let k=0;k<6;k++){const a=k*1.7+m.sd*5,d=m.r*(.25+.45*((k*.37+m.sd)%1));ctx.beginPath();ctx.ellipse(m.x+Math.cos(a)*d,m.y+Math.sin(a)*d,14,8,a,0,TAU);ctx.fill()}ctx.globalAlpha=1}
+  for(const o of OBST){if(!vis(o))continue;
+    if(o.k==='rock'){const R=mulberry((o.sd*1e9)|0);ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.arc(o.x+6,o.y+8,o.r,0,TAU);ctx.fill();
+      for(let k=0;k<4;k++){const a=R()*TAU,d=k?o.r*.45:0,rr=k?o.r*(.45+R()*.2):o.r*.72,x=o.x+Math.cos(a)*d,y=o.y+Math.sin(a)*d;
+        const gr=ctx.createRadialGradient(x-rr*.35,y-rr*.4,rr*.1,x,y,rr);gr.addColorStop(0,'#c9ccd8');gr.addColorStop(.5,C.rock);gr.addColorStop(1,'#2a2d3a');ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,rr,0,TAU);ctx.fill()}}
+    else if(o.k==='house'){ctx.save();ctx.translate(o.x,o.y);ctx.rotate(o.a);ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(-o.w/2+8,-o.h/2+10,o.w,o.h);
+      ctx.fillStyle='#4a4f63';ctx.fillRect(-o.w/2,-o.h/2,o.w,o.h);ctx.fillStyle=C.roof;ctx.fillRect(-o.w/2+6,-o.h/2+6,o.w-12,o.h-12);
+      ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=3;ctx.beginPath();for(let x=-o.w/2+18;x<o.w/2-8;x+=14){ctx.moveTo(x,-o.h/2+6);ctx.lineTo(x,o.h/2-6)}ctx.stroke();
+      ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.strokeRect(-o.w/2,-o.h/2,o.w,o.h);ctx.restore()}
+    else if(o.k==='gate'){const ph=gatePhase(o),ux=Math.cos(o.a),uy=Math.sin(o.a),L=GATE_LEN/2,blink=frame%20<10;
+      if(ph!=='open'){ctx.strokeStyle=ph==='warn'?'rgba(255,210,63,.18)':'rgba(255,60,60,.16)';ctx.lineWidth=60;ctx.beginPath();ctx.moveTo(o.x-ux*L,o.y-uy*L);ctx.lineTo(o.x+ux*L,o.y+uy*L);ctx.stroke()}
+      ctx.strokeStyle='rgba(255,210,63,.55)';ctx.lineWidth=6;ctx.setLineDash([18,14]);ctx.beginPath();ctx.moveTo(o.x-ux*L,o.y-uy*L);ctx.lineTo(o.x+ux*L,o.y+uy*L);ctx.stroke();ctx.setLineDash([]);   // เส้นเหลืองบนพื้น = แนวไม้กั้น
+      const arm=ph==='closed'?1:ph==='warn'?.55:.18;   // ไม้กั้นยื่นออกจากเสาสองข้าง
+      for(const s of[-1,1]){const px=o.x-ux*s*L,py=o.y-uy*s*L,ex=px+ux*s*L*arm,ey=py+uy*s*L*arm;
+        ctx.lineCap='round';ctx.strokeStyle='#fff';ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(ex,ey);ctx.stroke();
+        ctx.strokeStyle='#ff3b3b';ctx.setLineDash([16,16]);ctx.lineWidth=12;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(ex,ey);ctx.stroke();ctx.setLineDash([]);ctx.lineCap='butt';
+        ctx.fillStyle='#222';ctx.beginPath();ctx.arc(px,py,18,0,TAU);ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.stroke();ctx.fillStyle=ph!=='open'&&(blink^(s>0))?'#ff2a2a':'#552222';ctx.beginPath();ctx.arc(px,py,10,0,TAU);ctx.fill()}
+      if(ph==='warn'){ctx.fillStyle='#ffd23f';ctx.font='600 26px Mitr,sans-serif';ctx.textAlign='center';ctx.fillText('🚧 กำลังปิด!',o.x,o.y-34);ctx.textAlign='left'}}}
+}
+function miniObstacles(mx,my,S){for(const m of MUDS){ctx.fillStyle='rgba(140,90,50,.6)';ctx.beginPath();ctx.arc(mx+m.x*S,my+m.y*S,Math.max(2,m.r*S),0,TAU);ctx.fill()}
+  for(const o of OBST){ctx.fillStyle=o.k==='gate'?(gatePhase(o)==='closed'?'#ff3b3b':'#ffd23f'):'#9aa0b4';ctx.fillRect(mx+o.x*S-1.5,my+o.y*S-1.5,3,3)}}
+// ---- เล่นด่าน ----
+const stageUnlocked=i=>i===0||(prof.stage[i-1]||0)>0;
+function stageGoal(){const g=STAGE.g,cur=g[0]==='len'?Math.floor(player.mass):g[0]==='kills'?player.kills:g[0]==='survive'?Math.floor(stageClock):STAGE_BOSS?1:0;
+  return{cur,done:cur>=g[1],frac:Math.min(1,cur/g[1]),txt:'🎯 '+goalText(g,cur)}}
+function startStage(i){if(!stageUnlocked(i))return;STAGE_I=i;STAGE=STAGES[i];
+  STAGE_D={...DIFF.normal,...STAGE.d,ai:STAGE.ai,boss:STAGE.boss||1e9,bossM:STAGE.bossM};
+  STAGE_RES=null;STAGE_BOSS=false;stageClock=0;STAGE_RUN=true;$('sheet').classList.add('hidden');
+  startGame('stage');bossTimer=STAGE.boss||1e9;
+  {const[x,y]=farSpot(800,600);for(const q of player.pts){q.x+=x-player.pts[0].x;q.y+=y-player.pts[0].y}}   // จุดเกิดห่างสิ่งกีดขวาง/บอท
+  player.ghost=SPAWN_GHOST;announce('🗺️ ด่าน '+STAGE.code+' · '+goalText(STAGE.g)+' ภายใน 10 นาที')}
+function stageTick(dt){stageClock+=dt;if(!player||!player.alive)return;
+  if(stageGoal().done){STAGE_RES={ok:true,t:stageClock};finish(true);player.alive=false}
+  else if(stageClock>=STAGE_T){STAGE_RES={ok:false,why:'time'};finish(true);player.alive=false}}
+function stageStars(S,res,len){if(!res||!res.ok)return 0;if(S.g[0]==='survive')return len>=S.st[0]?3:len>=S.st[1]?2:1;return res.t<=S.st[0]?3:res.t<=S.st[1]?2:1}
+function stageOver(){const S=STAGE;if(!S)return;const res=STAGE_RES||{ok:false,why:'die'},stars=stageStars(S,res,Math.floor(player.mass)),prev=prof.stage[S.i]||0;
+  let coins=0;if(stars>prev)coins=(stars-prev)*S.coin;else if(stars)coins=10+2*S.i;   // ดาวใหม่ได้เต็ม · เล่นซ้ำได้นิดหน่อย
+  if(stars>prev){prof.stage[S.i]=stars}
+  STAGE_RUN=false;if(coins)addCoins(coins,'stage');if(stars>=1&&S.i===STAGE_N-1)track('advDone');saveProf();pushProf();STAGE_RUN=true;
+  const sv=n=>'⭐'.repeat(n)+'☆'.repeat(3-n);
+  $('overTitle').textContent=res.ok?'🎉 ผ่านด่าน '+S.code+'!':res.why==='time'?'⏱ หมดเวลา! ไม่ผ่านด่าน '+S.code:'💥 ไม่ผ่านด่าน '+S.code;
+  $('sRank').textContent=res.ok?sv(stars):'—';$('sBest').textContent=sv(prof.stage[S.i]||0);$('sDiff').textContent='ด่าน '+S.code;$('rankOver').innerHTML='';
+  $('coinEarn').innerHTML=(res.ok?'ใช้เวลา '+fmtT(res.t)+' · ':'')+'🎯 '+goalText(S.g)+'<br>'+(coins?'ได้ +'+coins.toLocaleString()+' 🪙'+(stars>prev?' (ดาวใหม่ '+(stars-prev)+' ดวง)':' (เล่นซ้ำ)'):res.ok?'ได้ดาวครบแล้ว':'ไม่ได้เหรียญ')+'  (รวม '+prof.coins.toLocaleString()+' 🪙)'+
+    (res.ok&&stars<3?'<br><small>⭐⭐⭐ ต้องผ่านภายใน '+(S.g[0]==='survive'?'ยาว '+S.st[0]:fmtT(S.st[0]))+'</small>':'');
+  $('again').textContent=res.ok&&S.i<STAGE_N-1?'ด่านต่อไป ▶':'เล่นด่านนี้อีกครั้ง';
+  if(res.ok){sfx('coin');if(stars===3)killFx(player.pts[0].x,player.pts[0].y,'firework')}}
+function renderStages(b){const tot=prof.stage.reduce((a,v)=>a+(v||0),0);let cur=0;while(cur<STAGE_N-1&&(prof.stage[cur]||0)>0)cur++;
+  let h=`<div class="help" style="margin:0 0 8px;text-align:left">⏱ ด่านละไม่เกิน <b>10 นาที</b> · บอทเก่งขึ้นทุกด่าน<br>🪨 หิน · 🏚️ โกดัง · 🚧 ไม้กั้นตอนปิด (ไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลน = ช้าลง<br>⭐ ผ่านเร็วได้ดาวมาก · ได้เหรียญเมื่อได้ดาวใหม่ · ไม่ได้ RP</div><div class="coin" style="display:inline-block;margin-bottom:4px">⭐ ${tot} / ${STAGE_N*3}</div>`;
+  for(let c=0;c<CHAPTERS.length;c++){h+=`<div class="chap">${CHAPTERS[c].n}</div><div class="stg3">`;
+    for(const S of STAGES.filter(s=>s.ch===c)){const st=prof.stage[S.i]||0,lk=!stageUnlocked(S.i);
+      h+=`<div class="stc${lk?' lock':''}${S.i===cur?' cur':''}" data-i="${S.i}"><b>${lk?'🔒 ':''}ด่าน ${S.code}</b><span class="sstars">${'★'.repeat(st)}<span style="opacity:.3">${'★'.repeat(3-st)}</span></span><small>🎯 ${goalText(S.g)}<br>🤖 บอท ${S.ai} ตัว · ⭐ ละ ${S.coin} 🪙</small></div>`}
+    h+='</div>'}
+  b.innerHTML=h;b.querySelectorAll('.stc').forEach(e=>{const i=+e.dataset.i;if(stageUnlocked(i))e.onclick=()=>startStage(i)});
+  const ce=b.querySelector('.stc.cur');if(ce)setTimeout(()=>ce.scrollIntoView({block:'center'}),50)}
+const openStages=()=>openSheet('🗺️ ผจญภัย',renderStages);
 
 // =====================================================================
 //  input
@@ -1423,10 +1527,11 @@ function step(f,dt){
   if(player&&player.bombT.length){for(let i=0;i<player.bombT.length;i++)player.bombT[i]-=dt;
     while(player.bombT.length&&player.bombT[0]<=0){player.bombT.shift();player.tgs=Math.max(0,player.tgs-1);if(player.alive){announce('{B} ระเบิดหมดเวลา หายไปแล้ว!');sfx('die')}}}
   if(player&&player.gold&&player.goldT!==undefined){player.goldT-=dt;if(player.goldT<=0){player.gold=false;player.goldT=undefined;if(player.alive){announce('{G} ร่างทองหมดเวลาแล้ว!');sfx('die')}}}
-  if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);if(!vsGame()){trackMax('maxLen',player.mass);if(NET)trackMax('omaxLen',player.mass)}if(NET){
+  if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);if(!noLenStat()){trackMax('maxLen',player.mass);if(NET)trackMax('omaxLen',player.mass)}if(NET){
     if(NET.ffa&&!player.top1&&frame%30===0&&worms.length>=6&&worms.every(w=>w===player||!w.alive||w.mass<player.mass)){player.top1=true;track('top1')}}}}
   if(hornCD>0){hornCD=Math.max(0,hornCD-dt);hornUI()}
   for(const t of texts){t.t-=dt;t.y-=30*dt}texts=texts.filter(t=>t.t>0);
+  if(state==='play'&&mode==='stage'&&STAGE)stageTick(dt);
   if(state==='play'&&mode==='time'){timeLeft-=dt;if(timeLeft<=0){timeLeft=0;finish(true)}}
   if(state==='dead'){deadT-=dt;if(deadT<=0)finish(false)}
 }
@@ -1629,7 +1734,7 @@ function render(){
   for(let x=Math.floor(vx0/G)*G;x<vx1;x+=G){ctx.moveTo(x,vy0);ctx.lineTo(x,vy1)}
   for(let y=Math.floor(vy0/G)*G;y<vy1;y+=G){ctx.moveTo(vx0,y);ctx.lineTo(vx1,y)}
   ctx.stroke();
-  drawRails(vx0,vy0,vx1,vy1);drawStations(vx0,vy0,vx1,vy1);drawPortals(vx0,vy0,vx1,vy1);
+  drawRails(vx0,vy0,vx1,vy1);drawStations(vx0,vy0,vx1,vy1);drawPortals(vx0,vy0,vx1,vy1);if(OBST.length)drawObstacles(vx0,vy0,vx1,vy1);
   ctx.beginPath();ctx.rect(vx0-10,vy0-10,vx1-vx0+20,vy1-vy0+20);ctx.arc(0,0,AR,0,TAU,true);ctx.fillStyle=AR<WR?'rgba(200,20,50,.5)':'rgba(140,20,50,.45)';ctx.fill();
   ctx.strokeStyle=AR<WR&&frame%20<10?'#ffd23f':'#ff4d6d';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,0,AR,0,TAU);ctx.stroke();
   for(const fd of foods){if(fd.x<vx0-20||fd.x>vx1+20||fd.y<vy0-20||fd.y>vy1+20)continue;const pulse=Math.sin(frame*.08+fd.ph),rr=fd.r*1.25*(1+.1*pulse);
@@ -1712,6 +1817,7 @@ function drawHUD2(){
   const CH=LS?22:26,CF=LS?'12px Mitr,sans-serif':'13px Mitr,sans-serif';
   const chip=(txt,col,frac)=>{ctx.font=CF;const cw=Math.max(160,textW(txt)+18),cx=pad;ctx.fillStyle='rgba(15,19,48,.7)';roundRect(cx,py,cw,CH,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(cx,py,cw*Math.min(1,frac),CH,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
     ctx.fillStyle='#fff';ctx.font=CF;fillTextIcons(txt,cx+8,py+CH-(LS?6:8));py+=CH+(LS?3:4)};
+  if(mode==='stage'&&STAGE){const g=stageGoal(),left=Math.max(0,STAGE_T-stageClock);chip('🗺️ '+STAGE.code+' · '+g.txt+' · ⏱ '+fmtT(left),left<60?'#ff5e5e':'#7cfc9a',g.frac)}
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/maxEn(player));
   if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/goldLife(player));
   if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/bombLife(player));
@@ -1727,6 +1833,7 @@ function drawHUD2(){
   ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
   for(const p of portals){ctx.fillStyle=portalOpen(p)?p.col:'#5a6080';ctx.beginPath();ctx.arc(mx+p.x*S,my+p.y*S,2.5,0,TAU);ctx.fill()}
+  if(OBST.length)miniObstacles(mx,my,S);
   ctx.strokeStyle=AR<WR?'#ffd23f':'rgba(255,77,109,.7)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mx,my,AR*S,0,TAU);ctx.stroke();
   for(const w of alive){if(w===player)continue;if((!NET||w.isBot)&&!w.isBoss&&alive.indexOf(w)>10)continue;const h=w.pts[0];
     const hu=NET&&NET.ffa&&w.rk!==undefined;ctx.fillStyle=w.isBoss?'#ff3b3b':w.team?TEAM_COL[w.team]:hu?'#9be7ff':'rgba(255,255,255,.5)';ctx.beginPath();ctx.arc(mx+h.x*S,my+h.y*S,w.isBoss?4:w.team||hu?3:2,0,TAU);ctx.fill()}
@@ -1807,8 +1914,9 @@ function startGame(m){
   autoFS();
   audioInit();
   if(NET)netLeave(true);
-  WR=AR=3000;buildWorld(WR);
-  if(!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let w=0;w<FOOD_N;)w+=addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_N;i++)addWhite()}
+  if(m!=='stage'){STAGE=null;STAGE_D=null;STAGE_RUN=false}
+  WR=AR=3000;buildWorld(WR);buildObstacles(m==='stage'?STAGE:null);if(m==='stage')worms=[];
+  if(m==='stage'||!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let w=0;w<FOOD_N;)w+=addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_N;i++)addWhite()}
   worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBoss);bossActive=null;bossTimer=D().boss;
   {let ais=worms.filter(w=>w.alive);while(ais.length>D().ai){const k=(Math.random()*ais.length)|0;ais[k].alive=false;ais.splice(k,1)}worms=worms.filter(w=>w.alive);while(ais.length<D().ai){spawnAI();ais.push(1)}}
   mode=m;timeLeft=300;resetItems();roundCoins=0;roundRP=0;
@@ -1825,8 +1933,8 @@ function finish(timeUp,quit,noPen){
   const alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   const score=Math.floor(timeUp?player.mass:player.maxMass),rk=alive.indexOf(player)+1;
   state='over';bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');input.boost=false;bb.classList.remove('on');
-  if(score>best){best=score;prof.best[bestKey()]=best}
-  track('games');trackMax('maxLen',score);if(netOn())trackMax('omaxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
+  if(score>best&&mode!=='stage'){best=score;prof.best[bestKey()]=best}
+  track('games');if(mode!=='stage')trackMax('maxLen',score);if(netOn())trackMax('omaxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
   addCoins(Math.floor(score/10)+player.kills*5);
   {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);if((!timeUp||quit)&&!noPen)rp-=deathPenalty(score);if(netOn())addRP(rp)}   // RP ได้เฉพาะโหมดออนไลน์ (ออฟไลน์ตอนต่อเซิร์ฟเวอร์ไม่ได้ = ไม่ได้ RP)
   saveProf();
@@ -1835,6 +1943,7 @@ function finish(timeUp,quit,noPen){
   $('sRank').textContent=(timeUp||NET)&&rk?'#'+rk:'-';
   $('sBest').textContent=best;$('sDiff').textContent=D().label;$('rankOver').innerHTML=rankHTML(roundRP);$('guestOver').classList.toggle('hidden',ACCT.mode!=='guest');
   $('coinEarn').textContent='รอบนี้ได้ +'+roundCoins+' 🪙  (รวม '+prof.coins+' 🪙)';
+  $('again').textContent='เล่นอีกครั้ง';if(mode==='stage')stageOver();
   $('over').classList.remove('hidden');
   if(timeUp)player.alive=false;
 }
@@ -1846,12 +1955,14 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
 function toMenu(){
   if(NET)netLeave(true);
+  STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];
   mode='inf';AR=WR;   // กลับหน้าแรกหลังจบ 2v2: วงสนามที่หดไว้ต้องคืนขนาด ไม่งั้นบอทฉากหลังเกิดไม่ได้แล้วค้าง
   state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('setGame').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
   renderSkins();showBest();
 }
 $('playInf').onclick=()=>playEndless();
+$('playAdv').onclick=()=>{audioInit();openStages()};
 // ---------- เล่นกับบอท (ออฟไลน์) — เอาปุ่มออกจากหน้าแรกแล้ว (เจ้าของสั่ง 7 พ.ย. 18:45) เก็บโค้ดไว้เผื่อใช้ ----------
 function renderBotSheet(b){
   b.innerHTML=`<div class="help" style="margin:0 0 6px">เลือกระดับความยากของบอท</div>
@@ -1863,7 +1974,7 @@ function renderBotSheet(b){
   b.querySelector('#botInf').onclick=()=>{$('sheet').classList.add('hidden');startGame('inf')};
   b.querySelector('#botTime').onclick=()=>{$('sheet').classList.add('hidden');startGame('time')};
 }
-$('again').onclick=()=>{autoFS();if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
+$('again').onclick=()=>{autoFS();if(mode==='stage'&&STAGE){startStage(STAGE_RES&&STAGE_RES.ok&&STAGE_I<STAGES.length-1?STAGE_I+1:STAGE_I);return}if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · คลิกปุ่มกลาง(ล้อเมาส์)/H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
@@ -1880,8 +1991,9 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['🎯 ยาวแล้วโดนหมายหัว','ขบวนยาวครบทุก <b>1,000</b> บอทจะสนใจไล่ล่าคุณมากขึ้น 1 ระดับ (สูงสุด 5 ระดับที่ 5,000): มองเห็นคุณจากไกลขึ้น เลือกไล่คุณก่อนคนอื่น และไล่ตามนานขึ้น · ดูระดับได้ที่ชิป 🎯 มุมซ้ายบน'],
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
-  ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ชนะ 2v2 +15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
-  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · กำจัด แรงก์ และเหรียญยังได้ตามปกติ'],
+  ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · 2v2 คิดแค่กำจัด×2 + ชนะ 15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (🗺️ ผจญภัยไม่ได้ RP) (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
+  ['🗺️ ผจญภัย (เล่นคนเดียว)','30 ด่าน 3 โลก แต่ละด่านมีเป้าหมาย (ยาวให้ถึง / กำจัด / รอด / ล้มบอส) ทำให้ได้ภายใน <b>10 นาที</b> · บอทเก่งขึ้นและสิ่งกีดขวางเยอะขึ้นทุกด่าน · 🪨 หิน 🏚️ โกดัง 🚧 ไม้กั้นทางข้าม (ตอนปิดไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลนทำให้ช้าลง · ผ่านเร็วได้ ⭐ มาก · ได้เหรียญเมื่อได้ดาวใหม่ · ไม่ได้ RP'],
+  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์ = กำจัด×2 + ชนะ 15 / แพ้ −5'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบเดือนแจกตามอันดับแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
 let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
 $('bHelp').onclick=()=>openSheet('❓ วิธีเล่น',b=>{const T=helpTab==='tips';
@@ -2276,7 +2388,7 @@ function renderOnlineJoin(b){
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
-function netConnect(room,srv,nmode){const ffa=nmode==='ffa';
+function netConnect(room,srv,nmode){const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];
   if(NET)netLeave(true);
   let ws;netStatus('กำลังเชื่อมต่อ...');
   const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกดเข้าห้องอีกครั้ง');NET=null};
@@ -2436,7 +2548,7 @@ function netTick(dt){
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
-  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(player.maxMass,player.kills,win?15:-5,1));track('games');track('vsGames');if(win)track('teamWin');saveProf()}
+  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(0,player.kills,win?15:-5,1));   /* 2v2: RP = กำจัด×2 + ชนะ 15 / แพ้ −5 ไม่คิดความยาว (11 พ.ย.) */track('games');track('vsGames');if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   openSheet(m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้',b=>{
     b.innerHTML=`<div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
