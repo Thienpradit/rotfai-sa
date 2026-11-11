@@ -33,6 +33,7 @@ hrn = (D / 'Horns.dc.html').read_text()
 hdefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', hrn, re.S).group(1)
 
 # ---------- สถานี 4 แบบ (Stations.dc.html จาก design/gen_stations.py) ----------
+odefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', (D / 'Obstacles.dc.html').read_text(), re.S).group(1)   # สิ่งกีดขวางผจญภัย (design/gen_obstacles.py)
 sdefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', (D / 'Stations.dc.html').read_text(), re.S).group(1)
 
 js = ('/*SPRITES-BEGIN*/\n'
@@ -41,6 +42,7 @@ js = ('/*SPRITES-BEGIN*/\n'
       'const WAG_DEFS=' + json.dumps(mini(wdefs), ensure_ascii=False) + ';\n'
       'const HORN_DEFS=' + json.dumps(mini(hdefs), ensure_ascii=False) + ';\n'
       'const STATION_DEFS=' + json.dumps(mini(sdefs), ensure_ascii=False) + ';\n'
+      'const OB_DEFS=' + json.dumps(mini(odefs), ensure_ascii=False) + ';\n'
       '/*SPRITES-END*/')
 p = ROOT / 'public' / 'index.html'
 s = p.read_text()
