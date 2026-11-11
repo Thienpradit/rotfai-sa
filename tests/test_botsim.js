@@ -122,8 +122,8 @@ ok(ms < 8, 'เวลาคำนวณต่อ tick ' + ms.toFixed(2) + ' ms (
       for (const b of live(r)) { if (b.ai.hunt && b.ai.hunt.pid === 1) nA++; if (b.ai.hunt && b.ai.hunt.pid === 2) nB++; }
       for (const b of live(r)) { const h = b.pts[0]; if (Math.hypot(h.x, h.y) > 2600) continue; } } }
     return [nA, nB]; };
-  const [a0, b0] = hunters(150), [a3, b3] = hunters(3200);
-  console.log('   ยาว 150 vs 150: ไล่คนซ้าย', a0, 'คนขวา', b0, '· ยาว 150 vs 3200: ไล่คนซ้าย', a3, 'คนขวา', b3);
-  ok(b3 > b0 * 1.8, 'ยาว 3,200 (ระดับ 3) โดนบอทไล่มากกว่าตอนยาว 150 เกือบ 2 เท่าขึ้นไป');
+  const [a0, b0] = hunters(150), [a1, b1] = hunters(1900), [a3, b3] = hunters(4200);
+  console.log('   คนขวายาว 150:', b0, '· 1,900:', b1, '· 4,200:', b3);
+  ok(b3 > b0 * 1.8 && b3 > b1 * 1.8, 'ยาว 4,200 (ระดับ 3) โดนบอทไล่มากกว่ายาว 150 และ 1,900 (ยังไม่ถึง 2,000) เกือบ 2 เท่าขึ้นไป');
 }
 console.log(fail ? `\n${fail} ข้อไม่ผ่าน` : '\nผ่านทั้งหมด'); process.exit(fail ? 1 : 0);

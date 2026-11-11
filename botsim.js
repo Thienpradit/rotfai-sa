@@ -114,7 +114,7 @@ function bodyNear(S, room, x, y, rad, self) {
 
 // ---------- AI (เหมือน aiThink ในเกม ระดับ Normal) ----------
 // ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (11 พ.ย. 2026 · ต้องตรงกับ index.html bigTier)
-const BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human ? Math.min(BIG_MAX, Math.floor((o.mass || 0) / BIG_STEP)) : 0;
+const BIG_START = 2000, BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human && (o.mass || 0) >= BIG_START ? Math.min(BIG_MAX, 1 + Math.floor(((o.mass || 0) - BIG_START) / BIG_STEP)) : 0;   // เริ่ม 2,000 (เจ้าของปรับ 11 พ.ย. 17:42)
 function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
   if (ai.t <= 0) {
