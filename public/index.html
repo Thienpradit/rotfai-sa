@@ -120,6 +120,14 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 @keyframes bossDownA{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}8%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
 @keyframes bossBlink{0%{opacity:0;transform:translateX(-50%) scale(1.25)}10%{opacity:1;transform:translateX(-50%) scale(1)}28%{opacity:.15}45%{opacity:1}75%{opacity:1}100%{opacity:0}}
 #sheet{z-index:20}
+#rotTip{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;background:rgba(8,10,28,.94);padding:24px;box-sizing:border-box}
+#rotTip.hidden{display:none}
+#rotTip .rtc{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;color:#e9ecff;max-width:300px}
+#rotTip .rtc b{font-size:22px;color:#ffd23f}#rotTip .rtc span{font-size:15px;color:#cfd6ff}#rotTip .rtc small{font-size:12px;color:#8a93c8;line-height:1.4}
+#rotTip .rtph{width:64px;height:110px;border:4px solid #e9ecff;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:6px 0 14px;animation:rotPh 2.4s ease-in-out infinite}
+#rotTip .rtscr{width:48px;height:84px;border-radius:6px;background:linear-gradient(#24306a,#141a3a);display:flex;align-items:center;justify-content:center;font-size:24px}
+@keyframes rotPh{0%,20%{transform:rotate(0)}45%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+#rotTip .sbtn{margin-top:8px;padding:8px 16px}
 #rwPop{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(5,8,25,.55);padding:16px;box-sizing:border-box}
 #rwPop .rwc{width:min(360px,100%);max-height:90dvh;overflow:auto;background:linear-gradient(#1d2556,#121838);border:2px solid #ffd23f;border-radius:18px;padding:16px 16px 14px;box-shadow:0 0 30px rgba(255,210,63,.35);animation:rwIn .45s cubic-bezier(.2,1.4,.4,1)}
 @keyframes rwIn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
@@ -282,6 +290,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 </style>
 </head>
 <body>
+<div id="rotTip" class="hidden"><div class="rtc"><div class="rtph"><div class="rtscr">🚂</div></div><b>หมุนโทรศัพท์เป็นแนวนอน</b><span>เห็นสนามกว้างกว่า บังคับง่ายกว่า</span><small id="rtLock">ถ้าหมุนแล้วจอไม่หมุนตาม ให้ปิดล็อกการหมุนหน้าจอของเครื่องก่อน</small><button class="sbtn" id="rtSkip">เล่นแนวตั้งต่อ</button></div></div>
 <canvas id="c"></canvas>
 
 <div id="menu" class="overlay">
@@ -1460,7 +1469,14 @@ $('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();openSettings()
 const FS_OK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
 let fsAuto=true;try{fsAuto=localStorage.getItem('trainFS2')!=='0'}catch(e){}   // key ใหม่: ค่า "ปิด" เก่าที่เคยกดไว้ไม่มีผลแล้ว
-function enterFS(){if(!FS_OK||isFS())return;const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:'hide'});if(r&&r.catch)r.catch(()=>{})}catch(e){}}
+function enterFS(){if(!FS_OK||isFS())return;const el=document.documentElement;try{const r=(el.requestFullscreen||el.webkitRequestFullscreen).call(el,{navigationUI:'hide'});if(r&&r.then)r.then(lockLand,()=>{});else setTimeout(lockLand,300)}catch(e){}}
+// 📱 มือถือเล่นแนวนอน (เจ้าของสั่ง 12 พ.ย. 02:03 · เลือก "ล็อก Android + ป้ายหมุน iPhone"): Android Chrome ล็อกแนวนอนได้ตอนเต็มจอ/เปิดจากไอคอน (manifest orientation landscape)
+// iPhone สั่งหมุนไม่ได้ → ป้าย #rotTip "หมุนโทรศัพท์เป็นแนวนอน" ที่หน้าแรกตอนถือแนวตั้ง (กด "เล่นแนวตั้งต่อ" ได้ · จำไว้จนปิดเกม)
+const IS_PHONE=()=>IS_TOUCH&&Math.min(screen.width,screen.height)<560;
+let LAND_LOCKED=false;
+function lockLand(){if(!IS_PHONE())return;try{const o=screen.orientation;if(o&&o.lock)o.lock('landscape').then(()=>{LAND_LOCKED=true;rotCheck()},()=>{})}catch(e){}}
+let ROT_SKIP=!!navigator.webdriver&&!/[?&]rot=1/.test(location.search);try{ROT_SKIP=ROT_SKIP||sessionStorage.getItem('rotSkip')==='1'}catch(e){}   // เบราว์เซอร์ทดสอบอัตโนมัติไม่ขึ้นป้าย (ทดสอบป้ายใช้ ?rot=1)
+function rotCheck(){const el=$('rotTip');if(!el)return;const show=IS_PHONE()&&!ROT_SKIP&&state!=='play'&&state!=='dead'&&innerHeight>innerWidth*1.05;el.classList.toggle('hidden',!show)}
 function exitFS(){try{const r=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IN_APP=/Line\/|FBAN|FBAV|Instagram|TikTok|Messenger/i.test(navigator.userAgent);
@@ -1492,7 +1508,7 @@ function fsGuide(){
     const n=b.querySelector('#fsNow');if(n)n.onclick=()=>{enterFS();fsAuto=true;try{localStorage.setItem('trainFS2','1')}catch(e){}close()};
     const i=b.querySelector('#fsInst');if(i)i.onclick=()=>{const e=instEvt;instEvt=null;close();try{e.prompt()}catch(x){}}})}
 function updFS(){const t=isFS()?'🗗':'⛶';$('fsMenu').textContent=$('fsGame').textContent=t}
-function autoFS(){if(fsAuto)enterFS()}
+function autoFS(){if(fsAuto)enterFS();if(isFS()||IS_STANDALONE())lockLand();const r=$('rotTip');if(r)r.classList.add('hidden')}
 // มือถือ: แตะตรงไหนก็ได้ (เมนู/ในเกม) แล้วยังไม่เต็มจอ → เข้าเต็มจอทันที · หลุดเต็มจอ (ปัดกลับ/สลับแอป) แตะครั้งถัดไปก็กลับมาเต็มจอ
 // (เบราว์เซอร์ยอมให้เต็มจอเฉพาะตอนผู้ใช้แตะ · ปิดได้ด้วยปุ่ม ⛶)
 if(IS_TOUCH&&FS_OK&&!IS_STANDALONE()){const go=e=>{if(fsAuto&&!isFS()&&!(e.target&&e.target.closest&&e.target.closest('.fsb')))enterFS()};
@@ -2168,6 +2184,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:16,d:'12 พ.ย. 2026',t:'📱 มือถือเล่นแนวนอน',l:['Android: กดเล่นแล้วจอหมุนเป็นแนวนอนให้เอง (ติดตั้งเกมลงหน้าจอหลักก็เปิดแนวนอนทันที)','iPhone: ถือแนวตั้งจะมีป้ายชวนหมุนเป็นแนวนอน เห็นสนามกว้างกว่า · อยากเล่นแนวตั้งกด "เล่นแนวตั้งต่อ" ได้']},
   {id:15,d:'12 พ.ย. 2026',t:'💨 ควันรถไฟเยอะขึ้น',l:['ระหว่างเล่นรถไฟพ่นควันถี่ขึ้น 3 เท่า ควันฟุ้งลอยออกข้าง เร่งแล้วควันพุ่งแรงกว่าเดิม','ควันพิเศษจากร้าน (ประกายดาว ฟองสบู่ หิมะ เปลวไฟ ฯลฯ) ก็เยอะขึ้นด้วย']},
   {id:14,d:'12 พ.ย. 2026',t:'🪨 ด่านผจญภัยโฉมใหม่',l:['หินและสิ่งกีดขวางวาดใหม่ทั้ง 3 โลก: หินพลอย โรงนา โกดัง ถังน้ำมัน หินลาวา ผลึกออบซิเดียน โรงตีเหล็ก','โคลน คราบน้ำมัน และบ่อน้ำมันดินแบบใหม่ · ไม้กั้นมีป้ายกากบาทแดงขาว']},
   {id:13,d:'12 พ.ย. 2026',t:'🎯 นักล่ากลางใน 2v2',l:['ห้อง 2v2 มีบอทนักล่า 🎯 2 ขบวน ไม่อยู่ทีมไหน ไล่ฆ่าทั้งทีมแดงและทีมน้ำเงิน','กำจัดนักล่าได้แต้มเข้าทีมคุณ · ถูกนักล่ากำจัดไม่มีทีมไหนได้แต้ม','ดูง่ายขึ้น: บอทประจำทีมเป็นสีทีม (แดง/น้ำเงิน) · นักล่าเป็นสีส้มลายดำ']},
@@ -2841,6 +2858,10 @@ for(let i=0;i<PU_N;i++)addPu();
 for(let i=0;i<WHITE_N;i++)addWhite();
 for(let i=0;i<D().ai;i++)spawnAI();
 setSnd(SND.on);renderSkins();setDiff(diff);try{sprPreload(curSkin())}catch(e){}
+$('rtSkip').onclick=()=>{ROT_SKIP=true;try{sessionStorage.setItem('rotSkip','1')}catch(e){}rotCheck()};
+if(IS_IOS)$('rtLock').textContent='iPhone: ถ้าจอไม่หมุนตาม ปัดลงจากมุมขวาบน แล้วปิด 🔒 ล็อกการหมุน';
+addEventListener('resize',()=>setTimeout(rotCheck,80));addEventListener('orientationchange',()=>setTimeout(rotCheck,300));
+if(IS_STANDALONE())lockLand();rotCheck();setInterval(rotCheck,1500);   // state เปลี่ยน (เริ่มเกม/กลับเมนู) ก็เช็คใหม่
 let last=performance.now(),profT=0;
 $('advPause').onclick=()=>setPause(!PAUSED);$('advExit').onclick=()=>setPause(true,true);
 $('pResume').onclick=()=>setPause(false);$('pRetry').onclick=()=>{const i=STAGE_I;setPause(false);startStage(i)};$('pQuit').onclick=quitStage;
