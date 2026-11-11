@@ -15,16 +15,16 @@ assert(d.coins <= 1000 + AC.COIN_CAP + 30 * 15 + 1, d.coins);
 // 4) ซื้อหัวจักรดีเซลแต่ไม่หักเหรียญ → ต้องหักจากโควตา (เกิน → ตัดเหรียญ)
 const DP = AC.SHOP.loco.diesel, C0 = DP + 5000;
 o = { ...base(), coins: C0, _srv: { cb: 5000, rb: 400, t: T0, paid: [], claims: [] } };
-r = step(o, { ...o, owned: { loco: ['classic', 'diesel'] } }); assert(r.fixed); assert(r.data.owned.loco.includes('diesel')); assert(r.data.coins <= C0 - DP + 5000 + 300);
+r = step(o, { ...o, owned: { loco: ['classic', 'diesel'] } }); assert(r.fixed); assert(r.data.owned.loco.includes('diesel')); assert(r.data.coins <= C0 - AC.priceFor('loco', 'diesel', T0) + 5000 + 300);   // วันที่ดีเซลลดราคา ใช้ราคาลด
 // 5) ซื้อถูกต้อง (หักเหรียญแล้ว) → ผ่าน
 r = step(o, { ...o, coins: C0 - DP, owned: { loco: ['classic', 'diesel'] } }); assert(!r.fixed); assert.strictEqual(r.data.coins, C0 - DP);
 // 6) ของที่ไม่มีในร้าน → ถูกเอาออก
 r = step(o, { ...o, owned: { loco: ['classic', 'golden-hack'] } }); assert(r.fixed); assert(!r.data.owned.loco.includes('golden-hack'));
 // 7) ของหายากซื้อได้เฉพาะวันที่ขาย
-const deal = AC.dealOf(AC.bkkDay(0, T0)), [lc, lid, lp] = deal.lim;
+const deal = AC.dealOf(AC.bkkDay(0, T0)), [lc, lid, lp] = deal.lims[0];
 o = { ...o, coins: 40000, owned: { loco: ['classic'] } };
 r = step(o, { ...o, coins: 40000 - lp, owned: { ...o.owned, [lc]: [lid] } }); assert(!r.fixed, 'ซื้อของหายากของวันนี้ต้องผ่าน');
-const other = AC.LIMITED.find(l => ![-1, 0, 1].some(k => AC.dealOf(AC.bkkDay(k, T0)).lim[1] === l[1]));
+const other = AC.LIMITED.find(l => ![-1, 0, 1].some(k => AC.dealOf(AC.bkkDay(k, T0)).lims.some(x => x[1] === l[1])));
 r = step(o, { ...o, coins: 40000 - other[2], owned: { ...o.owned, [other[0]]: [other[1]] } }); assert(r.fixed); assert(!r.data.owned[other[0]].includes(other[1]), 'ของหายากที่ไม่ได้ขายวันนี้ต้องซื้อไม่ได้');
 // 8) ปลดเหรียญตรา → ได้ 300 เพิ่มจากโควตา, ปลดซ้ำไม่ได้อีก
 o = { ...base(), _srv: { cb: 0, rb: 0, t: T0, paid: [], claims: [] } };

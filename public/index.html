@@ -425,11 +425,20 @@ const LIMITED=[
   {cat:'skin',id:'sunset',n:'สีพระอาทิตย์ตก',p:22000,c:['#ff7e5f','#feb47b','#6a3093']},{cat:'skin',id:'ocean',n:'สีทะเลลึก',p:22000,c:['#00c6ff','#0072ff','#e0f7ff']},
   {cat:'skin',id:'sakura',n:'สีซากุระ',p:24000,c:['#ffc0d9','#ffffff','#ff7eb3']},{cat:'skin',id:'aurora',n:'สีแสงเหนือ',p:28000,c:['#00ffa3','#7a5cff','#00e1ff']},
   {cat:'skin',id:'royal',n:'สีราชวงศ์',p:30000,c:['#4b0082','#ffd23f','#ffffff']},{cat:'smoke',id:'hearts',n:'ควันหัวใจ',p:26000,ic:'💖'},
-  {cat:'smoke',id:'leaves',n:'ควันใบไม้',p:22000,ic:'🍃'},{cat:'title',id:'lucky',n:'ผู้โชคดี',p:20000,ic:'🍀'},{cat:'title',id:'night',n:'จ้าวรัตติกาล',p:24000,ic:'🌙'}];
+  {cat:'smoke',id:'leaves',n:'ควันใบไม้',p:22000,ic:'🍃'},{cat:'title',id:'lucky',n:'ผู้โชคดี',p:20000,ic:'🍀'},{cat:'title',id:'night',n:'จ้าวรัตติกาล',p:24000,ic:'🌙'},
+  {cat:'skin',id:'mint',n:'สีมิ้นต์ช็อก',p:20000,c:['#98ffd9','#3fbf9f','#ffffff']},{cat:'skin',id:'peacock',n:'สีนกยูง',p:26000,c:['#0a7e8c','#3bd16f','#ffd23f']},
+  {cat:'skin',id:'ember',n:'สีถ่านไฟ',p:24000,c:['#3b0d0d','#ff6a00','#ffd166']},{cat:'skin',id:'midnight',n:'สีเที่ยงคืน',p:28000,c:['#0b1033','#4b6cff','#c9d4ff']},
+  {cat:'title',id:'gemhunter',n:'นักล่าพลอย',p:22000,ic:'💠'},{cat:'title',id:'stationmaster',n:'นายสถานี',p:20000,ic:'🚉'},{cat:'title',id:'speedking',n:'ราชาความเร็ว',p:26000,ic:'🏎️'}];
 const SALE=.7;
 const bkkDay=(o=0)=>new Date(Date.now()+7*36e5+o*864e5).toISOString().slice(0,10);   // วันที่ตามเวลาไทย (ทุกเครื่องเห็นของวันเดียวกัน)
 const SALE_POOL=CATS.flatMap(c=>SHOP[c].filter(i=>i.p>0).map(i=>({cat:c,...i})));
-function dealOf(day){const h=hashStr('deal:'+day);const sale=SALE_POOL[(h>>>8)%SALE_POOL.length];return{lim:LIMITED[h%LIMITED.length],sale,salePrice:Math.round(sale.p*SALE/100)*100}}
+// ⭐ ร้านวันนี้ (11 พ.ย. 2026 เจ้าของสั่ง): วันละ 6 ชิ้น = ของหายาก 2 + ลดราคา 4 (ลด 20–40%) สุ่มใหม่ทุกเที่ยงคืนเวลาไทย · ต้องตรงกับ anticheat.js dealOf
+const DEAL_LIM=2,DEAL_SALE=4,DEAL_OFFS=[20,25,30,35,40];
+function dealOf(day){const R=mulberry(hashStr('deal:'+day)),pick=(n,k)=>{const a=[...Array(n).keys()];for(let i=0;i<k;i++){const j=i+Math.floor(R()*(n-i));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,k)};
+  const lims=pick(LIMITED.length,DEAL_LIM).map(i=>LIMITED[i]),si=pick(SALE_POOL.length,DEAL_SALE);
+  const sales=si.map(i=>{const s=SALE_POOL[i],off=DEAL_OFFS[Math.floor(R()*DEAL_OFFS.length)];return{...s,off,price:Math.round(s.p*(100-off)/100/100)*100}});
+  return{lims,sales}}
+let dealDay=bkkDay();setInterval(()=>{const d=bkkDay();if(d!==dealDay){dealDay=d;if(sheetRender===renderShop&&shopTab==='deal')refreshSheet()}},15000);   // เปิดร้านค้างข้ามเที่ยงคืน → รีเฟรชเอง
 const itemDef=(cat,id)=>SHOP[cat]&&SHOP[cat].find(i=>i.id===id)||LIMITED.find(i=>i.cat===cat&&i.id===id)||null;
 // ฉายา: ซื้อในร้าน / ได้จากเหรียญตรา (a:รหัส) / รางวัลจบฤดูกาล (S:ปี-เดือน:ขั้น)
 function titleText(id){if(!id)return'';if(id.startsWith('a:')){const a=ACH.find(x=>x.id===id.slice(2));return a?(a.ic.startsWith('<')?'🌟':a.ic)+' '+a.t:''}
@@ -2194,9 +2203,10 @@ function renderShop(b){
   b.innerHTML=`<div class="coin" style="display:inline-block;margin-bottom:8px">🪙 ${prof.coins.toLocaleString()}</div><div class="tabs wrap">${SHOP_TABS.map(([k,t])=>`<div class="tab${shopTab===k?' on':''}" data-k="${k}">${t}</div>`).join('')}</div><div id="shopList"></div>`;
   b.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{shopTab=t.dataset.k;renderShop(b)});
   const L=b.querySelector('#shopList');
-  if(shopTab==='deal'){const D0=dealOf(bkkDay()),h=24-new Date(Date.now()+7*36e5).getUTCHours();
-    L.insertAdjacentHTML('beforeend',`<div class="help" style="margin:0 0 8px">ของพิเศษเปลี่ยนทุกวันตอนเที่ยงคืน (เวลาไทย) · เหลืออีกประมาณ ${h} ชม.</div>`);
-    shopRow(L,D0.lim.cat,D0.lim,{deal:1,tag:'หายาก'});shopRow(L,D0.sale.cat,itemDef(D0.sale.cat,D0.sale.id),{deal:1,tag:'ลด 30%',price:D0.salePrice});
+  if(shopTab==='deal'){const D0=dealOf(bkkDay()),nw=new Date(Date.now()+7*36e5),left=24*60-nw.getUTCHours()*60-nw.getUTCMinutes();
+    L.insertAdjacentHTML('beforeend',`<div class="help" style="margin:0 0 8px">🔄 สินค้าเปลี่ยนใหม่ทุกวันตอนเที่ยงคืน (เวลาไทย) · อีก <b>${Math.floor(left/60)} ชม. ${left%60} นาที</b></div>`);
+    L.insertAdjacentHTML('beforeend','<div class="lbl" style="margin:4px 2px">💎 ของหายากวันนี้</div>');for(const it of D0.lims)shopRow(L,it.cat,it,{deal:1,tag:'หายาก'});
+    L.insertAdjacentHTML('beforeend','<div class="lbl" style="margin:10px 2px 4px">🏷️ ลดราคาวันนี้</div>');for(const s of D0.sales)shopRow(L,s.cat,itemDef(s.cat,s.id),{deal:1,tag:'ลด '+s.off+'%',price:s.price});
     L.insertAdjacentHTML('beforeend','<div class="help">ของหายากขายเฉพาะวันที่หมุนมาเท่านั้น ซื้อแล้วเป็นของคุณถาวร</div>');return}
   if(shopTab==='title'){const d=document.createElement('div');d.className='item';const eq=!prof.eq.title;
     d.innerHTML='<div class="ic" style="background:#1f2650">➖</div><div class="tx">ไม่ใช้ฉายา</div>';const bt=document.createElement('button');bt.className='sbtn';bt.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';bt.disabled=eq;bt.onclick=()=>{equip('title','');saveProf();refreshSheet()};d.appendChild(bt);L.appendChild(d)}

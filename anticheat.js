@@ -16,7 +16,8 @@ const SHOP = {
   title: { speed: 10000, gemking: 25000, rich: 60000 },
 };
 const LIMITED = [['skin', 'sunset', 22000], ['skin', 'ocean', 22000], ['skin', 'sakura', 24000], ['skin', 'aurora', 28000], ['skin', 'royal', 30000],
-  ['smoke', 'hearts', 26000], ['smoke', 'leaves', 22000], ['title', 'lucky', 20000], ['title', 'night', 24000]];
+  ['smoke', 'hearts', 26000], ['smoke', 'leaves', 22000], ['title', 'lucky', 20000], ['title', 'night', 24000],
+  ['skin', 'mint', 20000], ['skin', 'peacock', 26000], ['skin', 'ember', 24000], ['skin', 'midnight', 28000], ['title', 'gemhunter', 22000], ['title', 'stationmaster', 20000], ['title', 'speedking', 26000]];
 const SALE = 0.7;
 const CATS = Object.keys(SHOP);
 const SALE_POOL = CATS.flatMap(c => Object.entries(SHOP[c]).filter(([, p]) => p > 0).map(([id, p]) => [c, id, p]));
@@ -37,8 +38,13 @@ const REG_COINS = 60000, REG_RP = 6000;
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 const bkkDay = (o = 0, now = Date.now()) => new Date(now + 7 * 36e5 + o * 864e5).toISOString().slice(0, 10);
 const seasonKey = (now = Date.now()) => bkkDay(0, now).slice(0, 7);
-function dealOf(day) { const h = hashStr('deal:' + day), s = SALE_POOL[(h >>> 8) % SALE_POOL.length], l = LIMITED[h % LIMITED.length];
-  return { lim: l, sale: s, salePrice: Math.round(s[2] * SALE / 100) * 100 }; }
+// ร้านวันนี้: ของหายาก 2 + ลดราคา 4 (ลด 20–40%) · ต้องตรงกับ dealOf ใน public/index.html (tests/test_shop_sync.js เช็คให้)
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const DEAL_LIM = 2, DEAL_SALE = 4, DEAL_OFFS = [20, 25, 30, 35, 40];
+function dealOf(day) { const R = mulberry(hashStr('deal:' + day)), pick = (n, k) => { const a = [...Array(n).keys()]; for (let i = 0; i < k; i++) { const j = i + Math.floor(R() * (n - i)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, k); };
+  const lims = pick(LIMITED.length, DEAL_LIM).map(i => LIMITED[i]), si = pick(SALE_POOL.length, DEAL_SALE);
+  const sales = si.map(i => { const s = SALE_POOL[i], off = DEAL_OFFS[Math.floor(R() * DEAL_OFFS.length)]; return [s[0], s[1], s[2], off, Math.round(s[2] * (100 - off) / 100 / 100) * 100]; });
+  return { lims, sales }; }
 const tierOf = rp => { let t = 0; while (t < RANK_MIN.length - 1 && rp >= RANK_MIN[t + 1]) t++; return t; };
 
 // ราคาที่ถูกที่สุดที่ซื้อของชิ้นนี้ได้ตอนนี้ (null = ซื้อไม่ได้ / ไม่มีในร้าน)
@@ -47,8 +53,8 @@ function priceFor(cat, id, now) {
   let best = SHOP[cat] && SHOP[cat][id] !== undefined ? SHOP[cat][id] : null;
   for (const o of [-1, 0, 1]) {   // เผื่อเวลาเครื่องต่างกันข้ามเที่ยงคืน
     const d = dealOf(bkkDay(o, now));
-    if (d.lim[0] === cat && d.lim[1] === id) best = best === null ? d.lim[2] : Math.min(best, d.lim[2]);
-    if (d.sale[0] === cat && d.sale[1] === id) best = best === null ? d.salePrice : Math.min(best, d.salePrice);
+    for (const l of d.lims) if (l[0] === cat && l[1] === id) best = best === null ? l[2] : Math.min(best, l[2]);
+    for (const s of d.sales) if (s[0] === cat && s[1] === id) best = best === null ? s[4] : Math.min(best, s[4]);
   }
   return best;
 }
