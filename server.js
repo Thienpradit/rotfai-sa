@@ -8,8 +8,8 @@ const { handleApi } = require('./accounts');
 const botsim = require('./botsim');   // บอทรันบนเซิร์ฟเวอร์
 
 const PORT = process.env.PORT || 3000;
-const R2 = 2200, RF = 3000;  // รัศมีสนาม: 2v2 / free-for-all
-const CFG = { vs: { R: R2, food: 700, white: 40, pu: 10, max: 4 }, ffa: { R: RF, food: 1400, white: 60, pu: 16, max: 30 } };   // ออนไลน์: โลกละ 30 คน (ขาดเติมบอท)
+const R2 = 2200, RF = 3800;  // รัศมีสนาม: 2v2 / free-for-all (ffa ขยาย 3000→3800 เจ้าของสั่ง 11 พ.ย. 22:44 · พื้นที่ ×1.6 → ของเพิ่ม ×1.6)
+const CFG = { vs: { R: R2, food: 700, white: 40, pu: 10, max: 4 }, ffa: { R: RF, food: 2240, white: 96, pu: 26, max: 30 } };   // ออนไลน์: โลกละ 30 คน (ขาดเติมบอท)
 const DIFFS = ['easy', 'normal', 'hard'];
 const MATCH = +process.env.MATCH_SECS || 300;   // วินาทีต่อแมตช์
 const SHRINK = Math.min(120, Math.round(MATCH * .4));   // วงเริ่มหดเมื่อเหลือกี่วินาที
