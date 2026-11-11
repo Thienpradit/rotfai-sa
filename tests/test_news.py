@@ -1,7 +1,8 @@
 # 📰 มีอะไรใหม่: ผู้เล่นเก่ากลับมา → เห็นวันละครั้ง · ผู้เล่นใหม่ไม่เห็น · เห็นแล้วไม่ขึ้นซ้ำ
-import asyncio,pathlib
+import asyncio,pathlib,subprocess,time
 from playwright.async_api import async_playwright
-GAME=pathlib.Path(__file__).resolve().parent.parent.joinpath('public','index.html').as_uri()
+PUB=pathlib.Path(__file__).resolve().parent.parent/'public'
+GAME='http://127.0.0.1:3471/index.html'   # file:// เก็บ sessionStorage ไม่แน่นอน → เสิร์ฟผ่าน http
 async def run(b,pre):
   ctx=await b.new_context(viewport={'width':390,'height':844})
   await ctx.add_init_script("if(!sessionStorage.getItem('_i')){sessionStorage.setItem('_i','1');localStorage.clear();"+pre+"}")
@@ -28,4 +29,6 @@ async def main():
     ok=(not new[0]['open'] and new[0]['seen']=='6' and old[0]['open'] and old[0]['n']==3 and not old[1]['open'] and not cur[0]['open'] and not day[0]['open'] and allN>=6
         and not any(x[2] for x in [new,old,cur,day]))
     print('PASS' if ok else 'FAIL');await b.close()
-asyncio.run(main())
+srv=subprocess.Popen(['python3','-m','http.server','3471','--bind','127.0.0.1'],cwd=PUB,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(1)
+try:asyncio.run(main())
+finally:srv.terminate()
