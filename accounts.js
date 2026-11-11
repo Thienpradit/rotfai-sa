@@ -100,7 +100,9 @@ const LB_VAL = { rp: u => Math.floor(+(u.data || {}).onrp || 0), len: u => Math.
 // โปรไฟล์สาธารณะของผู้เล่น (แตะชื่อในตารางอันดับ) — ส่งเฉพาะสถิติ ไม่ส่งข้อมูลส่วนตัว
 const PUB_ST = ['kills', 'boss', 'maxLen', 'games', 'teamWin', 'vsGames', 'killsGame', 'jewels', 'stations'];
 function pubProfile(u) { const d = u.data || {}, st = d.st || {}, o = {}; for (const k of PUB_ST) o[k] = Math.floor(+st[k] || 0);
-  return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', horn: (d.eq || {}).horn || '', ach: Object.keys(d.ach || {}).length, st: o }; }
+  return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', horn: (d.eq || {}).horn || '', ach: Object.keys(d.ach || {}).length, st: o, adv: advOf(d.stage) }; }
+// ผจญภัย (เจ้าของสั่ง 11 พ.ย. 2026): ผ่านถึงด่านไหน + ดาวรวม — stage = [ดาว 0–3 ต่อด่าน] 30 ด่าน
+function advOf(a) { a = Array.isArray(a) ? a.slice(0, 30).map(v => Math.max(0, Math.min(3, Math.floor(+v || 0)))) : []; let top = 0; a.forEach((v, i) => { if (v > 0) top = i + 1; }); return { top, stars: a.reduce((x, v) => x + v, 0) }; }
 const LB_SQL = { rp: "floor(COALESCE((data->>'onrp')::float,0))", len: "floor(COALESCE((data->'st'->>'omaxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))", kills: "floor(COALESCE((data->'st'->>'okills')::float,0))" };
 
 // ---------- helpers ----------
