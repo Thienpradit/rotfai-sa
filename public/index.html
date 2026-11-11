@@ -364,7 +364,7 @@ let VW,VH,DPR;
 // ตั้งค่า ⚙️ กราฟิก (localStorage trainGfx): 'hi' = สวยสุด ค่าเริ่มต้น (ไม่ลดเอง — เจ้าของไม่อยากให้เพชรหาย/ภาพเบลอกลางเกม) · 'auto' = ลดเองเมื่อเครื่องช้า · 'lo' = ประหยัดตลอด
 let GFX='hi';try{GFX=localStorage.getItem('trainGfx')||'hi'}catch(e){}
 let QUAL=GFX==='lo'?0:2;
-const QDPR=[1.25,1.5,2],QSMOKE=[3,2,1],QSMOKE_MAX=[120,300,600],FPS={n:0,t:0,cd:3};
+const QDPR=[1.25,1.5,2],QSMOKE=[3,2,1],QSMOKE_MAX=[220,700,1400],FPS={n:0,t:0,cd:3};
 function fpsWatch(ms){if(GFX!=='auto'||state!=='play'||document.hidden||QUAL<=0)return;if(FPS.cd>0){FPS.cd-=ms/1000;return}
   if(ms>250)return;FPS.n++;FPS.t+=ms;if(FPS.t<3000)return;const fps=FPS.n*1000/FPS.t;FPS.n=0;FPS.t=0;
   if(fps<38){QUAL--;FPS.cd=4;resize()}}
@@ -1777,7 +1777,9 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   if(boosting)drawWind(w,lspr?140*(W/156):L/2,W,r);   // เร่ง = ลมพัดผ่านหัวจักร (เจ้าของสั่ง 12 พ.ย. 00:54)
   ctx.restore();
   const elec=(w.loco==='bullet'||w.loco==='tram'||w.loco==='metro')&&w.smokeT==='normal',sk2=w.loco==='comet'&&w.smokeT==='normal'?'comet':w.smokeT;
-  if(vis(c)&&!elec&&frame%((boosting||sk2==='comet'?3:9)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL])smoke.push({x:c.x+Math.cos(c.a)*smX,y:c.y+Math.sin(c.a)*smX,r:smR,t:1,k:sk2,h:frame*4%360});
+  // ควันถี่ขึ้น 3 เท่า + ฟุ้งลอยออกข้าง (เจ้าของสั่ง 12 พ.ย. 01:35 "ควันในเกมให้มีตอนเล่นมากกว่านี้"): ปกติทุก 3 เฟรม (เดิม 9) · เร่ง/ดาวหางทุก 2 (เดิม 3)
+  if(vis(c)&&!elec&&(frame+(w.seed|0))%((boosting||sk2==='comet'?2:3)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL]){const sa=c.a+Math.PI+rnd(-.7,.7),sv=rnd(.25,.6)*(boosting?1.6:1);
+    smoke.push({x:c.x+Math.cos(c.a)*smX+rnd(-2,2),y:c.y+Math.sin(c.a)*smX+rnd(-2,2),r:smR*rnd(.85,1.2),t:1,k:sk2,h:frame*4%360,vx:Math.cos(sa)*sv,vy:Math.sin(sa)*sv-.12})}
   if(w.slow>0){glowAlong(w,'rgba(155,231,255,.35)',1.2,vx0,vy0,vx1,vy1,M)}
   if(w.hslow>0&&!(w.slow>0)){glowAlong(w,'rgba(255,170,90,.32)',1.15,vx0,vy0,vx1,vy1,M)}   // โดนหวูด = เรืองส้ม
   const h=p[0];
@@ -1795,7 +1797,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
     ctx.fillStyle=warn?`rgba(255,60,60,${.25+.3*pl})`:`rgba(255,140,40,${.18+.17*pl})`;ctx.beginPath();ctx.arc(bx,by,bs*.62,0,TAU);ctx.fill();drawBombIcon(bx,by,bs)}
   if(w.title){ctx.font=`600 ${Math.max(10,r*.5)}px Mitr,sans-serif`;ctx.fillStyle='#ffe9a8';ctx.fillText('« '+w.title+' »',c.x,c.y-W-14-fs)}
 }
-function drawSmoke(){for(const s of smoke){s.t-=.018;s.r+=.35;const a=Math.max(0,s.t);
+function drawSmoke(){for(const s of smoke){s.t-=.018;s.r+=.35;if(s.vx){s.x+=s.vx;s.y+=s.vy;s.vx*=.985;s.vy*=.985}const a=Math.max(0,s.t);
   if(s.k==='rainbow'){ctx.fillStyle=`hsla(${(s.h+(1-s.t)*200)%360},90%,65%,${.55*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}
   else if(s.k==='hearts'){ctx.fillStyle=`rgba(255,${100+((s.h|0)%60)},170,${.85*a})`;heart(s.x,s.y,5+s.r*.25)}
   else if(s.k==='leaves'){ctx.fillStyle=`hsla(${95+(s.h|0)%50},70%,50%,${.85*a})`;ctx.beginPath();ctx.ellipse(s.x,s.y,4+s.r*.2,2+s.r*.1,s.h/57+(1-s.t)*3,0,TAU);ctx.fill()}
@@ -1804,7 +1806,7 @@ function drawSmoke(){for(const s of smoke){s.t-=.018;s.r+=.35;const a=Math.max(0
   else if(s.k==='bubbles'){s.y-=.6;s.x+=Math.sin(s.h+s.t*9)*.5;const r=3+s.r*.35;ctx.strokeStyle=`hsla(${(s.h|0)%360},90%,85%,${.8*a})`;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(s.x,s.y,r,0,TAU);ctx.stroke();ctx.fillStyle=`rgba(200,240,255,${.18*a})`;ctx.fill();ctx.fillStyle=`rgba(255,255,255,${.85*a})`;ctx.beginPath();ctx.arc(s.x-r*.35,s.y-r*.35,r*.22,0,TAU);ctx.fill()}
   else if(s.k==='snow'){s.x+=Math.cos(s.h*.7)*.6;s.y+=Math.sin(s.h*.7)*.6-.15;const r=4+s.r*.33,ro=s.h/40+(1-s.t)*1.5;ctx.strokeStyle=`rgba(225,245,255,${.95*a})`;ctx.lineWidth=1.8;ctx.beginPath();for(let i=0;i<6;i++){const q=ro+i*Math.PI/3,cx=Math.cos(q),cy=Math.sin(q);ctx.moveTo(s.x,s.y);ctx.lineTo(s.x+cx*r,s.y+cy*r);ctx.moveTo(s.x+cx*r*.55-cy*r*.22,s.y+cy*r*.55+cx*r*.22);ctx.lineTo(s.x+cx*r*.55+cy*r*.22,s.y+cy*r*.55-cx*r*.22)}ctx.stroke()}
   else if(s.k==='flame'){s.y-=.8;s.x+=Math.sin(s.h+s.t*12)*.35;const r=Math.max(1,s.r*.55*(.4+s.t*.8));ctx.fillStyle=`hsla(${Math.max(0,45-(1-s.t)*45)},100%,${55+s.t*15}%,${.85*a})`;ctx.beginPath();ctx.arc(s.x,s.y,r,0,TAU);ctx.fill();if(s.t>.55){ctx.fillStyle=`rgba(255,240,170,${.8*a})`;ctx.beginPath();ctx.arc(s.x,s.y,r*.45,0,TAU);ctx.fill()}}
-  else{ctx.fillStyle=s.k==='gold'?`rgba(255,215,80,${.8*a})`:`rgba(225,230,245,${.45*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}}
+  else{ctx.fillStyle=s.k==='gold'?`rgba(255,215,80,${.8*a})`:`rgba(225,230,245,${.5*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}}
   smoke=smoke.filter(s=>s.t>0)}
 function heart(x,y,s){ctx.beginPath();ctx.moveTo(x,y+s*.9);ctx.bezierCurveTo(x-s*1.4,y-s*.1,x-s*.6,y-s*1.1,x,y-s*.35);ctx.bezierCurveTo(x+s*.6,y-s*1.1,x+s*1.4,y-s*.1,x,y+s*.9);ctx.fill()}
 // เอฟเฟกต์ตอนกำจัดศัตรู (ร้านค้า หมวดกำจัด)
@@ -2166,6 +2168,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:15,d:'12 พ.ย. 2026',t:'💨 ควันรถไฟเยอะขึ้น',l:['ระหว่างเล่นรถไฟพ่นควันถี่ขึ้น 3 เท่า ควันฟุ้งลอยออกข้าง เร่งแล้วควันพุ่งแรงกว่าเดิม','ควันพิเศษจากร้าน (ประกายดาว ฟองสบู่ หิมะ เปลวไฟ ฯลฯ) ก็เยอะขึ้นด้วย']},
   {id:14,d:'12 พ.ย. 2026',t:'🪨 ด่านผจญภัยโฉมใหม่',l:['หินและสิ่งกีดขวางวาดใหม่ทั้ง 3 โลก: หินพลอย โรงนา โกดัง ถังน้ำมัน หินลาวา ผลึกออบซิเดียน โรงตีเหล็ก','โคลน คราบน้ำมัน และบ่อน้ำมันดินแบบใหม่ · ไม้กั้นมีป้ายกากบาทแดงขาว']},
   {id:13,d:'12 พ.ย. 2026',t:'🎯 นักล่ากลางใน 2v2',l:['ห้อง 2v2 มีบอทนักล่า 🎯 2 ขบวน ไม่อยู่ทีมไหน ไล่ฆ่าทั้งทีมแดงและทีมน้ำเงิน','กำจัดนักล่าได้แต้มเข้าทีมคุณ · ถูกนักล่ากำจัดไม่มีทีมไหนได้แต้ม']},
   {id:12,d:'12 พ.ย. 2026',t:'🗺️ ผจญภัย + 🚉 สถานีโฉมใหม่',l:['ผ่านด่านผจญภัยได้เหรียญทุกครั้ง (80–370 🪙 ตามด่าน) + ดาวใหม่ได้เพิ่ม มีหน้าต่างสรุปรางวัล','ปุ่ม ⏸ หยุด / 🚪 ออก ย้ายขึ้นข้างเวลาด่าน ไม่ทับที่นิ้วบังคับแล้ว','สถานีโฉมใหม่ 4 แบบ: ทับทิม มรกต ไพลิน บุษราคัม']},
@@ -2358,7 +2361,7 @@ function pvStep(me,dt){const w=me.w,n=w.nPts(),s=w.r()*.42,hd=me.t*(me.o.smoke?P
 let PV_SND=false;
 function pvDraw(me){const cv=me.cv,c2=cv.getContext('2d'),W=cv.width,H=cv.height;
   if(!c2.__arcFix){const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)};c2.__arcFix=1}
-  const old=ctx,os=smoke,op=parts,of=frame;ctx=c2;smoke=me.smoke;parts=me.parts;frame=me.o.smoke?(me.f++)*3:me.f++;   // หมวดควัน: ปล่อยควันถี่ขึ้น 3 เท่าให้เห็นชัด
+  const old=ctx,os=smoke,op=parts,of=frame;ctx=c2;smoke=me.smoke;parts=me.parts;frame=me.f++;   // ควันในเกมถี่ขึ้นแล้ว (12 พ.ย. 01:35) ไม่ต้องเร่งในภาพตัวอย่างอีก
   try{c2.setTransform(1,0,0,1,0,0);const g=c2.createLinearGradient(0,0,0,H);g.addColorStop(0,'#141a3a');g.addColorStop(1,'#0c1027');c2.fillStyle=g;c2.fillRect(0,0,W,H);
     const sc=W/PV_W;c2.setTransform(sc,0,0,sc,0,(H-PV_H*sc)/2);
     c2.fillStyle='rgba(255,255,255,.05)';for(let x=10;x<PV_W;x+=26)for(let y=10;y<PV_H;y+=26){c2.beginPath();c2.arc(x,y,1.3,0,TAU);c2.fill()}
