@@ -32,11 +32,15 @@ wdefs += re.search(r'<!--W2-BEGIN-->(.*?)<!--W2-END-->', (D / 'Wagons2.dc.html')
 hrn = (D / 'Horns.dc.html').read_text()
 hdefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', hrn, re.S).group(1)
 
+# ---------- สถานี 4 แบบ (Stations.dc.html จาก design/gen_stations.py) ----------
+sdefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', (D / 'Stations.dc.html').read_text(), re.S).group(1)
+
 js = ('/*SPRITES-BEGIN*/\n'
       '// สร้างอัตโนมัติจาก design/*.dc.html ด้วย tools/gen_sprites.py — ห้ามแก้ตรงนี้ด้วยมือ\n'
       'const LOCO_SVG=' + json.dumps(LOCO, ensure_ascii=False) + ';\n'
       'const WAG_DEFS=' + json.dumps(mini(wdefs), ensure_ascii=False) + ';\n'
       'const HORN_DEFS=' + json.dumps(mini(hdefs), ensure_ascii=False) + ';\n'
+      'const STATION_DEFS=' + json.dumps(mini(sdefs), ensure_ascii=False) + ';\n'
       '/*SPRITES-END*/')
 p = ROOT / 'public' / 'index.html'
 s = p.read_text()

@@ -32,6 +32,7 @@ async def main():
         st1=await pg.evaluate("JSON.stringify(Object.fromEntries(Object.entries(prof.st).filter(([k])=>k!=='coinsEarned')))");st0=__import__('json').loads(st0);st0.pop('coinsEarned',None)
         stats_same=__import__('json').loads(st1)==st0;note=await pg.evaluate("document.getElementById('rankOver').textContent");print('stats unchanged',stats_same,'| note',note)
         # ด่านถัดไป + ไม้กั้น/โคลน (ด่าน 15)
+        pop=await pg.evaluate("!!document.getElementById('rwPop')&&document.getElementById('rwN').textContent");print('reward popup',pop);await pg.click('#rwOk')
         await pg.click('#again');await pg.wait_for_timeout(800);nxt=await pg.evaluate("STAGE.code")
         await pg.evaluate("prof.stage=Array(14).fill(1);startStage(14)");await pg.wait_for_timeout(1200)
         g=await pg.evaluate("""(()=>{const o=OBST.find(o=>o.k==='gate');const res=[];for(const t of [0,.55,.7,.95]){stageClock=((t*o.per-o.ph)%o.per+o.per)%o.per;res.push(gatePhase(o)+':'+!!obstHit(o.x,o.y,10))}stageClock=0;
@@ -39,6 +40,6 @@ async def main():
         await pg.evaluate("(()=>{const o=OBST.find(o=>o.k==='gate');const h=player.pts[0];const dx=o.x-120*Math.cos(o.a-Math.PI/2)-h.x,dy=o.y-120*Math.sin(o.a-Math.PI/2)-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}player.angle=o.a-Math.PI/2;cam.x=o.x;cam.y=o.y})()")
         await pg.wait_for_timeout(600);await pg.screenshot(path=SP+'/adv_stage15.png')
         print('cards',len(cards),sum('lock' in c for c in cards),'| locked click mode',locked);print('stage1',r1);print('rock death',dead,fail);print('clear',win);print('next',nxt);print('stage15',g)
-        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'หมด 3 ชีวิต' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
+        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'หมด 3 ชีวิต' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300+80 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
         print('errors',errs[:3]);print('PASS' if ok and not errs else 'FAIL');await b.close()
 asyncio.run(main())
