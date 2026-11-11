@@ -169,7 +169,7 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .tabs.wrap{flex-wrap:wrap;gap:5px}.tabs.wrap .tab{flex:1 0 21%;font-size:12px;padding:6px 2px}
 .item.deal{border:2px solid #ffd23f}.item.tap{cursor:pointer}.item.tap:active{background:#18204a}
 .item .perk{display:block;font-style:normal;font-size:11.5px;color:#7cfc9a}
-.rkimg{vertical-align:-.3em;display:inline-block}.item .ic.rk{width:46px;height:46px}.item .ic{position:relative}.item .ic.real{background:radial-gradient(circle,#2a3466,#141a3a);width:46px;height:46px}.item .ic canvas.lic{position:static;width:100%;height:100%;display:block}
+.vsnote{margin:6px 0 8px;padding:7px 10px;border-radius:10px;background:#ff8c4222;border:1px solid #ff8c4288;color:#ffc79a;font-size:13px;text-align:left;line-height:1.45}.rkimg{vertical-align:-.3em;display:inline-block}.item .ic.rk{width:46px;height:46px}.item .ic{position:relative}.item .ic.real{background:radial-gradient(circle,#2a3466,#141a3a);width:46px;height:46px}.item .ic canvas.lic{position:static;width:100%;height:100%;display:block}
 .cmpbtn{margin:0 0 10px;padding:9px;font-size:15px}
 table.cmp{width:100%;border-collapse:separate;border-spacing:0 5px;font-size:12px;table-layout:fixed}
 table.cmp th{font-weight:600;color:#aab3e6;font-size:15px;padding:0 1px}table.cmp th:first-child{width:38%;text-align:left;font-size:12px;padding-left:6px}
@@ -1135,6 +1135,8 @@ function bodyNear(x,y,rad,self){
 //  AI
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
+// ⚔️ 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด maxLen/omaxLen, ตารางอันดับ 🚂 ยาวสุด) — เจ้าของสั่ง 11 พ.ย. 2026 · กำจัด/RP/เกม ยังนับ
+const vsGame=()=>!!(NET&&!NET.ffa),VS_LEN_NOTE='⚠️ โหมด 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · กำจัด แรงก์ และเหรียญยังได้ตามปกติ';
 // ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (เจ้าของสั่ง 11 พ.ย. 2026) · ต้องตรงกับ botsim.js
 // ระดับละ: รัศมีมองหา +200 · โอกาสเลือกไล่ +10% ของที่เหลือ · เลือกคนยาวก่อนคนใกล้ (ระยะหาร 1+0.4×ระดับ) · ไล่ไกลขึ้นก่อนเลิก +200 · สูงสุด 5 ระดับ
 const BIG_STEP=1000,BIG_MAX=5,bigTier=o=>isHum(o)?Math.min(BIG_MAX,Math.floor((o.mass||0)/BIG_STEP)):0;
@@ -1421,7 +1423,7 @@ function step(f,dt){
   if(player&&player.bombT.length){for(let i=0;i<player.bombT.length;i++)player.bombT[i]-=dt;
     while(player.bombT.length&&player.bombT[0]<=0){player.bombT.shift();player.tgs=Math.max(0,player.tgs-1);if(player.alive){announce('{B} ระเบิดหมดเวลา หายไปแล้ว!');sfx('die')}}}
   if(player&&player.gold&&player.goldT!==undefined){player.goldT-=dt;if(player.goldT<=0){player.gold=false;player.goldT=undefined;if(player.alive){announce('{G} ร่างทองหมดเวลาแล้ว!');sfx('die')}}}
-  if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);trackMax('maxLen',player.mass);if(NET){trackMax('omaxLen',player.mass);
+  if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);if(!vsGame()){trackMax('maxLen',player.mass);if(NET)trackMax('omaxLen',player.mass)}if(NET){
     if(NET.ffa&&!player.top1&&frame%30===0&&worms.length>=6&&worms.every(w=>w===player||!w.alive||w.mass<player.mass)){player.top1=true;track('top1')}}}}
   if(hornCD>0){hornCD=Math.max(0,hornCD-dt);hornUI()}
   for(const t of texts){t.t-=dt;t.y-=30*dt}texts=texts.filter(t=>t.t>0);
@@ -1879,6 +1881,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ชนะ 2v2 +15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
+  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · กำจัด แรงก์ และเหรียญยังได้ตามปกติ'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบเดือนแจกตามอันดับแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
 let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
 $('bHelp').onclick=()=>openSheet('❓ วิธีเล่น',b=>{const T=helpTab==='tips';
@@ -2266,6 +2269,7 @@ function renderOnlineJoin(b){
   // ช่องที่อยู่เซิร์ฟเวอร์เอาออกแล้ว (เจ้าของสั่ง 6 พ.ย. 21:33) — ต่อเซิร์ฟเวอร์ของหน้าเว็บนี้เสมอ
   const code=(Math.random().toString(36).slice(2,6)).toUpperCase();
   b.innerHTML=`<div class="help" style="margin:0 0 8px">แบ่งเป็น 🔴 ทีมแดง vs 🔵 ทีมน้ำเงิน (สูงสุด 4 คน · คนไม่ครบเติมบอท)<br>เพื่อนร่วมทีมชนกันไม่ตาย · ทีมที่ได้คะแนนมากกว่าเมื่อหมดเวลาชนะ</div>
+   <div class="vsnote">${VS_LEN_NOTE}</div>
    <div class="help" style="text-align:left;margin:6px 2px 4px">รหัสห้อง (ให้เพื่อนใส่รหัสเดียวกัน)</div><input id="roomIn" maxlength="8" value="${code}" style="text-transform:uppercase;letter-spacing:3px;font-weight:600">
    <button class="btn team" id="joinBtn">เข้าห้อง</button><div class="status" id="netStatus"></div>`;
   b.querySelector('#joinBtn').onclick=()=>{autoFS();const room=b.querySelector('#roomIn').value.trim().toUpperCase()||'PUBLIC';netConnect(room,'')};
@@ -2323,7 +2327,7 @@ function netMsg(m){
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();
+    case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
@@ -2377,6 +2381,7 @@ function renderLobby(b){
   const canStart=NET.host&&ps.length>=1;
   b.innerHTML=`<div class="help" style="margin:0">รหัสห้อง</div><div style="font-size:30px;font-weight:600;letter-spacing:6px;color:#ffd23f">${NET.room}</div>
    <div class="help" style="margin:2px 0 6px">ส่งรหัสนี้ให้เพื่อน แล้วให้เพื่อนเปิดเว็บเกมเดียวกันและใส่รหัสห้องนี้</div>
+   <div class="vsnote">${VS_LEN_NOTE}</div>
    <div class="help" style="margin:0">เลือกทีมที่จะอยู่ (ทีมละไม่เกิน 2 คน)</div>
    <div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b>${col('A')}</div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b>${col('B')}</div></div>
    ${NET.host?`<button class="btn team" id="startBtn" ${canStart?'':'disabled'}>⚔️ เริ่มเกม (5 นาที)</button>`:'<div class="status">รอหัวหน้าห้อง 👑 กดเริ่มเกม...</div>'}
@@ -2431,12 +2436,12 @@ function netTick(dt){
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
-  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(player.maxMass,player.kills,win?15:-5,1));track('games');track('vsGames');trackMax('maxLen',player.maxMass);trackMax('omaxLen',player.maxMass);if(win)track('teamWin');saveProf()}
+  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(player.maxMass,player.kills,win?15:-5,1));track('games');track('vsGames');if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   openSheet(m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้',b=>{
     b.innerHTML=`<div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
     ${m.players.map(p=>`<div class="item"><div class="ic" style="background:${TEAM_COL[p.team]}33">${p.id===m.mvp?'🏅':p.bot?'🤖':'🚂'}</div><div class="tx">${String(p.name).replace(/[<>&]/g,'')}<small>💀 ${p.kills} · ยาวสุด ${Math.floor(p.maxLen)}</small></div></div>`).join('')}
-    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div>${rankHTML(roundRP)}
+    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div>${rankHTML(roundRP)}<div class="help">⚔️ 2v2 ไม่นับความยาวเข้าสถิติ</div>
     <button class="btn team" id="toLobby">กลับห้องรอ</button><button class="btn alt" id="leave2">ออกจากห้อง</button>`;
     b.querySelector('#toLobby').onclick=()=>openSheet('🌐 ห้อง '+NET.room,renderLobby);
     b.querySelector('#leave2').onclick=()=>netLeave()});
