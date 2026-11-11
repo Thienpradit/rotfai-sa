@@ -94,7 +94,11 @@ step(room, 2); const vb = live(room);
 ok(vb.length === 2 && vb.every(x => x.team === 'B' && x.info.team === 'B'), '2v2 เติมบอททีม B 2 ตัว');
 botsim.onBomb(room, room.players.get(1), vb[0].pts[0].x, vb[0].pts[0].y);
 ok(!vb[0].alive && vb[0].dead && room.bots.has(vb[0].id), '2v2 บอทตาย → เก็บไว้นับแต้มตอนจบ');
-step(room, 70); ok(live(room).length === 2, '2v2 บอทเกิดใหม่ภายใน ~3 วิ');
+step(room, 70); ok(live(room).filter(b => !b.hunter).length === 2, '2v2 บอทเกิดใหม่ภายใน ~3 วิ');
+step(room, 60); { const hs = live(room).filter(b => b.hunter); ok(hs.length === 2 && hs.every(b => !b.team && b.info.hunter && b.name.startsWith('🎯')), '2v2 มีนักล่ากลาง 2 ตัว ไม่มีทีม (ได้ ' + hs.length + ')');
+  room.players.set(2, { id: 2, kills: 0, team: 'B', st: { x: -300, y: 200, a: 0, m: 60, f: 4 } }); let hitA = 0, hitB = 0;
+  for (let i = 0; i < 200; i++) { step(room, 1); for (const b of live(room).filter(b => b.hunter)) { const h = b.ai.hunt; if (h && h.human) { if (h.team === 'A') hitA++; else if (h.team === 'B') hitB++; } } }
+  ok(hitA > 0 && hitB > 0, 'นักล่ากลางไล่คนทั้งทีม A และ B (A ' + hitA + ' · B ' + hitB + ')'); room.players.delete(2); }
 room.phase = 'lobby'; const n0 = room.msgs.length; step(room, 5); ok(room.msgs.length === n0, 'ล็อบบี้ 2v2 บอทไม่ขยับ');
 
 // 8) ความเร็ว: 30 ขบวน ต่อ tick ต้องเร็วพอ

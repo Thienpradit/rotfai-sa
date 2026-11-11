@@ -63,12 +63,12 @@ function spawnBot(room, o = {}) {
   const side = o.team ? (o.team === 'A' ? Math.PI : 0) : undefined;
   const [x, y] = farSpot(room, trains, o.boss ? 500 : 400, o.boss ? 1100 : 650, side);
   const a = side !== undefined ? side + Math.PI + rnd(-.5, .5) : Math.random() * TAU;
-  let mass = o.boss ? D.bossM : rnd(25, 120); if (!o.boss && !o.team && Math.random() < D.big) mass = rnd(150, 450); if (o.team) mass = rnd(20, 45);
+  let mass = o.boss ? D.bossM : rnd(25, 120); if (!o.boss && !o.team && !o.hunter && Math.random() < D.big) mass = rnd(150, 450); if (o.team) mass = rnd(20, 45); if (o.hunter) mass = rnd(45, 90);
   const id = -(100000000 + (nextBot++ % 90000000));
-  const b = { id, bot: true, name: o.boss ? '👑 บอสยักษ์' : (o.team ? '🤖 ' : '') + freeName(room), skin: o.boss ? BOSS_SKIN : pick(SKINS), loco: o.boss ? 'diesel' : pick(LOCOS), team: o.team,
+  const b = { id, bot: true, name: o.boss ? '👑 บอสยักษ์' : (o.hunter ? '🎯 ' : o.team ? '🤖 ' : '') + freeName(room), skin: o.boss ? BOSS_SKIN : pick(SKINS), loco: o.boss ? 'diesel' : pick(LOCOS), team: o.team,
     mass, maxLen: mass, pts: mkPts(x, y, a, mass), angle: a, target: a, boost: false, energy: o.boss ? 10 : 5, alive: true, safe: SPAWN_GHOST, ghost: SPAWN_GHOST, slow: 0, selfCD: 0, tunCD: 0,
     kills: 0, isBoss: !!o.boss, hp: o.boss ? D.bossHp : 0, maxHp: o.boss ? D.bossHp : 0, ai: { t: 0, tx: x, ty: y, boostT: 0, hunt: null } };
-  b.info = { id, name: b.name, skin: b.skin, loco: b.loco, boss: b.isBoss, mhp: b.maxHp }; if (b.team) b.info.team = b.team;
+  b.info = { id, name: b.name, skin: b.skin, loco: b.loco, boss: b.isBoss, mhp: b.maxHp }; if (b.team) b.info.team = b.team; if (o.hunter) { b.hunter = true; b.info.hunter = 1; }
   room.bots.set(id, b); if (b.isBoss) S.boss = b;
   S.bcast(room, { t: 'binfo', b: [b.info] });
   return b;
@@ -104,6 +104,7 @@ function bodyNear(S, room, x, y, rad, self) {
 // ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (11 พ.ย. 2026 · ต้องตรงกับ index.html bigTier)
 const BIG_START = 2000, BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human && (o.mass || 0) >= BIG_START ? Math.min(BIG_MAX, 1 + Math.floor(((o.mass || 0) - BIG_START) / BIG_STEP)) : 0;   // เริ่ม 2,000 (เจ้าของปรับ 11 พ.ย. 17:42)
 // ⚔️ 2v2: บอทโหดขึ้น (เจ้าของสั่ง 12 พ.ย. 00:45 — ไล่ล่า โจมตี หลบเก่ง) · ใช้เฉพาะห้อง 2v2 (!room.ffa) · โลกออนไลน์ใช้ D เดิม
+const VS_HUNTERS = 2;   // จำนวนนักล่ากลางในห้อง 2v2
 const DV = { huntP: .97, huntR: 1500, others: .85, othersR: 1600, look: 1.3, think: [5, 12], leadK: .6, boostR: 750, regen: .55, dodge: 1 };
 const enemyHeadNear = (room, w, x, y, rr, trains) => { for (const o of trains) { if (o === w || !o.alive || ally(o, w) || o.ghost > 0) continue;   // หลบหัวศัตรูที่กำลังพุ่งมา (คาดตำแหน่งล่วงหน้า ~0.3 วิ)
     const oh = o.pts[0], oa = o.angle || 0, sp = (o.boost ? 5.4 : 2.7) * 18, px = oh.x + Math.cos(oa) * sp, py = oh.y + Math.sin(oa) * sp, R = rr + rOf(o.mass) + 14;
@@ -244,6 +245,9 @@ function fill(S, room, dt) {
     for (const t of ['A', 'B']) { const mine = live.filter(b => b.team === t), want = Math.max(0, TEAM_MAX - hum[t]);
       if (mine.length > want) killBot(room, mine[0], null, 'trim');
       else if (mine.length < want) { S.vsT[t] -= dt; if (S.vsT[t] <= 0) { for (let i = mine.length; i < want; i++) spawnBot(room, { team: t }); S.vsT[t] = 3; } } else S.vsT[t] = 3; }
+    // 🎯 นักล่ากลาง (เจ้าของสั่ง 12 พ.ย. 01:22 "2v2 ให้มีบอทไล่ฆ่าทั้ง 2 ทีม"): ไม่มีทีม ไล่ฆ่าทุกคนทั้งทีมแดง/น้ำเงิน · ตายแล้วเกิดใหม่ใน 6 วิ · แต้มที่มันทำไม่เข้าทีมไหน
+    const hn = live.filter(b => b.hunter).length;
+    if (hn < VS_HUNTERS) { S.vsT.H = (S.vsT.H ?? 4) - dt; if (S.vsT.H <= 0) { for (let i = hn; i < VS_HUNTERS; i++) spawnBot(room, { hunter: true }); S.vsT.H = 6; } } else S.vsT.H = 6;
   }
 }
 
