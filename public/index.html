@@ -435,11 +435,16 @@ const LIMITED=[
 const SALE=.7;
 const bkkDay=(o=0)=>new Date(Date.now()+7*36e5+o*864e5).toISOString().slice(0,10);   // วันที่ตามเวลาไทย (ทุกเครื่องเห็นของวันเดียวกัน)
 const SALE_POOL=CATS.flatMap(c=>SHOP[c].filter(i=>i.p>0).map(i=>({cat:c,...i})));
-// ⭐ ร้านวันนี้ (11 พ.ย. 2026 เจ้าของสั่ง): วันละ 6 ชิ้น = ของหายาก 2 + ลดราคา 4 (ลด 20–40%) สุ่มใหม่ทุกเที่ยงคืนเวลาไทย · ต้องตรงกับ anticheat.js dealOf
-const DEAL_LIM=2,DEAL_SALE=4,DEAL_OFFS=[20,25,30,35,40];
-function dealOf(day){const R=mulberry(hashStr('deal:'+day)),pick=(n,k)=>{const a=[...Array(n).keys()];for(let i=0;i<k;i++){const j=i+Math.floor(R()*(n-i));[a[i],a[j]]=[a[j],a[i]]}return a.slice(0,k)};
-  const lims=pick(LIMITED.length,DEAL_LIM).map(i=>LIMITED[i]),si=pick(SALE_POOL.length,DEAL_SALE);
-  const sales=si.map(i=>{const s=SALE_POOL[i],off=DEAL_OFFS[Math.floor(R()*DEAL_OFFS.length)];return{...s,off,price:Math.round(s.p*(100-off)/100/100)*100}});
+// ⭐ ร้านวันนี้ (11 พ.ย. 2026 เจ้าของสั่ง): วันละ 2 ชิ้น = ของหายาก 1 + ลดราคา 1 (ลด 20–40%) เปลี่ยนทุกเที่ยงคืนเวลาไทย
+//   ไม่ซ้ำ: แต่ละกองเรียงสุ่มเป็นรอบ (หายาก 16 วันไม่ซ้ำ / ลดราคาวนครบทุกชิ้นก่อนซ้ำ) ชิ้นเดิมกลับมาเร็วสุด 6 วัน · ต้องตรงกับ anticheat.js dealOf
+const DEAL_OFFS=[20,25,30,35,40];
+function dealPick(tag,n,dn){const raw=k=>{const R=mulberry(hashStr(tag+k)),a=[...Array(n).keys()];for(let i=n-1;i>0;i--){const j=Math.floor(R()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  const w=Math.min(7,Math.floor(n/3)),k=Math.floor(dn/n),a=raw(k),tail=new Set(raw(k-1).slice(n-w));   // ของท้ายรอบก่อน ห้ามอยู่ต้นรอบนี้ → ชิ้นเดิมกลับมาอย่างน้อย w+1 วัน
+  for(let i=0;i<w;i++)if(tail.has(a[i]))for(let j=w;j<n-w;j++)if(!tail.has(a[j])){[a[i],a[j]]=[a[j],a[i]];break}
+  return a[dn-k*n]}
+function dealOf(day){const dn=Math.round(Date.parse(day+'T00:00:00Z')/864e5),R=mulberry(hashStr('deal:'+day));
+  const lims=[LIMITED[dealPick('dealL:',LIMITED.length,dn)]],s=SALE_POOL[dealPick('dealS:',SALE_POOL.length,dn)],off=DEAL_OFFS[Math.floor(R()*DEAL_OFFS.length)];
+  const sales=[{...s,off,price:Math.round(s.p*(100-off)/100/100)*100}];
   return{lims,sales}}
 let dealDay=bkkDay();setInterval(()=>{const d=bkkDay();if(d!==dealDay){dealDay=d;if(sheetRender===renderShop&&shopTab==='deal')refreshSheet()}},15000);   // เปิดร้านค้างข้ามเที่ยงคืน → รีเฟรชเอง
 const itemDef=(cat,id)=>SHOP[cat]&&SHOP[cat].find(i=>i.id===id)||LIMITED.find(i=>i.cat===cat&&i.id===id)||null;
@@ -2335,7 +2340,7 @@ function renderShop(b){
   b.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{shopTab=t.dataset.k;renderShop(b)});
   const L=b.querySelector('#shopList');
   if(shopTab==='deal'){const D0=dealOf(bkkDay()),nw=new Date(Date.now()+7*36e5),left=24*60-nw.getUTCHours()*60-nw.getUTCMinutes();
-    L.insertAdjacentHTML('beforeend',`<div class="help" style="margin:0 0 8px">🔄 สินค้าเปลี่ยนใหม่ทุกวันตอนเที่ยงคืน (เวลาไทย) · อีก <b>${Math.floor(left/60)} ชม. ${left%60} นาที</b></div>`);
+    L.insertAdjacentHTML('beforeend',`<div class="help" style="margin:0 0 8px">🔄 วันละ 2 ชิ้น เปลี่ยนใหม่ทุกเที่ยงคืน (เวลาไทย) ไม่ซ้ำของเมื่อวาน · อีก <b>${Math.floor(left/60)} ชม. ${left%60} นาที</b></div>`);
     L.insertAdjacentHTML('beforeend','<div class="lbl" style="margin:4px 2px">💎 ของหายากวันนี้</div>');for(const it of D0.lims)shopRow(L,it.cat,it,{deal:1,tag:'หายาก'});
     L.insertAdjacentHTML('beforeend','<div class="lbl" style="margin:10px 2px 4px">🏷️ ลดราคาวันนี้</div>');for(const s of D0.sales)shopRow(L,s.cat,itemDef(s.cat,s.id),{deal:1,tag:'ลด '+s.off+'%',price:s.price});
     L.insertAdjacentHTML('beforeend','<div class="help">ของหายากขายเฉพาะวันที่หมุนมาเท่านั้น ซื้อแล้วเป็นของคุณถาวร</div>');return}

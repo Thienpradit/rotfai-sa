@@ -38,12 +38,16 @@ const REG_COINS = 60000, REG_RP = 6000;
 function hashStr(s) { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 const bkkDay = (o = 0, now = Date.now()) => new Date(now + 7 * 36e5 + o * 864e5).toISOString().slice(0, 10);
 const seasonKey = (now = Date.now()) => bkkDay(0, now).slice(0, 7);
-// ร้านวันนี้: ของหายาก 2 + ลดราคา 4 (ลด 20–40%) · ต้องตรงกับ dealOf ใน public/index.html (tests/test_shop_sync.js เช็คให้)
+// ร้านวันนี้: ของหายาก 1 + ลดราคา 1 (ลด 20–40%) ไม่ซ้ำวันติดกัน · ต้องตรงกับ dealOf ใน public/index.html (tests/test_shop_sync.js เช็คให้)
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-const DEAL_LIM = 2, DEAL_SALE = 4, DEAL_OFFS = [20, 25, 30, 35, 40];
-function dealOf(day) { const R = mulberry(hashStr('deal:' + day)), pick = (n, k) => { const a = [...Array(n).keys()]; for (let i = 0; i < k; i++) { const j = i + Math.floor(R() * (n - i)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, k); };
-  const lims = pick(LIMITED.length, DEAL_LIM).map(i => LIMITED[i]), si = pick(SALE_POOL.length, DEAL_SALE);
-  const sales = si.map(i => { const s = SALE_POOL[i], off = DEAL_OFFS[Math.floor(R() * DEAL_OFFS.length)]; return [s[0], s[1], s[2], off, Math.round(s[2] * (100 - off) / 100 / 100) * 100]; });
+const DEAL_OFFS = [20, 25, 30, 35, 40];
+function dealPick(tag, n, dn) { const raw = k => { const R = mulberry(hashStr(tag + k)), a = [...Array(n).keys()]; for (let i = n - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const w = Math.min(7, Math.floor(n / 3)), k = Math.floor(dn / n), a = raw(k), tail = new Set(raw(k - 1).slice(n - w));
+  for (let i = 0; i < w; i++) if (tail.has(a[i])) for (let j = w; j < n - w; j++) if (!tail.has(a[j])) { [a[i], a[j]] = [a[j], a[i]]; break; }
+  return a[dn - k * n]; }
+function dealOf(day) { const dn = Math.round(Date.parse(day + 'T00:00:00Z') / 864e5), R = mulberry(hashStr('deal:' + day));
+  const lims = [LIMITED[dealPick('dealL:', LIMITED.length, dn)]], s = SALE_POOL[dealPick('dealS:', SALE_POOL.length, dn)], off = DEAL_OFFS[Math.floor(R() * DEAL_OFFS.length)];
+  const sales = [[s[0], s[1], s[2], off, Math.round(s[2] * (100 - off) / 100 / 100) * 100]];
   return { lims, sales }; }
 const tierOf = rp => { let t = 0; while (t < RANK_MIN.length - 1 && rp >= RANK_MIN[t + 1]) t++; return t; };
 
@@ -146,4 +150,4 @@ function newRecovery() { const b = crypto.randomBytes(12); let s = ''; for (let 
 const normRecovery = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const hashRecovery = (code, salt) => crypto.createHash('sha256').update('rc:' + salt + ':' + normRecovery(code)).digest('hex');
 
-module.exports = { validate, seedOnline, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, CATS, COIN_CAP, RP_CAP };
+module.exports = { validate, seedOnline, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, SALE_POOL, CATS, COIN_CAP, RP_CAP };
