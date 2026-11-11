@@ -38,6 +38,12 @@ input:focus{border-color:#77ccff}
 .btn{display:block;width:100%;padding:12px;margin-top:9px;border:0;border-radius:14px;font:inherit;font-size:17px;font-weight:600;cursor:pointer;color:#1a1f3d;background:#ffd23f;box-shadow:0 4px 0 #b8901a}
 .btn.alt{background:#77ccff;box-shadow:0 4px 0 #3a86b8}
 .btn.team{background:linear-gradient(90deg,#ff6b6b,#4da3ff);color:#fff;box-shadow:0 4px 0 #3a3f80}
+#advBar{position:fixed;left:calc(12px + env(safe-area-inset-left));bottom:calc(58px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:8px}
+#advBar .ibtn{width:58px;height:40px;font-size:13px;display:flex;align-items:center;justify-content:center;gap:2px;padding:0;background:rgba(15,19,48,.9)}
+body.sideL #advBar{left:auto;right:calc(12px + env(safe-area-inset-right))}
+#pauseOv{position:fixed;inset:0;z-index:30;background:rgba(5,7,20,.72);display:flex;align-items:center;justify-content:center;padding:16px}
+#pauseOv .pbox{background:#161b3f;border:2px solid #3a4590;border-radius:20px;padding:20px 18px;width:min(340px,100%);text-align:center}
+#pauseOv h2{margin:0 0 4px;font-size:24px}#pauseOv .btn{margin-top:10px}
 #coopBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:6px}
 #coopBar button{border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font:inherit;font-size:13px;border-radius:12px;padding:6px 10px;cursor:pointer}
 .btn.gray{background:#3a4470;color:#cfd6ff;box-shadow:0 4px 0 #262d52}
@@ -324,6 +330,9 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <button id="snd" class="ibtn hidden">🔊</button>
 <button id="fsGame" class="ibtn fsb hidden" title="เต็มจอ">⛶</button>
 <button id="setGame" class="ibtn hidden" title="ตั้งค่า">⚙️</button>
+<div id="advBar" class="hidden"><button id="advPause" class="ibtn" title="หยุด (P)">⏸ หยุด</button><button id="advExit" class="ibtn" title="ออกจากด่าน">🚪 ออก</button></div>
+<div id="pauseOv" class="hidden"><div class="pbox"><h2 id="pTitle">⏸ หยุดชั่วคราว</h2><div class="help" id="pInfo"></div>
+  <button class="btn play" id="pResume">▶ เล่นต่อ</button><button class="btn alt" id="pRetry">🔄 เริ่มด่านนี้ใหม่</button><button class="btn alt" id="pQuit">🚪 ออกจากด่าน</button></div></div>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
 <div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
@@ -1312,7 +1321,7 @@ function stageGoal(){const g=STAGE.g,cur=g[0]==='len'?Math.floor(player.mass):g[
 function startStage(i){if(!stageUnlocked(i))return;STAGE_I=i;STAGE=STAGES[i];
   STAGE_D={...DIFF.normal,...STAGE.d,ai:STAGE.ai,boss:STAGE.boss||1e9,bossM:STAGE.bossM};
   STAGE_RES=null;STAGE_BOSS=false;stageClock=0;STAGE_RUN=true;$('sheet').classList.add('hidden');
-  startGame('stage');bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;
+  startGame('stage');bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;setPause(false);$('advBar').classList.remove('hidden');
   {const[x,y]=farSpot(800,600);for(const q of player.pts){q.x+=x-player.pts[0].x;q.y+=y-player.pts[0].y}}   // จุดเกิดห่างสิ่งกีดขวาง/บอท
   player.ghost=SPAWN_GHOST;announce('🗺️ ด่าน '+STAGE.code+' · '+goalText(STAGE.g)+' ภายใน 10 นาที · ⚠️ ไม่นับสถิติ')}
 function spawnHunters(n,m){const h=player.pts[0];let k=0;
@@ -1326,7 +1335,15 @@ function stageTick(dt){stageClock+=dt;if(!player||!player.alive)return;
   if(stageGoal().done){STAGE_RES={ok:true,t:stageClock};finish(true);player.alive=false}
   else if(stageClock>=STAGE_T){STAGE_RES={ok:false,why:'time'};finish(true);player.alive=false}}
 function stageStars(S,res,len){if(!res||!res.ok)return 0;if(S.g[0]==='survive')return len>=S.st[0]?3:len>=S.st[1]?2:1;return res.t<=S.st[0]?3:res.t<=S.st[1]?2:1}
-function stageOver(){const S=STAGE;if(!S)return;const res=STAGE_RES||{ok:false,why:'die'},stars=stageStars(S,res,Math.floor(player.mass)),prev=prof.stage[S.i]||0;
+// ⏸ หยุด / 🚪 ออก ในโหมดผจญภัย (เจ้าของสั่ง 11 พ.ย. 2026) — หยุดแล้วทุกอย่างค้าง (บอท นักล่า เวลาด่าน) · สลับแอป/ปิดจอ = หยุดเอง · คีย์ P/Esc
+var PAUSED=false;
+function canPause(){return state==='play'&&mode==='stage'&&STAGE&&player&&player.alive}
+function setPause(on,exitAsk){PAUSED=!!on&&canPause();const o=$('pauseOv');if(!o)return;o.classList.toggle('hidden',!PAUSED);if(!PAUSED)return;
+  input.keyB=false;input.boost=false;
+  $('pTitle').textContent=exitAsk?'🚪 ออกจากด่าน?':'⏸ หยุดชั่วคราว';
+  $('pInfo').innerHTML='ด่าน '+STAGE.code+' · 🎯 '+goalText(STAGE.g)+' · ⏱ เหลือ '+fmtT(STAGE_T-stageClock)+(exitAsk?'<br>ออกตอนนี้ = ไม่ผ่านด่าน ไม่ได้ดาว/เหรียญ':'')}
+function quitStage(){setPause(false);if(player)player.alive=false;toMenu();openStages()}
+function stageOver(){const S=STAGE;if(!S)return;$('advBar').classList.add('hidden');setPause(false);const res=STAGE_RES||{ok:false,why:'die'},stars=stageStars(S,res,Math.floor(player.mass)),prev=prof.stage[S.i]||0;
   let coins=0;if(stars>prev)coins=(stars-prev)*S.coin;else if(stars)coins=10+2*S.i;   // ดาวใหม่ได้เต็ม · เล่นซ้ำได้นิดหน่อย
   if(stars>prev){prof.stage[S.i]=stars}
   STAGE_RUN=false;if(coins)addCoins(coins,'stage');saveProf();pushProf();STAGE_RUN=true;
@@ -1941,7 +1958,7 @@ function startGame(m){
   autoFS();
   audioInit();
   if(NET)netLeave(true);
-  if(m!=='stage'){STAGE=null;STAGE_D=null;STAGE_RUN=false}
+  if(m!=='stage'){STAGE=null;STAGE_D=null;STAGE_RUN=false;$('advBar').classList.add('hidden');setPause(false)}
   WR=AR=m==='stage'&&STAGE?STAGE.R:3000;buildWorld(WR);buildObstacles(m==='stage'?STAGE:null);if(m==='stage')worms=[];
   {const k=(WR/3000)**2;FOOD_CAP=Math.round(FOOD_N*(m==='stage'?k*.85:1));WHITE_CAP=Math.round(WHITE_N*(m==='stage'?Math.max(.35,k):1))}
   if(m==='stage'||!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let w=0;w<FOOD_CAP;)w+=addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_CAP;i++)addWhite()}
@@ -1983,7 +2000,7 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
 function toMenu(){
   if(NET)netLeave(true);
-  STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];
+  STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];$('advBar').classList.add('hidden');setPause(false);
   mode='inf';AR=WR;   // กลับหน้าแรกหลังจบ 2v2: วงสนามที่หดไว้ต้องคืนขนาด ไม่งั้นบอทฉากหลังเกิดไม่ได้แล้วค้าง
   state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('setGame').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
@@ -2597,10 +2614,14 @@ for(let i=0;i<WHITE_N;i++)addWhite();
 for(let i=0;i<D().ai;i++)spawnAI();
 setSnd(SND.on);renderSkins();setDiff(diff);
 let last=performance.now(),profT=0;
+$('advPause').onclick=()=>setPause(!PAUSED);$('advExit').onclick=()=>setPause(true,true);
+$('pResume').onclick=()=>setPause(false);$('pRetry').onclick=()=>{const i=STAGE_I;setPause(false);startStage(i)};$('pQuit').onclick=quitStage;
+addEventListener('keydown',e=>{if((e.code==='KeyP'||e.code==='Escape')&&canPause()){setPause(!PAUSED);e.preventDefault()}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&canPause()&&!PAUSED)setPause(true)});
 function loop(t){
   requestAnimationFrame(loop);
   fpsWatch(t-last);const dt=Math.min((t-last)/1000,.05);last=t;frame++;
-  step(dt*60,dt);render();
+  if(!PAUSED)step(dt*60,dt);render();
   profT+=dt;if(profT>(ACCT.mode==='acct'?20:4)){profT=0;if(profDirty)saveProf()}
 }
 requestAnimationFrame(loop);
