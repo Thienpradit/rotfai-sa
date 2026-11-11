@@ -12,11 +12,9 @@ async def main():
         await pg.fill('#name','ทดสอบ')
         await pg.evaluate("setDiff('normal');startGame('inf')");  # โหมดเล่นกับบอทไม่มีปุ่มแล้ว (7 พ.ย.) เรียกตรง
         await pg.wait_for_timeout(500)
-        await pg.evaluate("""(()=>{player.safe=99;
-          const s=rails[0];player.pts.forEach((q,i)=>{q.x=s.ax-s.ux*i*4;q.y=s.ay-s.uy*i*4});player.angle=Math.atan2(s.uy,s.ux);input.angle=player.angle;})()""")
-        await pg.wait_for_timeout(300)
+        await pg.evaluate("player.safe=99")   # รางรถไฟเอาออกแล้ว (11 พ.ย.) → ไม่มีเทสต์ onRail
         out={}
-        out['onRail']=await pg.evaluate("player.onRail")
+        out['noRails']=await pg.evaluate("typeof rails==='undefined'&&typeof onRail==='undefined'")
         await pg.evaluate("(()=>{const p=portals[0];const h=player.pts[0];const dx=p.x-h.x-20,dy=p.y-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}player.angle=0;input.angle=0;player.tunCD=0;window._p1=portals[p.pair]})()")
         await pg.wait_for_timeout(300)
         out['tunnel']=await pg.evaluate("Math.hypot(player.pts[0].x-_p1.x,player.pts[0].y-_p1.y)<300")

@@ -83,7 +83,7 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   for (const k of Object.keys(nu.ach || {})) if (ACH_IDS.includes(k) && !paid.has(k)) { paid.add(k); extra += ACH_COINS; }
   // ภารกิจรายวันที่กดรับ
   const claims = new Set(srv.claims || []), dl = nu.daily;
-  if (dl && Array.isArray(dl.m) && dayOk(dl.date, now)) dl.m.slice(0, 3).forEach((m, i) => {
+  if (dl && Array.isArray(dl.m) && dayOk(dl.date, now)) dl.m.slice(0, 5).forEach((m, i) => {
     const k = dl.date + ':' + i; if (m && m.c && !claims.has(k)) { claims.add(k); extra += Math.min(MISSION_MAX, num(m.r)); } });
   // รางวัลจบฤดูกาล
   const cur = seasonKey(now);

@@ -19,24 +19,12 @@ const key = (cx, cy) => (cx + 500) * 1000 + (cy + 500);
 const rOf = m => Math.min(10 + Math.sqrt(m) * .75, 44), nOf = m => Math.min(Math.floor(14 + m * .45), 700);
 let nextBot = 1;
 
-// ---------- โลก: ราง + อุโมงค์ (ตำแหน่งตายตัวตามรัศมี เหมือน buildWorld ในเกม) ----------
-function mkSeg(ax, ay, bx, by) { const dx = bx - ax, dy = by - ay, l = Math.hypot(dx, dy); return { ax, ay, ux: dx / l, uy: dy / l, l, x0: Math.min(ax, bx) - 30, x1: Math.max(ax, bx) + 30, y0: Math.min(ay, by) - 30, y1: Math.max(ay, by) + 30 }; }
+// ---------- โลก: อุโมงค์ (ตำแหน่งตายตัวตามรัศมี เหมือน buildWorld ในเกม) · รางรถไฟเอาออกแล้ว 11 พ.ย. ----------
 function buildWorld(R) {
-  const rails = [], portals = [], lr = R * .6, N = 72;
-  for (let i = 0; i < N; i++) { const a = i / N * TAU, b = (i + 1) / N * TAU; rails.push(mkSeg(Math.cos(a) * lr, Math.sin(a) * lr, Math.cos(b) * lr, Math.sin(b) * lr)); }
-  for (let k = 0; k < 3; k++) { const a = k * TAU / 3 + .4, b = a + 2.3; rails.push(mkSeg(Math.cos(a) * R * .86, Math.sin(a) * R * .86, Math.cos(b) * R * .86, Math.sin(b) * R * .86)); }
+  const portals = [];
   for (let k = 0; k < 3; k++) { const a = k * TAU / 3 + 1.05; portals.push({ x: Math.cos(a) * R * .33, y: Math.sin(a) * R * .33, pair: k * 2 + 1 }); portals.push({ x: Math.cos(a + Math.PI * .85) * R * .82, y: Math.sin(a + Math.PI * .85) * R * .82, pair: k * 2 }); }
-  return { rails, portals };
+  return { portals };
 }
-function onRail(world, h, ang) {
-  const ca = Math.cos(ang), sa = Math.sin(ang);
-  for (const s of world.rails) { if (h.x < s.x0 || h.x > s.x1 || h.y < s.y0 || h.y > s.y1) continue;
-    const t = (h.x - s.ax) * s.ux + (h.y - s.ay) * s.uy; if (t < 0 || t > s.l) continue;
-    const px = s.ax + s.ux * t, py = s.ay + s.uy * t;
-    if ((h.x - px) ** 2 + (h.y - py) ** 2 < 26 * 26 && Math.abs(ca * s.ux + sa * s.uy) > .75) return true; }
-  return false;
-}
-
 // ---------- ขบวน (บอท / ร่างจำลองของผู้เล่นจริงที่ใช้ตรวจชน) ----------
 function follow(t) {
   const n = nOf(t.mass), p = t.pts;
@@ -152,9 +140,9 @@ function portalOpen(room, p) { const q = room.sim.world.portals[p.pair], AR = ar
 function moveBot(S, room, w, f, dt) {
   const r = rOf(w.mass); let d = w.target - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d));
   const rg = bossRage(w), tr = .12 / (1 + r / 30) * f * (1 + RAGE_TURN * rg); w.angle += Math.max(-tr, Math.min(tr, d));
-  let sp = 2.7 * (w.isBoss ? RAGE_SPD[Math.min(2, rg)] : 1); const rail = onRail(S.world, w.pts[0], w.angle), slowed = w.slow > 0; if (rail) sp *= 1.6; if (slowed) { w.slow -= dt; sp *= .45; }
+  let sp = 2.7 * (w.isBoss ? RAGE_SPD[Math.min(2, rg)] : 1); const slowed = w.slow > 0; if (slowed) { w.slow -= dt; sp *= .45; }
   if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
-  if (w.isBoss) sp = Math.min(sp, BOSS_CAP * (rail ? 1.6 : 1) * (slowed ? .45 : 1));
+  if (w.isBoss) sp = Math.min(sp, BOSS_CAP * (slowed ? .45 : 1));
   const h = w.pts[0]; h.x += Math.cos(w.angle) * sp * f; h.y += Math.sin(w.angle) * sp * f; follow(w);
   (w.hist || (w.hist = [])).push(h.x, h.y); if (w.hist.length > LAG_STEPS * 2 + 2) w.hist.splice(0, 2);   // ตำแหน่งหัวย้อนหลัง (ไว้ชดเชยดีเลย์)
   if (w.tun) w.tun.t += dt; if (w.safe > 0) w.safe -= dt; if (w.hitCD > 0) w.hitCD -= dt; if (w.ghost > 0) w.ghost -= dt; if (w.selfCD > 0) w.selfCD -= dt;

@@ -487,7 +487,6 @@ const MPOOL=[
   {id:'games',ev:'games',lo:6,hi:12,txt:n=>`เล่นให้ครบ ${n} รอบ`,ru:8},
   {id:'boss',ev:'boss',lo:1,hi:3,txt:n=>`ล้มบอสรถไฟยักษ์ ${n} ตัว`,ru:120},
   {id:'bossHit',ev:'bossHits',lo:3,hi:8,txt:n=>`ทำบอสเสียหัวใจ ${n} ครั้ง`,ru:15},
-  {id:'rail',ev:'railSec',lo:6,hi:20,mul:10,txt:n=>`วิ่งบนราง ${n} วินาที`,ru:1},
 ];
 const MG_KILL=['kills','killsOne','bombk'],MG_VS=['vsPlay','vsWin','vsKills'],DAILY_N=5;
 const ACH_COINS=300;
@@ -527,13 +526,15 @@ function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;
 // เซิร์ฟเวอร์ตรวจเหรียญ/RP/ของที่ซื้อแล้วไม่ตรง (เช่น แก้ค่าในเบราว์เซอร์) → ใช้ค่าจากเซิร์ฟเวอร์แทน
 function applyFix(d){prof.coins=Math.max(0,+d.coins||0);prof.rp=Math.max(0,+d.rp||0);if(d.onrp!==undefined)prof.onrp=Math.max(0,+d.onrp||0);if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
   if(player)player.rk=myRank();showBest();announce('⚠️ ข้อมูลเหรียญ/แรงก์ไม่ตรงกับเซิร์ฟเวอร์ ปรับให้ตรงแล้ว')}
-const MP=Object.fromEntries(MPOOL.map(m=>[m.id,m]));
+// ภารกิจที่เลิกใช้ (รางรถไฟเอาออก 11 พ.ย.) — เก็บไว้ให้ภารกิจที่รับรางวัลไปแล้ววันนี้ยังแสดงได้ · ที่ยังไม่รับ → สุ่มข้อใหม่แทนที่ช่องเดิม
+const MRETIRED=[{id:'rail',ev:'railSec',lo:6,hi:20,mul:10,txt:n=>`วิ่งบนราง ${n} วินาที`,ru:1}];
+const MP=Object.fromEntries(MPOOL.concat(MRETIRED).map(m=>[m.id,m]));
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
 const misTxt=m=>MP[m.id]?MP[m.id].txt(m.n):'';
 function mkMission(d){const n=(d.lo+Math.floor(Math.random()*(d.hi-d.lo+1)))*(d.mul||1);return{id:d.id,n,r:Math.min(300,Math.max(10,Math.round(n*d.ru/5)*5)),p:0,c:false}}
 function ensureDaily(){const k=todayKey(),old=prof.daily;
   const ok=old&&old.date===k&&old.m.length&&old.m[0].n!==undefined&&old.m.every(m=>MP[m.id]);
-  let up=false;if(ok)old.m.forEach((m,i)=>{const d=MP[m.id];if(!m.c&&m.n<d.lo*(d.mul||1)){const nm=mkMission(d);nm.p=Math.min(m.p,nm.n);old.m[i]=nm;up=true}});   // เป้าเก่าที่ง่ายกว่าเกณฑ์ใหม่ (ยังไม่รับรางวัล) → สุ่มเป้าใหม่ เก็บความคืบหน้าไว้
+  let up=false;if(ok)old.m.forEach((m,i)=>{if(!m.c&&MRETIRED.some(r=>r.id===m.id)){const used=old.m.map(x=>x.id),c=MPOOL.filter(d=>!used.includes(d.id)&&!MG_VS.includes(d.id)&&!MG_KILL.includes(d.id));old.m[i]=mkMission(c[Math.floor(Math.random()*c.length)]);up=true;return}const d=MP[m.id];if(!m.c&&m.n<d.lo*(d.mul||1)){const nm=mkMission(d);nm.p=Math.min(m.p,nm.n);old.m[i]=nm;up=true}});   // เป้าเก่าที่ง่ายกว่าเกณฑ์ใหม่ (ยังไม่รับรางวัล) → สุ่มเป้าใหม่ เก็บความคืบหน้าไว้
   if(ok&&old.m.length>=DAILY_N){if(up)saveProf();return}
   const prev=ok?[]:old?old.m.map(m=>m.id):[],ms=ok?old.m.slice():[],have=()=>ms.map(m=>m.id);
   const pick=ids=>{let c=MPOOL.filter(d=>ids(d.id)&&!have().includes(d.id)&&!prev.includes(d.id));if(!c.length)c=MPOOL.filter(d=>ids(d.id)&&!have().includes(d.id));return c.length?c[Math.floor(Math.random()*c.length)]:null};
@@ -971,25 +972,15 @@ function startMusic(){if(MUS.timer||!SND.ctx)return;const c=SND.ctx;
     try{while(MUS.t<now+.3)MUS.t+=musStep(MUS.t)}catch(e){}},90)}
 
 // =====================================================================
-//  world features: rails, stations, tunnels (deterministic layout)
+//  world features: stations, tunnels (deterministic layout) · รางรถไฟเอาออกแล้ว (เจ้าของสั่ง 11 พ.ย. 21:42)
 // =====================================================================
-let rails=[],stations=[],portals=[];
+let stations=[],portals=[];
 function buildWorld(R){
-  rails=[];stations=[];portals=[];
-  const lr=R*.6,N=72;
-  for(let i=0;i<N;i++){const a=i/N*TAU,b=(i+1)/N*TAU;rails.push(mkSeg(Math.cos(a)*lr,Math.sin(a)*lr,Math.cos(b)*lr,Math.sin(b)*lr))}
-  for(let k=0;k<3;k++){const a=k*TAU/3+.4,b=a+2.3;rails.push(mkSeg(Math.cos(a)*R*.86,Math.sin(a)*R*.86,Math.cos(b)*R*.86,Math.sin(b)*R*.86))}
+  stations=[];portals=[];
+  const lr=R*.6;
   for(let k=0;k<4;k++){const a=k*TAU/4+.35;stations.push({x:Math.cos(a)*lr,y:Math.sin(a)*lr,a:a+Math.PI/2,ox:Math.cos(a),oy:Math.sin(a),cd:0})}
   const PC=['#ff6b9a','#7cfc9a','#ffb35e'];
   for(let k=0;k<3;k++){const a=k*TAU/3+1.05;portals.push({x:Math.cos(a)*R*.33,y:Math.sin(a)*R*.33,pair:k*2+1,col:PC[k]});portals.push({x:Math.cos(a+Math.PI*.85)*R*.82,y:Math.sin(a+Math.PI*.85)*R*.82,pair:k*2,col:PC[k]})}
-}
-function mkSeg(ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=Math.hypot(dx,dy);return{ax,ay,bx,by,ux:dx/l,uy:dy/l,l,x0:Math.min(ax,bx)-30,x1:Math.max(ax,bx)+30,y0:Math.min(ay,by)-30,y1:Math.max(ay,by)+30}}
-function onRail(h,ang){
-  const ca=Math.cos(ang),sa=Math.sin(ang);
-  for(const s of rails){if(h.x<s.x0||h.x>s.x1||h.y<s.y0||h.y>s.y1)continue;
-    const t=(h.x-s.ax)*s.ux+(h.y-s.ay)*s.uy;if(t<0||t>s.l)continue;const px=s.ax+s.ux*t,py=s.ay+s.uy*t;
-    if((h.x-px)**2+(h.y-py)**2<26*26&&Math.abs(ca*s.ux+sa*s.uy)>.75)return true}
-  return false;
 }
 const TUNNEL_SAFE=2,PORTAL_EDGE=260;
 // อุโมงค์ที่ปลายทางอยู่ใกล้/นอกวงสนาม (วงหดแล้ว) = ปิด ไม่วาร์ป ไม่งั้นออกไปโผล่ในพื้นที่แดงแล้วตาย
@@ -1097,12 +1088,11 @@ class Worm{
     let d=this.target-this.angle;d=Math.atan2(Math.sin(d),Math.cos(d));
     const rg=bossRage(this),tr=.12/(1+r/30)*f*(1+RAGE_TURN*rg);this.angle+=Math.max(-tr,Math.min(tr,d));
     let sp=2.7*(this.isBoss?RAGE_SPD[Math.min(2,rg)]:1);if(this.pu.speed>0)sp*=1.4;
-    this.onRail=onRail(this.pts[0],this.angle);if(this.onRail)sp*=1.6;
     const slowed=this.slow>0;if(slowed){this.slow-=dt;sp*=.45}if(this.hslow>0){this.hslow-=dt;sp*=this.hslowF||1}
     const boosting=this.boost&&this.energy>0;
     if(boosting){sp*=2;this.energy=Math.max(0,this.energy-dt);if(this.isP)sfx('whistle')}
     if(MUDS.length&&inMud(this.pts[0]))sp*=MUD_SLOW;   // 🟫 โคลน (โหมดผจญภัย)
-    if(this.isBoss)sp=Math.min(sp,BOSS_CAP*(this.onRail?1.6:1)*(slowed?.45:1));   // บอสไม่มีทางเร็วกว่าเราเร่งด้วยเพชร
+    if(this.isBoss)sp=Math.min(sp,BOSS_CAP*(slowed?.45:1));   // บอสไม่มีทางเร็วกว่าเราเร่งด้วยเพชร
     const h=this.pts[0];h.x+=Math.cos(this.angle)*sp*f;h.y+=Math.sin(this.angle)*sp*f;
     this.follow();
     for(const k in this.pu)if(this.pu[k]>0)this.pu[k]-=dt;
@@ -1281,18 +1271,16 @@ function obstHit(x,y,rad){const o=obstStatic(x,y,rad);if(o)return o;
     if(gatePhase(g)!=='closed')continue;const ux=Math.cos(g.a),uy=Math.sin(g.a),t=Math.max(-GATE_LEN/2,Math.min(GATE_LEN/2,dx*ux+dy*uy)),qx=dx-ux*t,qy=dy-uy*t;if(qx*qx+qy*qy<(rad+8)**2)return g}
   return null}
 const inMud=h=>{for(const m of MUDS)if((h.x-m.x)**2+(h.y-m.y)**2<m.r*m.r)return true;return false};
-function railDist(x,y){let b=1e9;for(const s of rails){const t=Math.max(0,Math.min(s.l,(x-s.ax)*s.ux+(y-s.ay)*s.uy));b=Math.min(b,Math.hypot(x-s.ax-s.ux*t,y-s.ay-s.uy*t))}return b}
 function buildObstacles(S){OBST=[];MUDS=[];if(!S)return;const R=mulberry(hashStr('stage:'+S.i)),rr=(a,b)=>a+R()*(b-a);
-  const free=(x,y,rad,rail)=>{const d=Math.hypot(x,y);if(d>WR-260-rad||d<300+rad)return false;
+  const free=(x,y,rad)=>{const d=Math.hypot(x,y);if(d>WR-260-rad||d<300+rad)return false;
     for(const p of portals)if(Math.hypot(p.x-x,p.y-y)<rad+130)return false;for(const s of stations)if(Math.hypot(s.x-x,s.y-y)<rad+170)return false;
     for(const o of OBST.concat(MUDS)){const or=o.k==='house'?Math.hypot(o.w,o.h)/2:o.k==='gate'?GATE_LEN/2+20:o.r;if(Math.hypot(o.x-x,o.y-y)<rad+or+110)return false}
-    return rail||railDist(x,y)>rad+40};
+    return true};
   const place=(rad,f)=>{for(let k=0;k<80;k++){const a=R()*TAU,d=Math.sqrt(R())*(WR-300),x=Math.cos(a)*d,y=Math.sin(a)*d;if(free(x,y,rad))return f(x,y)}};
   for(let n=0;n<S.ob.mud;n++){const r=rr(150,250);place(r,(x,y)=>MUDS.push({k:'mud',x,y,r,sd:R()}))}
   for(let n=0;n<S.ob.rock;n++){const r=rr(42,80);place(r,(x,y)=>OBST.push({k:'rock',x,y,r,sd:R()}))}
   for(let n=0;n<S.ob.house;n++){const w=rr(120,200),h=rr(80,130);place(Math.hypot(w,h)/2,(x,y)=>OBST.push({k:'house',x,y,w,h,a:R()*Math.PI}))}
-  for(let n=0;n<S.ob.gate;n++)for(let k=0;k<60;k++){const s=rails[(R()*rails.length)|0],t=rr(.2,.8)*s.l,x=s.ax+s.ux*t,y=s.ay+s.uy*t;   // ไม้กั้นขวางราง
-    if(free(x,y,GATE_LEN/2,true)){OBST.push({k:'gate',x,y,a:Math.atan2(s.uy,s.ux)+Math.PI/2,per:rr(6,9),ph:R()*9});break}}
+  for(let n=0;n<S.ob.gate;n++)place(GATE_LEN/2,(x,y)=>OBST.push({k:'gate',x,y,a:R()*Math.PI,per:rr(6,9),ph:R()*9}));   // ไม้กั้น (ไม่มีรางแล้ว วางกลางทาง หันสุ่ม)
 }
 function drawObstacles(vx0,vy0,vx1,vy1){const C=CHAPTERS[STAGE?STAGE.ch:0],vis=o=>o.x>vx0-300&&o.x<vx1+300&&o.y>vy0-300&&o.y<vy1+300;
   for(const m of MUDS){if(!vis(m))continue;ctx.fillStyle=C.mud;ctx.globalAlpha=.75;ctx.beginPath();for(let k=0;k<=24;k++){const a=k/24*TAU,rr=m.r*(.86+.14*Math.sin(a*3+m.sd*9));k?ctx.lineTo(m.x+Math.cos(a)*rr,m.y+Math.sin(a)*rr):ctx.moveTo(m.x+Math.cos(a)*rr,m.y+Math.sin(a)*rr)}ctx.fill();
@@ -1583,7 +1571,7 @@ function step(f,dt){
   if(player&&player.bombT.length){for(let i=0;i<player.bombT.length;i++)player.bombT[i]-=dt;
     while(player.bombT.length&&player.bombT[0]<=0){player.bombT.shift();player.tgs=Math.max(0,player.tgs-1);if(player.alive){announce('{B} ระเบิดหมดเวลา หายไปแล้ว!');sfx('die')}}}
   if(player&&player.gold&&player.goldT!==undefined){player.goldT-=dt;if(player.goldT<=0){player.gold=false;player.goldT=undefined;if(player.alive){announce('{G} ร่างทองหมดเวลาแล้ว!');sfx('die')}}}
-  if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){if(player.onRail)track('railSec',dt);trackMax('len',player.mass);if(!noLenStat()){trackMax('maxLen',player.mass);if(NET)trackMax('omaxLen',player.mass)}if(NET){
+  if(player&&state==='play'){updBtns();checkStations(dt);if(player.alive){trackMax('len',player.mass);if(!noLenStat()){trackMax('maxLen',player.mass);if(NET)trackMax('omaxLen',player.mass)}if(NET){
     if(NET.ffa&&!player.top1&&frame%30===0&&worms.length>=6&&worms.every(w=>w===player||!w.alive||w.mass<player.mass)){player.top1=true;track('top1')}}}}
   if(hornCD>0){hornCD=Math.max(0,hornCD-dt);hornUI()}
   for(const t of texts){t.t-=dt;t.y-=30*dt}texts=texts.filter(t=>t.t>0);
@@ -1734,16 +1722,6 @@ function drawParts(){for(const p of parts){p.t-=1/60;p.x+=p.vx;p.y+=p.vy;if(p.k=
   else if(p.k==='coins'){ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.ellipse(p.x,p.y,7*p.s*Math.abs(Math.sin(p.t*8))+1.5,7*p.s,0,0,TAU);ctx.fill();ctx.strokeStyle='#b8901a';ctx.lineWidth=1.5;ctx.stroke()}
   else{ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,4*p.s,0,TAU);ctx.fill()}}
   ctx.globalAlpha=1;parts=parts.filter(p=>p.t>0)}
-function drawRails(vx0,vy0,vx1,vy1){
-  ctx.lineCap='butt';
-  for(const s of rails){if(s.x1<vx0||s.x0>vx1||s.y1<vy0||s.y0>vy1)continue;
-    const nx=-s.uy,ny=s.ux;
-    // clip ties to view
-    const t0=0,t1=s.l;ctx.strokeStyle='#5a4128';ctx.lineWidth=6;ctx.beginPath();
-    for(let t=t0;t<t1;t+=26){const x=s.ax+s.ux*t,y=s.ay+s.uy*t;if(x<vx0-30||x>vx1+30||y<vy0-30||y>vy1+30)continue;ctx.moveTo(x+nx*15,y+ny*15);ctx.lineTo(x-nx*15,y-ny*15)}ctx.stroke();
-    ctx.strokeStyle='#aeb8cc';ctx.lineWidth=3;ctx.beginPath();for(const o of[-9,9]){ctx.moveTo(s.ax+nx*o,s.ay+ny*o);ctx.lineTo(s.bx+nx*o,s.by+ny*o)}ctx.stroke();
-  }
-}
 function drawStations(vx0,vy0,vx1,vy1){
   for(const st of stations){const x=st.x+st.ox*45,y=st.y+st.oy*45;if(x<vx0-150||x>vx1+150||y<vy0-150||y>vy1+150)continue;
     ctx.save();ctx.translate(x,y);ctx.rotate(st.a);
@@ -1790,7 +1768,7 @@ function render(){
   for(let x=Math.floor(vx0/G)*G;x<vx1;x+=G){ctx.moveTo(x,vy0);ctx.lineTo(x,vy1)}
   for(let y=Math.floor(vy0/G)*G;y<vy1;y+=G){ctx.moveTo(vx0,y);ctx.lineTo(vx1,y)}
   ctx.stroke();
-  drawRails(vx0,vy0,vx1,vy1);drawStations(vx0,vy0,vx1,vy1);drawPortals(vx0,vy0,vx1,vy1);if(OBST.length)drawObstacles(vx0,vy0,vx1,vy1);
+  drawStations(vx0,vy0,vx1,vy1);drawPortals(vx0,vy0,vx1,vy1);if(OBST.length)drawObstacles(vx0,vy0,vx1,vy1);
   ctx.beginPath();ctx.rect(vx0-10,vy0-10,vx1-vx0+20,vy1-vy0+20);ctx.arc(0,0,AR,0,TAU,true);ctx.fillStyle=AR<WR?'rgba(200,20,50,.5)':'rgba(140,20,50,.45)';ctx.fill();
   ctx.strokeStyle=AR<WR&&frame%20<10?'#ffd23f':'#ff4d6d';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,0,AR,0,TAU);ctx.stroke();
   for(const fd of foods){if(fd.x<vx0-20||fd.x>vx1+20||fd.y<vy0-20||fd.y>vy1+20)continue;const pulse=Math.sin(frame*.08+fd.ph),rr=fd.r*1.25*(1+.1*pulse);
@@ -1889,7 +1867,6 @@ function drawHUD2(){
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/maxEn(player));
   if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/goldLife(player));
   if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/bombLife(player));
-  if(player.onRail&&player.alive)chip('🛤️ วิ่งบนราง เร็ว x1.6','#ffb35e',1);
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   if(player.hslow>0)chip('🐌 โดนหวูด ช้าลง '+player.hslow.toFixed(1)+' วิ','#ffb36b',player.hslow/(player.hslowT||1));
   {const bt=bigTier(player);if(bt&&player.alive)chip('🎯 บอทหมายหัว ระดับ '+bt+(bt>=BIG_MAX?' (สูงสุด)':' · ยาว '+bigLen(bt+1).toLocaleString()+' = ระดับ '+(bt+1)),'#ff5e5e',bt/BIG_MAX)}
@@ -1898,7 +1875,7 @@ function drawHUD2(){
   // minimap
   const mr=Math.max(24,Math.min(LS?38:64,VW*.15,LS?(VH-118-py)/2:1e9)),mx=pad+mr,my=py+mr+6,S=mr/WR;MINI_R=mr;
   ctx.fillStyle='rgba(15,19,48,.75)';ctx.beginPath();ctx.arc(mx,my,mr,0,TAU);ctx.fill();
-  ctx.strokeStyle='rgba(174,184,204,.35)';ctx.lineWidth=1.5;ctx.beginPath();for(const s of rails){ctx.moveTo(mx+s.ax*S,my+s.ay*S);ctx.lineTo(mx+s.bx*S,my+s.by*S)}ctx.stroke();
+  
   for(const st of stations){ctx.fillStyle=st.cd>0?'#5a6080':'#ffd23f';ctx.fillRect(mx+st.x*S-2.5,my+st.y*S-2.5,5,5)}
   for(const p of portals){ctx.fillStyle=portalOpen(p)?p.col:'#5a6080';ctx.beginPath();ctx.arc(mx+p.x*S,my+p.y*S,2.5,0,TAU);ctx.fill()}
   if(OBST.length)miniObstacles(mx,my,S);
@@ -2049,7 +2026,7 @@ $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพ�
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
   ['💍 เครื่องประดับ','แหวน / สร้อยคอ / ต่างหู โผล่นาน ๆ ที เก็บ 1 ชิ้น = ได้เท่าพลอย 5 เม็ด'],
   ['💎 เพชรขาว','เติมพลังเร่ง 5 วิ (สะสมได้ 20 วิ · หัวจักรที่ดีกว่าสะสมได้ถึง 50 วิ)'],
-  ['🛤️ ราง / 🚇 อุโมงค์','วิ่งบนรางเร็วขึ้น ×1.6 · ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
+  ['🚇 อุโมงค์','ลอดอุโมงค์ = วาร์ป และอมตะ 2 วิ (อุโมงค์ที่ปลายทางอยู่นอกวงจะปิด)'],
   ['🚉 สถานี','ขับผ่านสถานีเพื่อแลกตู้เป็นเหรียญ'],
   ['{G} ร่างทอง','เก็บทองคำแท่ง → ชนศัตรูให้ขบวนขาดได้ 1 ครั้ง ภายใน 30 วิ (หัวจักรที่ดีกว่าได้นานถึง 60 วิ)'],
   ['{B} ระเบิด','ระเบิดวงรอบหัวเรา: โดน<b>หัว</b>ศัตรู = ตาย · โดนแค่ลำตัว = ตัดเฉพาะส่วนที่อยู่ในวงกลายเป็นพลอย · ต้องใช้ภายใน 15 วิ (หัวจักรที่ดีกว่าได้นานถึง 30 วิ)'],
@@ -2224,8 +2201,6 @@ function tipArrow(x1,y1,x2,y2,col){const c=ctx,a=Math.atan2(y2-y1,x2-x1);c.strok
   c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-Math.cos(a-.45)*11,y2-Math.sin(a-.45)*11);c.lineTo(x2-Math.cos(a+.45)*11,y2-Math.sin(a+.45)*11);c.closePath();c.fill()}
 function tipLabel(x,y,t,col,sz,al){const c=ctx;c.font=`700 ${sz||13}px Mitr,sans-serif`;c.textAlign=al||'center';c.lineWidth=3.5;c.strokeStyle='rgba(10,12,30,.9)';c.strokeText(t,x,y);c.fillStyle=col||'#fff';c.fillText(t,x,y)}
 const tipGem=(x,y,i,s=16)=>ctx.drawImage(GEMS[FOOD_COLORS[i%7]],x-s/2,y-s/2,s,s);
-function tipRail(y,x0,x1){const c=ctx;c.strokeStyle='#5a4128';c.lineWidth=6;c.beginPath();for(let x=x0;x<x1;x+=26){c.moveTo(x,y-15);c.lineTo(x,y+15)}c.stroke();
-  c.strokeStyle='#aeb8cc';c.lineWidth=3;c.beginPath();for(const d of[-9,9]){c.moveTo(x0,y+d);c.lineTo(x1,y+d)}c.stroke()}
 function tipPortal(x,y,col){const c=ctx,g=c.createRadialGradient(x,y,3,x,y,30);g.addColorStop(0,'#000');g.addColorStop(.7,'#141833');g.addColorStop(1,col);c.fillStyle=g;c.beginPath();c.arc(x,y,30,0,TAU);c.fill();
   c.strokeStyle=col;c.lineWidth=3;c.setLineDash([8,6]);c.beginPath();c.arc(x,y,34,0,TAU);c.stroke();c.setLineDash([])}
 function tipRing(x,y,r,col,dash){const c=ctx;c.strokeStyle=col;c.lineWidth=2.5;if(dash)c.setLineDash([8,6]);c.beginPath();c.arc(x,y,r,0,TAU);c.stroke();c.setLineDash([])}
@@ -2240,10 +2215,6 @@ const TIPS=[
   {t:'💎 รีบเก็บพลอยคนตาย',d:'ขบวนที่ตายแตกเป็นพลอยกองใหญ่ แต่อยู่ได้แค่ 30 วิ แล้วหาย · ใครไปถึงก่อนได้ก่อน',pre(){
     for(let i=0;i<26;i++){const k=i/25,x=150+k*190,y=50+Math.sin(k*3)*30+k*60;tipGem(x+((i*37)%9-4),y+((i*53)%9-4),i)}},draw(){
     return[tipTrain([[120,128],[40,175]],ME)]},post(){tipArrow(130,118,165,80,'#ffd23f');tipLabel(300,40,'⏱ 30 วิ','#ff9b9b',13)}},
-  {t:'🛤️ วิ่งบนราง',d:'บนรางวิ่งเร็วขึ้น ×1.6 · ใช้ไล่ตัดหน้าหรือหนีศัตรูที่ไม่ได้อยู่บนราง',pre(){tipRail(130,0,380)},draw(){
-    return[tipTrain([[300,130],[70,130]],ME),tipTrain([[230,48],[90,48]],EN(2))]},
-    post(){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=2;for(const dy of[-8,0,8]){ctx.beginPath();ctx.moveTo(30,130+dy);ctx.lineTo(55,130+dy);ctx.stroke()}
-      tipLabel(330,112,'×1.6','#7dffb0',16);tipLabel(258,40,'×1','#cfd6ff',13)}},
   {t:'🚇 อุโมงค์ = หนีไว + อมตะ',d:'ลอดอุโมงค์แล้วไปโผล่อีกฝั่ง และได้โล่อมตะ 2 วิ ชนใครก็ไม่ตาย · อุโมงค์ที่มีกากบาทคือปิด',pre(){tipPortal(80,110,'#c08cff');tipPortal(290,90,'#c08cff')},draw(){
     const me=tipTrain([[335,72],[294,90]],ME);return[me]},post(){tipArrow(112,104,252,92,'#c08cff');tipRing(335,72,28,'#ffd23f');tipLabel(300,170,'🛡️ อมตะ 2 วิ ชนไม่ตาย','#ffd23f',12)}},
   {t:'{B} ระเบิดให้โดนหัว',d:'เข้าไปใกล้หัวศัตรูก่อนค่อยกดระเบิด · วงระเบิดโดนหัว = ตาย · โดนแค่ลำตัว = ขาดเฉพาะส่วนในวง',draw(){
