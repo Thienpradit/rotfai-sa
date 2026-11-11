@@ -120,6 +120,16 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 @keyframes bossDownA{0%{opacity:0;transform:translateX(-50%) translateY(-8px)}8%{opacity:1;transform:translateX(-50%) translateY(0)}80%{opacity:1}100%{opacity:0}}
 @keyframes bossBlink{0%{opacity:0;transform:translateX(-50%) scale(1.25)}10%{opacity:1;transform:translateX(-50%) scale(1)}28%{opacity:.15}45%{opacity:1}75%{opacity:1}100%{opacity:0}}
 #sheet{z-index:20}
+#rwPop{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(5,8,25,.55);padding:16px;box-sizing:border-box}
+#rwPop .rwc{width:min(360px,100%);max-height:90dvh;overflow:auto;background:linear-gradient(#1d2556,#121838);border:2px solid #ffd23f;border-radius:18px;padding:16px 16px 14px;box-shadow:0 0 30px rgba(255,210,63,.35);animation:rwIn .45s cubic-bezier(.2,1.4,.4,1)}
+@keyframes rwIn{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+#rwPop .rwh{text-align:center;font-weight:700;font-size:17px;color:#fff}
+#rwPop .rwbig{text-align:center;font-size:38px;font-weight:800;color:#ffd23f;text-shadow:0 2px 0 #6b4a00,0 0 14px rgba(255,210,63,.6);margin:4px 0 8px}
+#rwPop .rwr{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:5px 2px;border-bottom:1px solid rgba(255,255,255,.08);color:#dfe4ff}
+#rwPop .rwr b{color:#ffd23f;white-space:nowrap}#rwPop .rwrp{margin-top:4px}
+#rwPop .rwm{margin-top:10px;font-weight:700;color:#fff;font-size:14px}
+#rwPop .rwt{font-size:12px;color:#aab3e6;text-align:center;margin-top:8px}
+#rwPop .btn{width:100%;margin-top:12px}
 .acct{background:#0f1330;border:2px solid #3a4590;border-radius:12px;color:#fff;font:inherit;font-size:13px;padding:5px 10px;cursor:pointer;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acct.on{border-color:#7cfc9a;color:#7cfc9a}
 .gnote{font-size:12px;color:#ffb35e;margin-top:6px;line-height:1.5}.gnote u{cursor:pointer;color:#77ccff}
@@ -1647,6 +1657,14 @@ function drawCar(k,j,col,L,W,r,seed){
     ctx.fillStyle='#8fdcff';ctx.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU,q=R*.82;i?ctx.lineTo(Math.cos(a)*q,Math.sin(a)*q):ctx.moveTo(q,0)}ctx.closePath();ctx.fill();
     ctx.fillStyle='rgba(255,255,255,.75)';ctx.beginPath();ctx.arc(-R*.18,-R*.18,R*.28,0,TAU);ctx.fill();return}
   ctx.fillStyle='rgba(18,20,38,.6)';roundRect(-L/2+r*.22,-W/2+r*.22,L-r*.44,W-r*.44,r*.18);ctx.fill();gem(3,W*.52,.27)}
+// ===== ลมพัดผ่านหัวจักรตอนเร่ง: เส้นลมวิ่งจากหน้าไปหลังข้างตัวรถ + คลื่นอากาศหน้าจมูก (วาดในพิกัดหัวรถ x = ทิศวิ่ง) =====
+function drawWind(w,fx,W,r){const N=QUAL>1?8:QUAL?6:4,run=fx*2+r*5,sd=(w.seed||1)*7.31;ctx.save();ctx.lineCap='round';
+  for(let i=0;i<N;i++){const h=Math.abs(Math.sin(i*12.9898+sd)*43758.5453)%1,h2=Math.abs(Math.sin(i*78.233+sd)*12345.678)%1;
+    const p=(frame*.055*(1+h*.6)+h2)%1,x=fx+r*1.6-p*run,side=i%2?1:-1,y=side*W*(.5+h*.85),len=r*(1.8+h2*1.8),a=Math.min(1,Math.sin(p*Math.PI)*1.6)*(.6+h*.35);
+    const g=ctx.createLinearGradient(x,0,x+len,0);g.addColorStop(0,`rgba(255,255,255,0)`);g.addColorStop(.6,`rgba(225,240,255,${a})`);g.addColorStop(1,`rgba(255,255,255,${a*.4})`);
+    ctx.strokeStyle=g;ctx.lineWidth=Math.max(1.6,r*(.1+h2*.08));ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+len*.5,y-side*r*.05,x+len,y+side*r*.12);ctx.stroke()}
+  for(let k=0;k<2;k++){const p=(frame*.05+k*.5)%1,R=W*(.6+p*.55),a=(1-p)*.65;ctx.strokeStyle=`rgba(220,238,255,${a})`;ctx.lineWidth=Math.max(1,r*.08);ctx.beginPath();ctx.arc(fx+r*.15-p*r*.6,0,R,-1.05,1.05);ctx.stroke()}
+  ctx.restore()}
 function drawWorm(w,vx0,vy0,vx1,vy1){
   const r=w.r(),p=w.pts,n=p.length,sk=w.gold?GOLD_SKIN:w.skin,W=r*1.75,M=3*r;
   const vis=c=>!(c.x<vx0-M||c.x>vx1+M||c.y<vy0-M||c.y>vy1+M);
@@ -1729,6 +1747,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
     ctx.fillStyle='#0d0f18';ctx.beginPath();ctx.arc(L*.33,0,W*.12,0,TAU);ctx.fill();
     ctx.fillStyle='#fff59a';ctx.beginPath();ctx.arc(L*.47,0,r*.22,0,TAU);ctx.fill();
   }
+  if(boosting)drawWind(w,lspr?140*(W/156):L/2,W,r);   // เร่ง = ลมพัดผ่านหัวจักร (เจ้าของสั่ง 12 พ.ย. 00:54)
   ctx.restore();
   const elec=(w.loco==='bullet'||w.loco==='tram'||w.loco==='metro')&&w.smokeT==='normal',sk2=w.loco==='comet'&&w.smokeT==='normal'?'comet':w.smokeT;
   if(vis(c)&&!elec&&frame%((boosting||sk2==='comet'?3:9)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL])smoke.push({x:c.x+Math.cos(c.a)*smX,y:c.y+Math.sin(c.a)*smX,r:smR,t:1,k:sk2,h:frame*4%360});
@@ -2106,6 +2125,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:10,d:'12 พ.ย. 2026',t:'⚔️ 2v2 ดุเดือดขึ้น',l:['บอทใน 2v2 ไล่ล่าเก่งขึ้น พุ่งตัดหน้า และหลบเก่งขึ้น — ระวังให้ดี!','จบแมตช์ 2v2 มีหน้าต่างสรุปรางวัล บอกเหรียญที่ได้แต่ละส่วน แรงก์ และภารกิจ','💨 เร่งความเร็วแล้วเห็นลมพัดผ่านหัวจักร']},
   {id:9,d:'12 พ.ย. 2026',t:'🛒 ร้านค้าดูตัวอย่างเคลื่อนไหวได้',l:['แตะของในร้าน (หัวจักร ตู้ สี ควัน เอฟเฟกต์กำจัด) จะเห็นรถไฟวิ่งจริงก่อนซื้อ','ควันใหม่: 🫧 ฟองสบู่ ❄️ เกล็ดหิมะ 🔥 เปลวไฟ','เอฟเฟกต์กำจัดใหม่: 💫 คลื่นกระแทก 🎊 กระดาษสีฉลอง ⚡ สายฟ้าฟาด','ภารกิจรายวันง่ายลงนิดหน่อย และรางวัลเพิ่ม 20%']},
   {id:8,d:'11 พ.ย. 2026',t:'🌍 โลกออนไลน์กว้างขึ้น',l:['สนามโหมดเล่นออนไลน์ใหญ่ขึ้นราว 60% มีพลอย เพชรขาว และไอเทมเพิ่มตามขนาด วิ่งเก็บได้สบายขึ้น']},
   {id:7,d:'11 พ.ย. 2026',t:'💎 พลอยวาวเต็มตู้',l:['ตู้ทุกแบบขนพลอยเม็ดใหญ่ขึ้น เปล่งประกายวิบวับ กองพอดีล้นขอบนิด ๆ','ตู้หีบสมบัติพลอยเต็มหีบ · ตู้เพชรยักษ์มีพลอยวางรอบ · ตู้กระจกมีพลอยวางบนหลังคา']},
@@ -2618,7 +2638,7 @@ function netMsg(m){
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
+    case'start':{netPlayers(m.players);NET.phase='play';NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
@@ -2727,7 +2747,8 @@ function netTick(dt){
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
-  roundRP=0;if(player){addCoins(Math.floor(player.maxMass/10)+player.kills*5+(win?50:0));addRP(gameRP(0,player.kills,win?15:-5,1));   /* 2v2: RP = กำจัด×2 + ชนะ 15 / แพ้ −5 ไม่คิดความยาว (11 พ.ย.) */track('games');track('vsGames');if(win)track('teamWin');saveProf()}
+  roundRP=0;const rw={len:0,kill:0,kills:0,win:win?50:0,draw:m.winner==='draw',ok:!!player};
+  if(player){rw.len=Math.floor(player.maxMass/10);rw.kills=player.kills;rw.kill=player.kills*5;addCoins(rw.len+rw.kill+rw.win);addRP(gameRP(0,player.kills,win?15:-5,1));   /* 2v2: RP = กำจัด×2 + ชนะ 15 / แพ้ −5 ไม่คิดความยาว (11 พ.ย.) */track('games');track('vsGames');if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   openSheet(m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้',b=>{
     b.innerHTML=`<div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
@@ -2736,7 +2757,25 @@ function netEnd(m){
     <button class="btn team" id="toLobby">กลับห้องรอ</button><button class="btn alt" id="leave2">ออกจากห้อง</button>`;
     b.querySelector('#toLobby').onclick=()=>openSheet('🌐 ห้อง '+NET.room,renderLobby);
     b.querySelector('#leave2').onclick=()=>netLeave()});
+  if(rw.ok)setTimeout(()=>vsRewardPop(rw,win),450);
 }
+// ===== ป๊อปอัปรางวัลตอนจบ 2v2 (เจ้าของสั่ง 12 พ.ย. 00:49) — บอกว่าได้อะไรเท่าไหร่ =====
+function vsRewardPop(rw,win){const old=$('rwPop');if(old)old.remove();
+  const tot=roundCoins,other=Math.max(0,tot-rw.len-rw.kill-rw.win),snap=NET&&NET.misSnap||[],esc=t=>String(t).replace(/[<>&]/g,'');
+  const row=(ic,t,v,c)=>`<div class="rwr"><span>${ic} ${t}</span><b${c?` style="color:${c}"`:''}>${v}</b></div>`;
+  const mis=(prof.daily&&prof.daily.m||[]).map((x,i)=>({x,d:x.p-(snap[i]||0)})).filter(o=>o.d>0&&!o.x.c);
+  const rp=roundRP;
+  const el=document.createElement('div');el.id='rwPop';
+  el.innerHTML=`<div class="rwc"><div class="rwh">${rw.draw?'🤝 เสมอ':win?'🏆 ชนะ!':'😢 แพ้'} · รางวัลรอบนี้</div>
+    <div class="rwbig">+<span id="rwN">0</span> 🪙</div>
+    ${row('🚂','ความยาว ÷ 10','+'+rw.len)}${row('💀',`กำจัด ${rw.kills} × 5`,'+'+rw.kill)}${rw.win?row('🎉','โบนัสทีมชนะ','+50','#7cfc9a'):''}${other?row('✨','ระหว่างเล่น (สถานี/บอส ฯลฯ)','+'+other):''}
+    <div class="rwr rwrp"><span>🏅 แรงก์</span><b style="color:${rp>=0?'#7cfc9a':'#ff7b7b'}">${rp>=0?'+':''}${rp} RP</b></div>
+    ${mis.length?`<div class="rwm">📅 ภารกิจรายวัน</div>${mis.map(o=>`<div class="rwr"><span>${o.x.p>=o.x.n?'✅':'▶️'} ${esc(misTxt(o.x))}</span><b>${o.x.p}/${o.x.n}</b></div>`).join('')}${mis.some(o=>o.x.p>=o.x.n)?'<div class="rwt">ภารกิจสำเร็จแล้ว กดรับรางวัลที่ 📅 ภารกิจ หน้าแรก</div>':''}`:''}
+    <div class="rwt">รวมตอนนี้ ${prof.coins.toLocaleString()} 🪙</div>
+    <button class="btn" id="rwOk">เยี่ยม!</button></div>`;
+  document.body.appendChild(el);try{audioInit();sfx('coin')}catch(e){}
+  const n=$('rwN'),t0=performance.now();(function up(t){const k=Math.min(1,(t-t0)/900);n.textContent=Math.round(tot*(1-(1-k)**3)).toLocaleString();if(k<1&&el.isConnected)requestAnimationFrame(up)})(t0);
+  const close=()=>el.remove();$('rwOk').onclick=close;el.onclick=e=>{if(e.target===el)close()}}
 
 // =====================================================================
 //  init + loop
