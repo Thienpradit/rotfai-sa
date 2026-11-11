@@ -105,6 +105,7 @@ body.sideL #advBar{left:auto;right:calc(12px + env(safe-area-inset-right))}
 @keyframes pulse{50%{transform:scale(1.08)}}
 #ann{position:fixed;left:50%;top:36%;transform:translate(-50%,-50%);z-index:8;background:rgba(15,19,48,.9);border:2px solid #ffd23f;padding:10px 16px;border-radius:14px;font-size:16px;text-align:center;max-width:84vw;pointer-events:none;opacity:0;transition:opacity .3s}
 #ann.show{opacity:1}
+body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58px + env(safe-area-inset-top))}
 #ann.low{top:calc(6px + env(safe-area-inset-top));transform:translate(-50%,0);font-size:13.5px;padding:6px 12px;max-width:70vw;background:rgba(15,19,48,.78);border-width:1.5px}   /* ระหว่างเล่น: ขึ้นบนสุดของจอ ไม่บังหัวรถไฟ (เจ้าของสั่ง 7 พ.ย. 20:03) */
 /* บอสโผล่: ตัวหนังสือแดงจาง ๆ บนสุดของจอ กะพริบ 2 ครั้งแล้วหาย (ไม่บังจอเล่น) */
 #bossWarn{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;
@@ -1330,7 +1331,7 @@ function stageAutoStop(){if(STAGE_AUTO){clearInterval(STAGE_AUTO);STAGE_AUTO=nul
 function startStage(i){if(!stageUnlocked(i))return;stageAutoStop();STAGE_I=i;STAGE=STAGES[i];STAGE_LIFE=STAGE_LIVES;
   STAGE_D={...DIFF.normal,...STAGE.d,ai:STAGE.ai,boss:STAGE.boss||1e9,bossM:STAGE.bossM};
   STAGE_RES=null;STAGE_BOSS=false;stageClock=0;STAGE_RUN=true;$('sheet').classList.add('hidden');
-  startGame('stage');bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;setPause(false);$('advBar').classList.remove('hidden');
+  startGame('stage');bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;setPause(false);$('advBar').classList.remove('hidden');document.body.classList.add('stageOn');
   {const[x,y]=farSpot(800,600);for(const q of player.pts){q.x+=x-player.pts[0].x;q.y+=y-player.pts[0].y}}   // จุดเกิดห่างสิ่งกีดขวาง/บอท
   player.ghost=SPAWN_GHOST;announce('🗺️ ด่าน '+STAGE.code+' · '+goalText(STAGE.g)+' ภายใน 10 นาที · '+hearts(STAGE_LIVES)+' 3 ชีวิต · ⚠️ ไม่นับสถิติ')}
 function spawnHunters(n,m){const h=player.pts[0];let k=0;
@@ -1835,6 +1836,7 @@ function render(){
     ctx.globalAlpha=Math.min(1,t.t);ctx.font='600 18px Mitr,sans-serif';ctx.fillStyle=t.c;ctx.textAlign='center';fillTextIcons(t.txt,t.x,t.y)}
   ctx.globalAlpha=1;ctx.restore();
   if(player&&(state==='play'||state==='dead'||state==='over'))drawHUD();
+  drawStageTimer();
   {const now=performance.now();killFeed=killFeed.filter(k=>k.until>now);
     const lst=[...killFeed.slice().reverse().map(k=>({txt:k.txt,c:k.c,kf:1,t:(k.until-now)/1000})),...meT.slice(-3).reverse()];
     if(lst.length&&state!=='menu')drawMeToasts(lst)}   // วาดทับแถบข้อมูล/มินิแมป · บนสุด = ประกาศกำจัดล่าสุด
@@ -1850,7 +1852,17 @@ function hornHitMe(m){const P=hornPerk(m.k),f=HORN_SLOW[m.k];if(!P.r||!f||m.x===
   const h=player.pts[0];if(Math.hypot(h.x-m.x,h.y-m.y)>P.r+player.r())return;
   player.hslow=Math.max(player.hslow||0,P.t);player.hslowF=Math.min(player.hslowF&&player.hslow>0?player.hslowF:1,f);player.hslowT=P.t;
   texts.push({x:h.x,y:h.y-30,txt:'🐌 โดนหวูดของ '+((by||{}).name||'ผู้เล่น')+'! ช้าลง '+hornSlowPct(m.k)+'%',t:2,c:'#ffb36b'});sfx('freeze')}
-function drawMeToasts(list){const LSc=VH-SAFE.t-SAFE.b<500,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y0=LSc?SAFE.t+62:Math.max(SAFE.t+128,HUD_CHIP_B+20);   // ข้างบนจอใต้ประกาศ เรียงลง (เจ้าของสั่ง 20:06) · แนวตั้งเลยแถบข้อมูลบนจอลงมา
+// ⏱ เวลาด่านผจญภัย ตัวใหญ่ตรงกลางบนสุดของจอ (เจ้าของสั่ง 11 พ.ย. 21:08) · เหลือ < 60 วิ แดงกะพริบ · < 10 วิ ใหญ่ขึ้น
+const STAGE_TIMER_H=44;
+function drawStageTimer(){if(mode!=='stage'||!STAGE||(state!=='play'&&state!=='dead'))return;
+  const left=Math.max(0,STAGE_T-stageClock),warn=left<60,crit=left<10,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y=SAFE.t+6,t=performance.now()/1000;
+  const sc=crit?1+.08*Math.abs(Math.sin(t*Math.PI*2)):1,txt='⏱ '+fmtT(Math.ceil(left)),fs=VW<420?22:26;
+  ctx.save();ctx.translate(x,y+STAGE_TIMER_H/2);ctx.scale(sc,sc);ctx.font='700 '+(crit?fs+4:fs)+'px Mitr,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  const w=ctx.measureText(txt).width+(VW<420?24:34),h=VW<420?38:STAGE_TIMER_H,pulse=warn?.55+.45*Math.abs(Math.sin(t*Math.PI*(crit?2:1))):1;
+  ctx.fillStyle=warn?`rgba(120,14,24,${.82})`:'rgba(10,13,35,.82)';ctx.strokeStyle=warn?`rgba(255,94,94,${pulse})`:'rgba(124,252,154,.75)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.roundRect?ctx.roundRect(-w/2,-h/2,w,h,h/2):ctx.rect(-w/2,-h/2,w,h);ctx.fill();ctx.stroke();
+  ctx.fillStyle=warn?'#ffd0d0':'#fff';ctx.fillText(txt,0,2);ctx.restore()}
+function drawMeToasts(list){const LSc=VH-SAFE.t-SAFE.b<500,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y0=(LSc?SAFE.t+62:Math.max(SAFE.t+128,HUD_CHIP_B+20))+(LSc&&mode==='stage'&&STAGE?STAGE_TIMER_H:0);   // ข้างบนจอใต้ประกาศ เรียงลง (เจ้าของสั่ง 20:06) · แนวตั้งเลยแถบข้อมูลบนจอลงมา
   ctx.save();ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.font='600 15px Mitr,sans-serif';
   list.forEach((t,i)=>{const y=y0+i*26,a=Math.min(1,t.t*1.5);ctx.globalAlpha=a;
     const w=Math.min(VW*.9,ctx.measureText(t.txt.replace(/\{[A-Z]\}/g,'  ')).width+26);ctx.fillStyle=t.kf?'rgba(90,16,24,.72)':'rgba(10,13,35,.62)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-w/2,y-11,w,22,11):ctx.rect(x-w/2,y-11,w,22);ctx.fill();
@@ -1863,16 +1875,17 @@ function drawHUD2(){
   const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass),PH=Math.min(VW,VH)<520,LS=VH<500;   // LS = มือถือแนวนอน → ชิป/มินิแมปเล็กลง ไม่ลงไปทับปุ่มด้านล่าง
      // PH = มือถือ → ตารางอันดับเล็กลง
   const bx0=pad;
-  ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(bx0,pad,160,64,12);ctx.fill();
+  const STG=mode==='stage'&&STAGE,bw=STG?108:160;   // ผจญภัย: กรอบแคบลง (ไม่โชว์เหรียญ) ให้ที่เวลาตัวใหญ่ตรงกลาง
+  ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(bx0,pad,bw,64,12);ctx.fill();
   ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),bx0+12,pad+27);
-  ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+152,pad+26);ctx.textAlign='left';
+  if(!STG){ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+152,pad+26);ctx.textAlign='left'}
   const rank=alive.indexOf(player)+1;
-  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText((NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,bx0+12,pad+50);
+  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText(STG?(rank?'#'+rank+'/'+alive.length:'—')+' · 💀 '+player.kills:(NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,bx0+12,pad+50);
   let py=pad+74;
   const CH=LS?22:26,CF=LS?'12px Mitr,sans-serif':'13px Mitr,sans-serif';
   const chip=(txt,col,frac)=>{ctx.font=CF;const cw=Math.max(160,textW(txt)+18),cx=pad;ctx.fillStyle='rgba(15,19,48,.7)';roundRect(cx,py,cw,CH,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(cx,py,cw*Math.min(1,frac),CH,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
     ctx.fillStyle='#fff';ctx.font=CF;fillTextIcons(txt,cx+8,py+CH-(LS?6:8));py+=CH+(LS?3:4)};
-  if(mode==='stage'&&STAGE){const g=stageGoal(),left=Math.max(0,STAGE_T-stageClock);chip('🗺️ '+STAGE.code+' · '+hearts(STAGE_LIFE)+' · '+g.txt+' · ⏱ '+fmtT(left),left<60?'#ff5e5e':'#7cfc9a',g.frac)}
+  if(mode==='stage'&&STAGE){const g=stageGoal();chip('🗺️ '+STAGE.code+' · '+hearts(STAGE_LIFE)+' · '+g.txt,'#7cfc9a',g.frac)}
   chip('💎 พลังเร่ง '+player.energy.toFixed(1)+' วิ','#ffffff',player.energy/maxEn(player));
   if(player.gold)chip('{G} ร่างทอง ชนขาดได้ 1 ครั้ง · '+Math.ceil(player.goldT||0)+' วิ',player.goldT<=10?'#ff5e5e':'#ffd23f',(player.goldT||0)/goldLife(player));
   if(player.tgs&&player.bombT.length)chip('{B} ×'+player.tgs+' หายใน '+Math.ceil(player.bombT[0])+' วิ',player.bombT[0]<=5?'#ff5e5e':'#ff8c42',player.bombT[0]/bombLife(player));
@@ -1911,7 +1924,7 @@ function drawHUD2(){
     let y=pad+(PH?34:46);for(const t of['A','B']){ctx.fillStyle=TEAM_COL[t];ctx.font=PH?'600 11px Mitr,sans-serif':'600 13px Mitr,sans-serif';ctx.textAlign='left';ctx.fillText((t===player.team?'▶ ':'')+TEAM_NAME[t],lx+Z.p,y);
       ctx.textAlign='right';ctx.fillText((sc[t].k*100+Math.floor(sc[t].l))+'',lx+lw-Z.p,y);ctx.font=Z.sub;ctx.fillStyle='#aab3e6';ctx.fillText('💀'+sc[t].k+' · ยาว '+Math.floor(sc[t].l),lx+lw-Z.p,y+(PH?11:14));y+=PH?23:32}
     ctx.textAlign='left';
-  }else{
+  }else if(!(STG&&PH&&!LS)){   // ผจญภัยบนมือถือแนวตั้ง: ไม่มีตารางอันดับ (ที่ไม่พอ · ให้เวลาอยู่ตรงกลาง)
     const top=alive.slice(0,Z.n),me=rank>Z.n;
     ctx.fillStyle='rgba(15,19,48,.62)';roundRect(lx,pad,lw,Z.h+top.length*Z.rh+(me?Z.rh+1:0)-(PH?2:0),Z.r);ctx.fill();
     ctx.fillStyle='#fff';ctx.font=Z.t;ctx.fillText('🏆 อันดับ',lx+Z.p,pad+(PH?16:22));ctx.font=Z.f;
@@ -1969,7 +1982,7 @@ function startGame(m){
   autoFS();
   audioInit();
   if(NET)netLeave(true);
-  if(m!=='stage'){STAGE=null;STAGE_D=null;STAGE_RUN=false;$('advBar').classList.add('hidden');setPause(false)}
+  if(m!=='stage'){STAGE=null;STAGE_D=null;STAGE_RUN=false;$('advBar').classList.add('hidden');setPause(false);document.body.classList.remove('stageOn')}
   WR=AR=m==='stage'&&STAGE?STAGE.R:3000;buildWorld(WR);buildObstacles(m==='stage'?STAGE:null);if(m==='stage')worms=[];
   {const k=(WR/3000)**2;FOOD_CAP=Math.round(FOOD_N*(m==='stage'?k*.85:1));WHITE_CAP=Math.round(WHITE_N*(m==='stage'?Math.max(.35,k):1))}
   if(m==='stage'||!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let w=0;w<FOOD_CAP;)w+=addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_CAP;i++)addWhite()}
@@ -2011,7 +2024,7 @@ function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}load
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
 function toMenu(){stageAutoStop();
   if(NET)netLeave(true);
-  STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];$('advBar').classList.add('hidden');setPause(false);
+  STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];$('advBar').classList.add('hidden');setPause(false);document.body.classList.remove('stageOn');
   mode='inf';AR=WR;   // กลับหน้าแรกหลังจบ 2v2: วงสนามที่หดไว้ต้องคืนขนาด ไม่งั้นบอทฉากหลังเกิดไม่ได้แล้วค้าง
   state='menu';worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBot);if(!worms.length)for(let i=0;i<D().ai;i++)spawnAI();player=null;$('coopBar').classList.add('hidden');$('snd').classList.add('hidden');$('setGame').classList.add('hidden');$('fsGame')&&$('fsGame').classList.add('hidden');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
@@ -2457,7 +2470,7 @@ function renderOnlineJoin(b){
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
-function netConnect(room,srv,nmode){const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];
+function netConnect(room,srv,nmode){const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];document.body.classList.remove('stageOn');
   if(NET)netLeave(true);
   let ws;netStatus('กำลังเชื่อมต่อ...');
   const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกดเข้าห้องอีกครั้ง');NET=null};
