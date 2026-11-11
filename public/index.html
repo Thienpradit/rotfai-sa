@@ -420,9 +420,9 @@ const GOLD_SKIN=['#ffd23f','#ffb000','#fff1a8'],BOSS_SKIN=['#3a0d0d','#ff3b3b','
 const SHOP={
   loco:[{id:'classic',n:'หัวจักรไอน้ำ',p:0,ic:'🚂'},{id:'diesel',n:'หัวจักรดีเซล',p:25000,ic:'🚃'},{id:'bullet',n:'รถไฟหัวกระสุน',p:60000,ic:'🚄'},{id:'tram',n:'รถรางไฟฟ้า',p:120000,ic:'🚋'},{id:'metro',n:'รถไฟใต้ดิน',p:250000,ic:'🚇'},{id:'comet',n:'หัวจักรดาวหาง',p:500000,ic:'☄️'}],
   wagon:[{id:'gem',n:'ตู้ขนพลอย',p:0,ic:'💎'},{id:'cargo',n:'ตู้หีบสมบัติ',p:12000,ic:'🧰'},{id:'coach',n:'ตู้เพชรยักษ์',p:18000,ic:'💠'},{id:'glass',n:'ตู้กระจกใส',p:30000,ic:'🔮'}],
-  smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:10000,ic:'✨'},{id:'rainbow',n:'ควันสีรุ้ง',p:20000,ic:'🌈'}],
+  smoke:[{id:'normal',n:'ควันปกติ',p:0,ic:'💨'},{id:'sparkle',n:'ควันประกายดาว',p:10000,ic:'✨'},{id:'bubbles',n:'ควันฟองสบู่',p:15000,ic:'🫧'},{id:'rainbow',n:'ควันสีรุ้ง',p:20000,ic:'🌈'},{id:'snow',n:'ควันเกล็ดหิมะ',p:25000,ic:'❄️'},{id:'flame',n:'ควันเปลวไฟ',p:40000,ic:'🔥'}],
   skin:[{id:'candy',n:'สีลูกกวาด',p:10000,c:['#ff9ecb','#ffffff','#9ef0ff']},{id:'galaxy',n:'สีกาแล็กซี',p:15000,c:['#2b1055','#7597de','#d6e0ff']},{id:'lava',n:'สีลาวา',p:15000,c:['#ff4e00','#2b0a00','#ffb300']},{id:'neon',n:'สีนีออน',p:25000,c:['#39ff14','#ff00e6','#00e5ff']}],
-  kfx:[{id:'none',n:'ไม่มีเอฟเฟกต์',p:0,ic:'➖'},{id:'firework',n:'พลุ',p:15000,ic:'🎆'},{id:'gems',n:'ประกายเพชร',p:20000,ic:'💠'},{id:'coins',n:'ฝนเหรียญ',p:35000,ic:'🪙'}],
+  kfx:[{id:'none',n:'ไม่มีเอฟเฟกต์',p:0,ic:'➖'},{id:'firework',n:'พลุ',p:15000,ic:'🎆'},{id:'gems',n:'ประกายเพชร',p:20000,ic:'💠'},{id:'ring',n:'คลื่นกระแทก',p:25000,ic:'💫'},{id:'confetti',n:'กระดาษสีฉลอง',p:30000,ic:'🎊'},{id:'coins',n:'ฝนเหรียญ',p:35000,ic:'🪙'},{id:'bolt',n:'สายฟ้าฟาด',p:45000,ic:'⚡'}],
   horn:[{id:'classic',n:'หวูดไอน้ำ',p:0,ic:'📯'},{id:'deep',n:'หวูดเรือใหญ่',p:20000,ic:'🛳️'},{id:'chime',n:'หวูดกระดิ่ง',p:35000,ic:'🔔'},{id:'tune',n:'หวูดทำนอง',p:60000,ic:'🎵'},{id:'siren',n:'ไซเรนรถด่วน',p:100000,ic:'🚨'},{id:'thunder',n:'แตรฟ้าผ่า',p:180000,ic:'⚡'},{id:'dragon',n:'แตรมังกร',p:300000,ic:'🐉'}],
   title:[{id:'speed',n:'สายซิ่ง',p:10000,ic:'⚡'},{id:'gemking',n:'ราชาพลอย',p:25000,ic:'💎'},{id:'rich',n:'เศรษฐีรางเหล็ก',p:60000,ic:'🤑'}],
 };
@@ -433,6 +433,11 @@ const LOCO_PERK={classic:{pick:0,bomb:0,gold:0,en:20},diesel:{pick:15,bomb:3,gol
 const LOCO_PICK=Object.fromEntries(Object.entries(LOCO_PERK).map(([k,v])=>[k,v.pick]));
 const perkOf=w=>LOCO_PERK[w&&w.loco]||LOCO_PERK.classic;
 const maxEn=w=>perkOf(w).en,bombLife=w=>BOMB_LIFE+perkOf(w).bomb,goldLife=w=>GOLD_LIFE+perkOf(w).gold;
+const SMOKE_DESC={normal:'ควันขาวฟุ้งจากปล่อง (หัวไฟฟ้า กระสุน/รถราง/ใต้ดิน ไม่มีควันปกติ)',sparkle:'ประกายดาวสีทองพราวออกจากปล่อง',bubbles:'ฟองสบู่สีรุ้งลอยขึ้น มีแสงสะท้อนบนฟอง',rainbow:'ควันฟุ้งไล่สีรุ้งเปลี่ยนสีไปเรื่อย ๆ',
+  snow:'เกล็ดหิมะหกแฉกหมุนลอยตามขบวน',flame:'เปลวไฟส้มแดงลุกโชนจากปล่อง ไฟลอยขึ้นแล้วมอดเป็นสีแดง',hearts:'หัวใจสีชมพูลอยตามขบวน (ของหายาก)',leaves:'ใบไม้สีเขียวปลิวหมุนตามขบวน (ของหายาก)'};
+const KFX_DESC={none:'ไม่มีเอฟเฟกต์ตอนกำจัดศัตรู',firework:'พลุหลากสีแตกกระจายตรงจุดที่ศัตรูชน',gems:'พลอยหลากสีกระเด็นพราวรอบจุดชน',ring:'คลื่นกระแทก 3 วงขยายออก พร้อมประกายฟ้า',
+  confetti:'กระดาษสีฉลองพุ่งขึ้นแล้วหมุนร่วงลงมา',coins:'ฝนเหรียญทองหมุนร่วงลงมา',bolt:'สายฟ้าฟาดแตกออก 5 ทิศ พร้อมแสงวาบ'};
+const ELEC_LOCO=['bullet','tram','metro'];
 const ITEM_DESC={classic:'หม้อน้ำทรงกระบอกคาดห่วงทองเหลือง ปล่องควัน โดมไอน้ำทอง เครื่องกันวัวด้านหน้า ล้อกับก้านสูบโผล่ข้างตัว',diesel:'ฝากระโปรงยาว พัดลมหม้อน้ำ 2 ตัว ห้องคนขับกระจกบานใหญ่ กันชนลายทางเหลือง-ดำ ไฟหน้าคู่',bullet:'จมูกยาวลู่ลม กระจกห้องคนขับโค้งรอบ แถบสีคาดวิ่งตามตัวถัง แพนโทกราฟบนหลังคา ไม่มีควัน',
   tram:'รถรางตัวถังมนทั้งคัน เส้นคาดสีรอบหลังคา เครื่องปรับอากาศ แพนโทกราฟรูปเพชร ป้ายบอกทางเรืองแสง',metro:'หลังคาสเตนเลสลายลอน แถบสีคาดสองข้าง เครื่องปรับอากาศ 2 ชุด ประตูฉุกเฉินหน้ารถ',comet:'ตัวถังลู่ลมแบบยานอวกาศ แกนพลังงานเรืองแสง ห้องนักบินโดมแก้ว ไอพ่น 2 ท่อพ่นไฟ',
   gem:'ตู้เปิดหลังคา บรรทุกพลอยหลากสีกองพูน มีประกายวิบวับ',cargo:'หีบสมบัติไม้คาดทอง 2 ใบ เปิดฝาเห็นพลอยเต็มหีบ',coach:'เพชรเม็ดใหญ่เจียระไนบนแท่นกำมะหยี่ ขอบทอง ตัวยึด 4 ทิศ',glass:'ตู้โชว์หลังคากระจก เห็นพลอยเรียงด้านใน คานสีคาด 2 เส้น'};
@@ -534,10 +539,13 @@ const MRETIRED=[{id:'rail',ev:'railSec',lo:6,hi:20,mul:10,txt:n=>`วิ่ง�
 const MP=Object.fromEntries(MPOOL.concat(MRETIRED).map(m=>[m.id,m]));
 function todayKey(){const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
 const misTxt=m=>MP[m.id]?MP[m.id].txt(m.n):'';
-function mkMission(d){const n=(d.lo+Math.floor(Math.random()*(d.hi-d.lo+1)))*(d.mul||1);return{id:d.id,n,r:Math.min(300,Math.max(10,Math.round(n*d.ru/5)*5)),p:0,c:false}}
+// ภารกิจง่ายลง 20% + รางวัลเพิ่ม 20% (เจ้าของสั่ง 12 พ.ย. 00:43) · `e:1` = ปรับแล้ว (ของวันนี้ที่ยังไม่รับถูกปรับใน ensureDaily)
+const M_EASE=.8,M_REW=1.2,M_MAX=360;
+const mEase=(d,raw)=>{const mul=d.mul||1;return Math.max(mul,Math.round(raw*M_EASE/mul)*mul)},mMin=d=>mEase(d,d.lo*(d.mul||1));
+function mkMission(d){const raw=(d.lo+Math.floor(Math.random()*(d.hi-d.lo+1)))*(d.mul||1);return{id:d.id,n:mEase(d,raw),r:Math.min(M_MAX,Math.max(10,Math.round(raw*d.ru*M_REW/5)*5)),p:0,c:false,e:1}}
 function ensureDaily(){const k=todayKey(),old=prof.daily;
   const ok=old&&old.date===k&&old.m.length&&old.m[0].n!==undefined&&old.m.every(m=>MP[m.id]);
-  let up=false;if(ok)old.m.forEach((m,i)=>{if(!m.c&&MRETIRED.some(r=>r.id===m.id)){const used=old.m.map(x=>x.id),c=MPOOL.filter(d=>!used.includes(d.id)&&!MG_VS.includes(d.id)&&!MG_KILL.includes(d.id));old.m[i]=mkMission(c[Math.floor(Math.random()*c.length)]);up=true;return}const d=MP[m.id];if(!m.c&&m.n<d.lo*(d.mul||1)){const nm=mkMission(d);nm.p=Math.min(m.p,nm.n);old.m[i]=nm;up=true}});   // เป้าเก่าที่ง่ายกว่าเกณฑ์ใหม่ (ยังไม่รับรางวัล) → สุ่มเป้าใหม่ เก็บความคืบหน้าไว้
+  let up=false;if(ok)old.m.forEach((m,i)=>{if(!m.c&&MRETIRED.some(r=>r.id===m.id)){const used=old.m.map(x=>x.id),c=MPOOL.filter(d=>!used.includes(d.id)&&!MG_VS.includes(d.id)&&!MG_KILL.includes(d.id));old.m[i]=mkMission(c[Math.floor(Math.random()*c.length)]);up=true;return}const d=MP[m.id];if(!m.c&&!m.e){m.n=mEase(d,m.n);m.r=Math.min(M_MAX,Math.round(m.r*M_REW/5)*5);m.e=1;up=true}if(!m.c&&m.n<mMin(d)){const nm=mkMission(d);nm.p=Math.min(m.p,nm.n);old.m[i]=nm;up=true}});   // เป้าเก่าที่ง่ายกว่าเกณฑ์ใหม่ (ยังไม่รับรางวัล) → สุ่มเป้าใหม่ เก็บความคืบหน้าไว้
   if(ok&&old.m.length>=DAILY_N){if(up)saveProf();return}
   const prev=ok?[]:old?old.m.map(m=>m.id):[],ms=ok?old.m.slice():[],have=()=>ms.map(m=>m.id);
   const pick=ids=>{let c=MPOOL.filter(d=>ids(d.id)&&!have().includes(d.id)&&!prev.includes(d.id));if(!c.length)c=MPOOL.filter(d=>ids(d.id)&&!have().includes(d.id));return c.length?c[Math.floor(Math.random()*c.length)]:null};
@@ -1747,20 +1755,31 @@ function drawSmoke(){for(const s of smoke){s.t-=.018;s.r+=.35;const a=Math.max(0
   else if(s.k==='leaves'){ctx.fillStyle=`hsla(${95+(s.h|0)%50},70%,50%,${.85*a})`;ctx.beginPath();ctx.ellipse(s.x,s.y,4+s.r*.2,2+s.r*.1,s.h/57+(1-s.t)*3,0,TAU);ctx.fill()}
   else if(s.k==='comet'){ctx.fillStyle=`rgba(255,${170+((s.h|0)%80)},80,${.8*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r*.45,0,TAU);ctx.fill()}
   else if(s.k==='sparkle'){ctx.fillStyle=`rgba(255,${230+((s.h|0)%25)},150,${.9*a})`;star4(s.x,s.y,4+s.r*.25)}
+  else if(s.k==='bubbles'){s.y-=.6;s.x+=Math.sin(s.h+s.t*9)*.5;const r=3+s.r*.35;ctx.strokeStyle=`hsla(${(s.h|0)%360},90%,85%,${.8*a})`;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(s.x,s.y,r,0,TAU);ctx.stroke();ctx.fillStyle=`rgba(200,240,255,${.18*a})`;ctx.fill();ctx.fillStyle=`rgba(255,255,255,${.85*a})`;ctx.beginPath();ctx.arc(s.x-r*.35,s.y-r*.35,r*.22,0,TAU);ctx.fill()}
+  else if(s.k==='snow'){s.x+=Math.cos(s.h*.7)*.6;s.y+=Math.sin(s.h*.7)*.6-.15;const r=4+s.r*.33,ro=s.h/40+(1-s.t)*1.5;ctx.strokeStyle=`rgba(225,245,255,${.95*a})`;ctx.lineWidth=1.8;ctx.beginPath();for(let i=0;i<6;i++){const q=ro+i*Math.PI/3,cx=Math.cos(q),cy=Math.sin(q);ctx.moveTo(s.x,s.y);ctx.lineTo(s.x+cx*r,s.y+cy*r);ctx.moveTo(s.x+cx*r*.55-cy*r*.22,s.y+cy*r*.55+cx*r*.22);ctx.lineTo(s.x+cx*r*.55+cy*r*.22,s.y+cy*r*.55-cx*r*.22)}ctx.stroke()}
+  else if(s.k==='flame'){s.y-=.8;s.x+=Math.sin(s.h+s.t*12)*.35;const r=Math.max(1,s.r*.55*(.4+s.t*.8));ctx.fillStyle=`hsla(${Math.max(0,45-(1-s.t)*45)},100%,${55+s.t*15}%,${.85*a})`;ctx.beginPath();ctx.arc(s.x,s.y,r,0,TAU);ctx.fill();if(s.t>.55){ctx.fillStyle=`rgba(255,240,170,${.8*a})`;ctx.beginPath();ctx.arc(s.x,s.y,r*.45,0,TAU);ctx.fill()}}
   else{ctx.fillStyle=s.k==='gold'?`rgba(255,215,80,${.8*a})`:`rgba(225,230,245,${.45*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}}
   smoke=smoke.filter(s=>s.t>0)}
 function heart(x,y,s){ctx.beginPath();ctx.moveTo(x,y+s*.9);ctx.bezierCurveTo(x-s*1.4,y-s*.1,x-s*.6,y-s*1.1,x,y-s*.35);ctx.bezierCurveTo(x+s*.6,y-s*1.1,x+s*1.4,y-s*.1,x,y+s*.9);ctx.fill()}
 // เอฟเฟกต์ตอนกำจัดศัตรู (ร้านค้า หมวดกำจัด)
 let parts=[];
-function killFx(x,y,k){if(!k||k==='none')return;const coin=k==='coins',n=(coin?26:34)>>(2-QUAL);
+function killFx(x,y,k){if(!k||k==='none')return;
+  if(k==='ring'){for(let i=0;i<3;i++)parts.push({x,y,vx:0,vy:0,t:1.1+i*.18,l:1.1+i*.18,k,c:i,s:1});for(let i=0;i<(14>>(2-QUAL));i++){const a=Math.random()*TAU,v=rnd(4,8);parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,t:.7,l:.7,k:'spark',c:'#bfe9ff',s:rnd(.6,1)})}return}
+  if(k==='bolt'){for(let i=0;i<5;i++){const a=i/5*TAU+Math.random()*.6;parts.push({x,y,vx:0,vy:0,t:.55+Math.random()*.25,l:.8,k,c:a,s:rnd(70,120),z:Math.random()*1e4})}parts.push({x,y,vx:0,vy:0,t:.35,l:.35,k:'flash',c:0,s:1});return}
+  if(k==='confetti'){const n=40>>(2-QUAL);for(let i=0;i<n;i++){const a=-Math.PI/2+rnd(-1.2,1.2),v=rnd(4,9);parts.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,t:1.8,l:1.8,k,c:`hsl(${(Math.random()*360)|0},90%,62%)`,s:rnd(.7,1.3),z:Math.random()*6})}return}
+  const coin=k==='coins',n=(coin?26:34)>>(2-QUAL);
   for(let i=0;i<n;i++){const a=Math.random()*TAU,v=coin?rnd(1,4):rnd(3,9);
     parts.push({x,y:coin?y-rnd(30,140):y,vx:Math.cos(a)*v*(coin?.4:1),vy:coin?rnd(-2,1):Math.sin(a)*v,t:coin?1.6:1.2,l:coin?1.6:1.2,k,c:k==='firework'?`hsl(${(Math.random()*360)|0},95%,65%)`:FOOD_COLORS[(Math.random()*7)|0],s:rnd(.7,1.3)})}
   if(parts.length>600)parts.splice(0,parts.length-600)}
-function drawParts(){for(const p of parts){p.t-=1/60;p.x+=p.vx;p.y+=p.vy;if(p.k==='coins')p.vy+=.25;else{p.vx*=.95;p.vy*=.95;if(p.k==='firework')p.vy+=.05}
+function drawParts(){for(const p of parts){p.t-=1/60;p.x+=p.vx;p.y+=p.vy;if(p.k==='coins')p.vy+=.25;else if(p.k==='confetti'){p.vx*=.97;p.vy=p.vy*.97+.18;p.z+=.25}else{p.vx*=.95;p.vy*=.95;if(p.k==='firework')p.vy+=.05}
   ctx.globalAlpha=Math.max(0,p.t/p.l);
+  if(p.k==='ring'){const f=1-p.t/p.l,r=12+f*(110+p.c*20);ctx.strokeStyle=p.c===1?'#ffd23f':'#9be7ff';ctx.lineWidth=7*(1-f)+1;ctx.beginPath();ctx.arc(p.x,p.y,r,0,TAU);ctx.stroke();continue}
+  if(p.k==='flash'){ctx.fillStyle='rgba(255,255,220,.9)';ctx.beginPath();ctx.arc(p.x,p.y,40*(1-p.t/p.l)+20,0,TAU);ctx.fill();continue}
+  if(p.k==='bolt'){const L=p.s,a=p.c,seg=7,R=mulberry((p.z|0)+((p.t*30)|0));ctx.strokeStyle='#fff066';ctx.lineWidth=3.5;ctx.shadowColor='#9be7ff';ctx.shadowBlur=QUAL>1?12:0;ctx.beginPath();ctx.moveTo(p.x,p.y);for(let i=1;i<=seg;i++){const d=L*i/seg,j=(R()-.5)*22;ctx.lineTo(p.x+Math.cos(a)*d-Math.sin(a)*j,p.y+Math.sin(a)*d+Math.cos(a)*j)}ctx.stroke();ctx.shadowBlur=0;continue}
+  if(p.k==='confetti'){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.z);ctx.fillStyle=p.c;ctx.fillRect(-5*p.s,-2.5*p.s*Math.abs(Math.cos(p.z*1.7))-1,10*p.s,5*p.s*Math.abs(Math.cos(p.z*1.7))+2);ctx.restore();continue}
   if(p.k==='gems'){const sz=18*p.s;ctx.drawImage(GEMS[p.c],p.x-sz/2,p.y-sz/2,sz,sz)}
   else if(p.k==='coins'){ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.ellipse(p.x,p.y,7*p.s*Math.abs(Math.sin(p.t*8))+1.5,7*p.s,0,0,TAU);ctx.fill();ctx.strokeStyle='#b8901a';ctx.lineWidth=1.5;ctx.stroke()}
-  else{ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,4*p.s,0,TAU);ctx.fill()}}
+  else{ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(p.x,p.y,(p.k==='spark'?3:4)*p.s,0,TAU);ctx.fill()}}
   ctx.globalAlpha=1;parts=parts.filter(p=>p.t>0)}
 function drawStations(vx0,vy0,vx1,vy1){
   for(const st of stations){const x=st.x+st.ox*45,y=st.y+st.oy*45;if(x<vx0-150||x>vx1+150||y<vy0-150||y>vy1+150)continue;
@@ -2087,6 +2106,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:9,d:'12 พ.ย. 2026',t:'🛒 ร้านค้าดูตัวอย่างเคลื่อนไหวได้',l:['แตะของในร้าน (หัวจักร ตู้ สี ควัน เอฟเฟกต์กำจัด) จะเห็นรถไฟวิ่งจริงก่อนซื้อ','ควันใหม่: 🫧 ฟองสบู่ ❄️ เกล็ดหิมะ 🔥 เปลวไฟ','เอฟเฟกต์กำจัดใหม่: 💫 คลื่นกระแทก 🎊 กระดาษสีฉลอง ⚡ สายฟ้าฟาด','ภารกิจรายวันง่ายลงนิดหน่อย และรางวัลเพิ่ม 20%']},
   {id:8,d:'11 พ.ย. 2026',t:'🌍 โลกออนไลน์กว้างขึ้น',l:['สนามโหมดเล่นออนไลน์ใหญ่ขึ้นราว 60% มีพลอย เพชรขาว และไอเทมเพิ่มตามขนาด วิ่งเก็บได้สบายขึ้น']},
   {id:7,d:'11 พ.ย. 2026',t:'💎 พลอยวาวเต็มตู้',l:['ตู้ทุกแบบขนพลอยเม็ดใหญ่ขึ้น เปล่งประกายวิบวับ กองพอดีล้นขอบนิด ๆ','ตู้หีบสมบัติพลอยเต็มหีบ · ตู้เพชรยักษ์มีพลอยวางรอบ · ตู้กระจกมีพลอยวางบนหลังคา']},
   {id:6,d:'11 พ.ย. 2026',t:'🚂 รถไฟโฉมใหม่!',l:['หัวจักรทั้ง 6 แบบวาดใหม่ สวยขึ้น มีแสงเงาและรายละเอียดเต็มคัน','ตู้ทุกแบบขนเพชรพลอย: ตู้สินค้าเดิม → <b>ตู้หีบสมบัติ</b> · ตู้โดยสารเดิม → <b>ตู้เพชรยักษ์</b> (ใครซื้อแล้วได้หน้าตาใหม่เลย)','หวูดทั้ง 7 แบบมีรูปใหม่ ปุ่มหวูดในเกมเปลี่ยนตามหวูดที่ใส่','เอารางรถไฟออกจากสนามแล้ว (ไม่มีวิ่งเร็วบนรางอีก)','ลื่นขึ้น: วาดรถไฟเร็วขึ้นราว 40%']},
@@ -2235,7 +2255,7 @@ const isOwned=(cat,id)=>cat==='title'&&id.startsWith('a:')?!!prof.ach[id.slice(2
 const isEq=(cat,id)=>cat==='skin'?allSkins()[selSkin]?.id===id:prof.eq[cat]===id;
 function buy(cat,it,price){if(prof.coins<price||isOwned(cat,it.id))return;prof.coins-=price;prof.owned[cat].push(it.id);equip(cat,it.id);saveProf();pushProf();audioInit();sfx('coin');announce('🛒 ซื้อ '+(it.ic||'🎨')+' '+it.n+' แล้ว!')}
 // ---------- หน้ารายละเอียดสินค้า: ภาพตัวอย่าง + คำอธิบาย + ซื้อ/ใช้งาน ----------
-const PREVIEW_CATS=['loco','wagon','skin','horn'];
+const PREVIEW_CATS=['loco','wagon','skin','horn','smoke','kfx'];
 function drawPreview(cv2,o){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.height;
   {const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)}}
   const old=ctx,sl=smoke.length;ctx=c2;
@@ -2249,6 +2269,43 @@ function drawPreview(cv2,o){const c2=cv2.getContext('2d'),W=cv2.width,H=cv2.heig
       for(const[gx,gy,ci]of[[hx+rr+pk-8,cy-26,0],[hx+18,cy+rr+pk-6,3],[hx-10,cy-rr-pk+8,1]])c2.drawImage(GEMS[FOOD_COLORS[ci]],gx-9,gy-9,18,18)}
     drawWorm(w,-1e4,-1e4,1e4,1e4)}
   finally{ctx=old;smoke.length=sl}}
+
+// ===== ภาพตัวอย่างเคลื่อนไหวในร้านค้า (เจ้าของสั่ง 12 พ.ย. 00:43: ดู animation ก่อนซื้อว่าใส่แล้วออกมาแบบไหน) =====
+// รถไฟของเราวิ่งวนวงรี (ใช้ drawWorm/drawSmoke/drawParts ตัวจริงของเกม) · หมวดกำจัด = ขบวนศัตรูพุ่งมาชนตัวเราแล้วระเบิดเอฟเฟกต์นั้น
+let PV=null;
+const PV_W=460,PV_H=254,PV_CX=230,PV_CY=127,PV_RX=170,PV_RY=84,PV_V=115;
+const PV_PATH=(()=>{const N=900,P=[];let L=0,px=0,py=0;for(let i=0;i<=N;i++){const a=i/N*TAU,x=PV_CX+Math.cos(a)*PV_RX,y=PV_CY+Math.sin(a)*PV_RY;if(i)L+=Math.hypot(x-px,y-py);P.push([x,y,L]);px=x;py=y}return{P,L}})();
+function pvAt(d){const{P,L}=PV_PATH;d=((d%L)+L)%L;let lo=0,hi=P.length-1;while(hi-lo>1){const m=(lo+hi)>>1;if(P[m][2]<d)lo=m;else hi=m}const a=P[lo],b=P[hi],k=(d-a[2])/((b[2]-a[2])||1);return{x:a[0]+(b[0]-a[0])*k,y:a[1]+(b[1]-a[1])*k}}
+function startItemAnim(cv,o){const me={cv,o,t:0,f:0,smoke:[],parts:[],en:null,cool:1.4,kills:0};PV=me;
+  const w=new Worm('',o.skin,0,0,true,{loco:o.loco,wag:o.wag,smoke:o.smoke||'normal',kfx:o.kfx||'none',a:0});w.mass=o.kfx?70:95;w.safe=0;w.ghost=0;w.seed=3;me.w=w;
+  let last=performance.now();
+  const tick=now=>{if(PV!==me||!cv.isConnected){if(PV===me)PV=null;return}const dt=Math.min(.05,(now-last)/1000);last=now;me.t+=dt;
+    try{pvStep(me,dt);pvDraw(me)}catch(e){console.warn(e)}requestAnimationFrame(tick)};
+  requestAnimationFrame(tick)}
+function pvStep(me,dt){const w=me.w,n=w.nPts(),s=w.r()*.42,hd=me.t*(me.o.smoke?PV_V*.75:PV_V);w.pts=[];for(let i=0;i<n;i++)w.pts.push(pvAt(hd-i*s));
+  const h=w.pts[0],h2=w.pts[1];w.angle=w.target=Math.atan2(h.y-h2.y,h.x-h2.x);
+  if(!me.o.kfx)return;
+  if(!me.en){me.cool-=dt;if(me.cool<=0){const e=new Worm('ศัตรู',SKINS[(me.kills+3)%SKINS.length],0,0,false,{loco:'classic',a:0});e.mass=24;e.safe=0;e.ghost=0;e.seed=5;
+      const a=Math.random()*TAU,sx=PV_CX+Math.cos(a)*(PV_RX+190),sy=PV_CY+Math.sin(a)*(PV_RY+150);e.pts=[];const en=e.nPts();for(let i=0;i<en;i++)e.pts.push({x:sx,y:sy});me.en=e}}
+  else{const e=me.en,tg=w.pts[Math.floor(w.pts.length*.55)],hh=e.pts[0],a=Math.atan2(tg.y-hh.y,tg.x-hh.x),sp=160*dt;hh.x+=Math.cos(a)*sp;hh.y+=Math.sin(a)*sp;e.angle=e.target=a;
+    const es=e.r()*.42;for(let i=1;i<e.pts.length;i++){const p=e.pts[i],q=e.pts[i-1],d=Math.hypot(p.x-q.x,p.y-q.y);if(d>es){p.x=q.x+(p.x-q.x)*es/d;p.y=q.y+(p.y-q.y)*es/d}}
+    const rr=w.r()+e.r()*.6;if(w.pts.some(p=>Math.hypot(p.x-hh.x,p.y-hh.y)<rr)){const op=parts;parts=me.parts;killFx(hh.x,hh.y,me.o.kfx);me.parts=parts;parts=op;me.boom={x:hh.x,y:hh.y,t:.5};me.en=null;me.cool=1.3;me.kills++;if(PV_SND)sfx('kill')}}}
+let PV_SND=false;
+function pvDraw(me){const cv=me.cv,c2=cv.getContext('2d'),W=cv.width,H=cv.height;
+  if(!c2.__arcFix){const A=CanvasRenderingContext2D.prototype.arc;c2.arc=function(x,y,r,a,b,cc){A.call(this,x,y,r>0?r:0,a,b,cc)};c2.__arcFix=1}
+  const old=ctx,os=smoke,op=parts,of=frame;ctx=c2;smoke=me.smoke;parts=me.parts;frame=me.o.smoke?(me.f++)*3:me.f++;   // หมวดควัน: ปล่อยควันถี่ขึ้น 3 เท่าให้เห็นชัด
+  try{c2.setTransform(1,0,0,1,0,0);const g=c2.createLinearGradient(0,0,0,H);g.addColorStop(0,'#141a3a');g.addColorStop(1,'#0c1027');c2.fillStyle=g;c2.fillRect(0,0,W,H);
+    const sc=W/PV_W;c2.setTransform(sc,0,0,sc,0,(H-PV_H*sc)/2);
+    c2.fillStyle='rgba(255,255,255,.05)';for(let x=10;x<PV_W;x+=26)for(let y=10;y<PV_H;y+=26){c2.beginPath();c2.arc(x,y,1.3,0,TAU);c2.fill()}
+    c2.strokeStyle='rgba(255,255,255,.06)';c2.lineWidth=26;c2.beginPath();c2.ellipse(PV_CX,PV_CY,PV_RX,PV_RY,0,0,TAU);c2.stroke();
+    if(me.o.ring){const h=me.w.pts[0],rr=me.w.r()+12,pk=LOCO_PICK[me.o.loco]||0;c2.setLineDash([7,6]);c2.lineWidth=2;c2.strokeStyle='rgba(255,255,255,.3)';c2.beginPath();c2.arc(h.x,h.y,rr,0,TAU);c2.stroke();if(pk){c2.strokeStyle='#7cfc9a';c2.beginPath();c2.arc(h.x,h.y,rr+pk,0,TAU);c2.stroke()}c2.setLineDash([])}
+    if(me.en)drawWorm(me.en,-1e4,-1e4,1e4,1e4);
+    drawWorm(me.w,-1e4,-1e4,1e4,1e4);
+    drawSmoke();   // ควันวาดทับขบวนเหมือนในเกม
+    drawParts();
+    if(me.boom&&me.boom.t>0){me.boom.t-=1/60;if(!me.o.kfx||me.o.kfx==='none'){c2.globalAlpha=Math.max(0,me.boom.t*2);c2.fillStyle='#fff';c2.font='bold 15px system-ui';c2.textAlign='center';c2.fillText('💥 กำจัด!',me.boom.x,me.boom.y-14);c2.globalAlpha=1}}
+    if(me.o.kfx){c2.fillStyle='rgba(255,255,255,.75)';c2.font='600 12px system-ui';c2.textAlign='left';c2.fillText('ศัตรูชนตัวเรา = กำจัด → เอฟเฟกต์โผล่ตรงนั้น',10,PV_H-10)}}
+  finally{me.smoke=smoke;me.parts=parts;ctx=old;smoke=os;parts=op;frame=of}}
 // ไอคอนในร้าน = รูปหัวจักร/ตู้รถที่ใช้ในเกมจริง (วาดด้วยโค้ดวาดเกมเดียวกัน)
 // ---------- 💡 เคล็ดลับการเล่น (มีรูปวาดจากกราฟิกในเกม) · อยู่ใน ❓ วิธีเล่น แท็บ "เคล็ดลับ" (เจ้าของสั่ง 7 พ.ย.) ----------
 function tipTrain(path,o){   // สร้างขบวนวางตามเส้นทาง (หัว → ท้าย) ในฉาก 380×200
@@ -2345,13 +2402,15 @@ function perkBox(id){const P=LOCO_PERK[id]||LOCO_PERK.classic,B=LOCO_PERK.classi
     <small>ในภาพ: วงสีเขียว = ระยะเก็บพลอยของหัวนี้ · วงสีเทา = ระยะปกติ</small></div>`)}
 function openItem(cat,it,o={}){if(cat==='horn')return openHorn(it,o);openSheet((it.ic||'🎨')+' '+it.n,b=>{
   const own=isOwned(cat,it.id),eq=isEq(cat,it.id),price=o.price??it.p,pk=cat==='loco'?LOCO_PICK[it.id]||0:0;
-  b.innerHTML=`<canvas class="pv" width="760" height="${cat==='loco'?420:220}"></canvas>
-    <div class="help" style="text-align:left;font-size:14px;color:#dfe4ff;margin:10px 2px 4px">${ITEM_DESC[it.id]||(cat==='skin'?'สีพิเศษสำหรับทั้งขบวน (หัวจักรและตู้)':'')}</div>
+  b.innerHTML=`<canvas class="pv" width="760" height="420"></canvas>
+    <div class="help" style="text-align:left;font-size:14px;color:#dfe4ff;margin:10px 2px 4px">${(cat==='smoke'?SMOKE_DESC[it.id]:cat==='kfx'?KFX_DESC[it.id]:ITEM_DESC[it.id])||(cat==='skin'?'สีพิเศษสำหรับทั้งขบวน (หัวจักรและตู้)':'')}</div>
     ${cat==='loco'?perkBox(it.id):''}
     <div class="help" style="margin:6px 0 0">${own?(eq?'✅ กำลังใช้อยู่':'✅ มีแล้ว'):'ราคา '+price.toLocaleString()+' 🪙 · คุณมี '+prof.coins.toLocaleString()+' 🪙'}</div>
     <button class="btn" id="itGo"></button><button class="btn gray" id="itBack">← กลับร้านค้า</button>`;
   const sk=cat==='skin'?it.c:curSkin();
-  const pvo={loco:cat==='loco'?it.id:prof.eq.loco,wag:cat==='wagon'?it.id:prof.eq.wagon,skin:sk,ring:cat==='loco'};sprAfter(()=>drawPreview(b.querySelector('.pv'),pvo));
+  const pvo={loco:cat==='loco'?it.id:prof.eq.loco,wag:cat==='wagon'?it.id:prof.eq.wagon,skin:sk,ring:cat==='loco',smoke:cat==='smoke'?it.id:prof.eq.smoke,kfx:cat==='kfx'?it.id:null};
+  if(cat==='smoke'&&ELEC_LOCO.includes(pvo.loco)&&it.id==='normal')pvo.loco='classic';   // หัวไฟฟ้าไม่มีควันปกติ → โชว์ด้วยหัวไอน้ำ
+  startItemAnim(b.querySelector('.pv'),pvo);
   const go=b.querySelector('#itGo');
   if(!own){go.textContent='ซื้อ '+price.toLocaleString()+' 🪙';go.disabled=prof.coins<price;if(go.disabled)go.textContent='เหรียญไม่พอ (ขาด '+(price-prof.coins).toLocaleString()+' 🪙)';go.onclick=()=>{buy(cat,it,price);openItem(cat,it,o)}}
   else{go.textContent=eq?'ใช้อยู่ ✓':'ใช้งาน';go.disabled=eq;go.onclick=()=>{equip(cat,it.id);saveProf();openItem(cat,it,o)}}

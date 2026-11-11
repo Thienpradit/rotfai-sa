@@ -9,9 +9,9 @@ const crypto = require('crypto');
 const SHOP = {
   loco: { classic: 0, diesel: 25000, bullet: 60000, tram: 120000, metro: 250000, comet: 500000 },
   wagon: { gem: 0, cargo: 12000, coach: 18000, glass: 30000 },
-  smoke: { normal: 0, sparkle: 10000, rainbow: 20000 },
+  smoke: { normal: 0, sparkle: 10000, bubbles: 15000, rainbow: 20000, snow: 25000, flame: 40000 },
   skin: { candy: 10000, galaxy: 15000, lava: 15000, neon: 25000 },
-  kfx: { none: 0, firework: 15000, gems: 20000, coins: 35000 },
+  kfx: { none: 0, firework: 15000, gems: 20000, ring: 25000, confetti: 30000, coins: 35000, bolt: 45000 },
   horn: { classic: 0, deep: 20000, chime: 35000, tune: 60000, siren: 100000, thunder: 180000, dragon: 300000 },
   title: { speed: 10000, gemking: 25000, rich: 60000 },
 };
@@ -31,7 +31,7 @@ const prizeScale = n => Math.min(1, Math.max(0.1, n / PRIZE_FULL));
 function seasonPrize(pos, n) { if (!(pos >= 1) || !(n >= 1)) return 0; const b = PRIZE_BANDS.find(x => pos <= x[0])[1]; return Math.max(100, Math.round(b * prizeScale(n) / 100) * 100); }
 const prevSeason = k => { let y = +k.slice(0, 4), m = +k.slice(5, 7) - 1; if (m < 1) { m = 12; y--; } return y + '-' + String(m).padStart(2, '0'); };
 // โควตา: เหรียญเก็บได้สูงสุด 5,000 ต่อรอบ เติม 15/วินาที (900/นาที) · RP สูงสุด 400 เติม 1/วินาที
-const COIN_CAP = 5000, COIN_RATE = 15, RP_CAP = 400, RP_RATE = 1, MISSION_MAX = 300;
+const COIN_CAP = 5000, COIN_RATE = 15, RP_CAP = 400, RP_RATE = 1, MISSION_MAX = 360;   // รางวัลภารกิจรายวันสูงสุด (เพิ่ม 20% 12 พ.ย.: 300→360)
 // ลงทะเบียนครั้งแรก (ย้ายเหรียญ Guest/ข้อมูลเก่าในเครื่องเข้าบัญชี): เหรียญ+มูลค่าของรวมได้ไม่เกิน 60,000 และ RP ไม่เกิน 6,000
 const REG_COINS = 60000, REG_RP = 6000;
 
