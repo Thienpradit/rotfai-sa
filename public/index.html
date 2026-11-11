@@ -1475,8 +1475,10 @@ function enterFS(){if(!FS_OK||isFS())return;const el=document.documentElement;tr
 const IS_PHONE=()=>IS_TOUCH&&Math.min(screen.width,screen.height)<560;
 let LAND_LOCKED=false;
 function lockLand(){if(!IS_PHONE())return;try{const o=screen.orientation;if(o&&o.lock)o.lock('landscape').then(()=>{LAND_LOCKED=true;rotCheck()},()=>{})}catch(e){}}
-let ROT_SKIP=!!navigator.webdriver&&!/[?&]rot=1/.test(location.search);try{ROT_SKIP=ROT_SKIP||sessionStorage.getItem('rotSkip')==='1'}catch(e){}   // เบราว์เซอร์ทดสอบอัตโนมัติไม่ขึ้นป้าย (ทดสอบป้ายใช้ ?rot=1)
-function rotCheck(){const el=$('rotTip');if(!el)return;const show=IS_PHONE()&&!ROT_SKIP&&state!=='play'&&state!=='dead'&&innerHeight>innerWidth*1.05;el.classList.toggle('hidden',!show)}
+let ROT_SKIP=!!navigator.webdriver&&!/[?&]rot=1/.test(location.search);try{ROT_SKIP=ROT_SKIP||localStorage.getItem('rotSeen')==='1'}catch(e){}   // โชว์ครั้งแรกครั้งเดียว (เจ้าของสั่ง 12 พ.ย. 02:18)   // เบราว์เซอร์ทดสอบอัตโนมัติไม่ขึ้นป้าย (ทดสอบป้ายใช้ ?rot=1)
+let ROT_SHOWN=false;
+function rotSeen(){ROT_SKIP=true;try{localStorage.setItem('rotSeen','1')}catch(e){}}
+function rotCheck(){const el=$('rotTip');if(!el)return;const show=IS_PHONE()&&!ROT_SKIP&&state!=='play'&&state!=='dead'&&innerHeight>innerWidth*1.05;el.classList.toggle('hidden',!show);if(show)ROT_SHOWN=true;else if(ROT_SHOWN)rotSeen()}   // เคยขึ้นแล้วหายไป (หมุนจอ/กดปิด/เริ่มเกม) = ไม่ขึ้นอีกเลย
 function exitFS(){try{const r=(document.exitFullscreen||document.webkitExitFullscreen).call(document);if(r&&r.catch)r.catch(()=>{})}catch(e){}}
 const IS_IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IN_APP=/Line\/|FBAN|FBAV|Instagram|TikTok|Messenger/i.test(navigator.userAgent);
@@ -2184,7 +2186,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
-  {id:16,d:'12 พ.ย. 2026',t:'📱 มือถือเล่นแนวนอน',l:['Android: กดเล่นแล้วจอหมุนเป็นแนวนอนให้เอง (ติดตั้งเกมลงหน้าจอหลักก็เปิดแนวนอนทันที)','iPhone: ถือแนวตั้งจะมีป้ายชวนหมุนเป็นแนวนอน เห็นสนามกว้างกว่า · อยากเล่นแนวตั้งกด "เล่นแนวตั้งต่อ" ได้']},
+  {id:16,d:'12 พ.ย. 2026',t:'📱 มือถือเล่นแนวนอน',l:['Android: กดเล่นแล้วจอหมุนเป็นแนวนอนให้เอง (ติดตั้งเกมลงหน้าจอหลักก็เปิดแนวนอนทันที)','iPhone: ครั้งแรกที่เข้าเกมจะมีป้ายชวนหมุนเป็นแนวนอน เห็นสนามกว้างกว่า · อยากเล่นแนวตั้งกด "เล่นแนวตั้งต่อ" ได้']},
   {id:15,d:'12 พ.ย. 2026',t:'💨 ควันรถไฟเยอะขึ้น',l:['ระหว่างเล่นรถไฟพ่นควันถี่ขึ้น 3 เท่า ควันฟุ้งลอยออกข้าง เร่งแล้วควันพุ่งแรงกว่าเดิม','ควันพิเศษจากร้าน (ประกายดาว ฟองสบู่ หิมะ เปลวไฟ ฯลฯ) ก็เยอะขึ้นด้วย']},
   {id:14,d:'12 พ.ย. 2026',t:'🪨 ด่านผจญภัยโฉมใหม่',l:['หินและสิ่งกีดขวางวาดใหม่ทั้ง 3 โลก: หินพลอย โรงนา โกดัง ถังน้ำมัน หินลาวา ผลึกออบซิเดียน โรงตีเหล็ก','โคลน คราบน้ำมัน และบ่อน้ำมันดินแบบใหม่ · ไม้กั้นมีป้ายกากบาทแดงขาว']},
   {id:13,d:'12 พ.ย. 2026',t:'🎯 นักล่ากลางใน 2v2',l:['ห้อง 2v2 มีบอทนักล่า 🎯 2 ขบวน ไม่อยู่ทีมไหน ไล่ฆ่าทั้งทีมแดงและทีมน้ำเงิน','กำจัดนักล่าได้แต้มเข้าทีมคุณ · ถูกนักล่ากำจัดไม่มีทีมไหนได้แต้ม','ดูง่ายขึ้น: บอทประจำทีมเป็นสีทีม (แดง/น้ำเงิน) · นักล่าเป็นสีส้มลายดำ']},
@@ -2858,7 +2860,7 @@ for(let i=0;i<PU_N;i++)addPu();
 for(let i=0;i<WHITE_N;i++)addWhite();
 for(let i=0;i<D().ai;i++)spawnAI();
 setSnd(SND.on);renderSkins();setDiff(diff);try{sprPreload(curSkin())}catch(e){}
-$('rtSkip').onclick=()=>{ROT_SKIP=true;try{sessionStorage.setItem('rotSkip','1')}catch(e){}rotCheck()};
+$('rtSkip').onclick=()=>{rotSeen();rotCheck()};
 if(IS_IOS)$('rtLock').textContent='iPhone: ถ้าจอไม่หมุนตาม ปัดลงจากมุมขวาบน แล้วปิด 🔒 ล็อกการหมุน';
 addEventListener('resize',()=>setTimeout(rotCheck,80));addEventListener('orientationchange',()=>setTimeout(rotCheck,300));
 if(IS_STANDALONE())lockLand();rotCheck();setInterval(rotCheck,1500);   // state เปลี่ยน (เริ่มเกม/กลับเมนู) ก็เช็คใหม่
