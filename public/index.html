@@ -1126,6 +1126,9 @@ function bodyNear(x,y,rad,self){
 //  AI
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
+// ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (เจ้าของสั่ง 11 พ.ย. 2026) · ต้องตรงกับ botsim.js
+// ระดับละ: รัศมีมองหา +200 · โอกาสเลือกไล่ +10% ของที่เหลือ · เลือกคนยาวก่อนคนใกล้ (ระยะหาร 1+0.4×ระดับ) · ไล่ไกลขึ้นก่อนเลิก +200 · สูงสุด 5 ระดับ
+const BIG_STEP=1000,BIG_MAX=5,bigTier=o=>isHum(o)?Math.min(BIG_MAX,Math.floor((o.mass||0)/BIG_STEP)):0;
 // คนชนคน (8 พ.ย. 2026 เจ้าของสั่ง): ตายเฉพาะ "ปลายหัว" (จมูกรถจักร) แตะขบวนอื่น · เฉียดข้างหัวกัน = คนที่เอาปลายหัวชนตายคนเดียว · หัวชนหัวตรง ๆ = ตายทั้งคู่
 // ผู้เล่นที่เพิ่งโผล่บนจอเรา (ยังโหลดไม่ครบ PVP_SEEN ms) ยังชนกันไม่ได้ ทั้งเราชนเขาและเขาชนเรา
 const TIP_F=.5,TIP_R=.45,PVP_SEEN=600,CRASH_TOL=160;
@@ -1142,7 +1145,7 @@ function aiThink(w,f){
     let bh=null,bd0=1500+300*bossRage(w);if(w.isBoss)for(const o of worms){if(!o.alive||!isHum(o)||o.safe>0)continue;const d=Math.hypot(o.pts[0].x-h.x,o.pts[0].y-h.y);if(d<bd0){bd0=d;bh=o}}
     if(bh)ai.hunt=bh;
     else if(w.mass>22){let bd=1e9;for(const o of worms){if(o===w||!o.alive||ally(o,w))continue;const oh=o.pts[0],d=Math.hypot(oh.x-h.x,oh.y-h.y);
-      const hu=isHum(o);if(!(hu&&o.safe>0)&&d<(hu?D().huntR:380)&&d<bd&&Math.random()<(hu?D().huntP:D().others)){bd=d;ai.hunt=o}}}
+      const hu=isHum(o),bt=hu?bigTier(o):0,de=d/(1+.4*bt);if(!(hu&&o.safe>0)&&d<(hu?D().huntR+200*bt:380)&&de<bd&&Math.random()<(hu?D().huntP+(1-D().huntP)*Math.min(1,.1*bt):D().others)){bd=de;ai.hunt=o}}}
     if(!ai.hunt){
       let bestF=null,bs=0;const cx=Math.floor(h.x/CS),cy=Math.floor(h.y/CS);
       for(let gx=cx-4;gx<=cx+4;gx++)for(let gy=cy-4;gy<=cy+4;gy++){const a=fgrid.get(key(gx,gy));if(!a)continue;for(const fd of a){if(fd.dead)continue;const s=fd.v/(Math.hypot(fd.x-h.x,fd.y-h.y)+40);if(s>bs){bs=s;bestF=fd}}}
@@ -1154,7 +1157,7 @@ function aiThink(w,f){
   let tx=ai.tx,ty=ai.ty,boost=false;
   if(ai.hunt&&ai.hunt.alive){
     const o=ai.hunt,oh=o.pts[0],d=Math.hypot(oh.x-h.x,oh.y-h.y);
-    if(d>(w.isBoss?1600+300*bossRage(w):850))ai.hunt=null;
+    if(d>(w.isBoss?1600+300*bossRage(w):850+200*bigTier(o)))ai.hunt=null;
     else{const lead=60+o.r()*3+d*.45;tx=oh.x+Math.cos(o.angle)*lead;ty=oh.y+Math.sin(o.angle)*lead;boost=d<450+150*bossRage(w)&&w.mass>18}
   }else if(ai.boostT>0){ai.boostT-=f;boost=true}
   if(w.flee&&w.flee.t>0){w.flee.t-=f/60;tx=h.x+Math.cos(w.flee.a)*400;ty=h.y+Math.sin(w.flee.a)*400;boost=false}   // โดนหวูดไล่ → หนีด้านข้าง
@@ -1364,6 +1367,8 @@ function step(f,dt){
     for(const w of worms){if(!w.alive||!w.isRemote||w.isBot||ally(w,player)||w.ghost>0||w.safe>0||(w.hitT&&performance.now()-w.hitT<1500))continue;
       if(pvpFresh(w))continue;const h=tipOf(w),rr=h.r+pr*.85;   // ปลายหัวของเขาแตะตัวเรา (รวมข้างหัวเรา)
       for(let i=0;i<P.length;i+=2){const q=P[i];if((q.x-h.x)**2+(q.y-h.y)**2<rr*rr){if(!(i>0&&inMouth(q))){w.hitT=performance.now();netSend({t:'hitme',id:w.netId})}break}}}}
+  // ยาวครบทุก 1,000 → แจ้งว่าบอทจะไล่มากขึ้น (ขึ้นครั้งเดียวต่อระดับต่อชีวิต)
+  if(player&&player.alive){const bt=bigTier(player);if(bt>(player.bigTop||0)){player.bigTop=bt;const h=player.pts[0];texts.push({x:h.x,y:h.y-40,txt:'🎯 ยาว '+(bt*BIG_STEP).toLocaleString()+'! บอทไล่ล่าคุณมากขึ้น (ระดับ '+bt+')',t:2.4,c:'#ff7b7b'})}}
   // eating
   for(const w of worms){
     if(!w.alive||w.isRemote||(NET&&!w.isP&&!w.isBot))continue;const h=w.pts[0],r=w.r(),mr=w.pu.magnet>0?210:0,lb=LOCO_PICK[w.loco]||0,reach=r+mr+14+lb,mult=w.pu.x3>0?3:1;
@@ -1702,6 +1707,7 @@ function drawHUD2(){
   if(player.onRail&&player.alive)chip('🛤️ วิ่งบนราง เร็ว x1.6','#ffb35e',1);
   if(player.slow>0)chip('❄️ โดนแช่แข็ง '+player.slow.toFixed(1)+' วิ','#9be7ff',player.slow/FREEZE_T);
   if(player.hslow>0)chip('🐌 โดนหวูด ช้าลง '+player.hslow.toFixed(1)+' วิ','#ffb36b',player.hslow/(player.hslowT||1));
+  {const bt=bigTier(player);if(bt&&player.alive)chip('🎯 บอทหมายหัว ระดับ '+bt+(bt>=BIG_MAX?' (สูงสุด)':' · ยาว '+((bt+1)*BIG_STEP).toLocaleString()+' = ระดับ '+(bt+1)),'#ff5e5e',bt/BIG_MAX)}
   for(const k in player.pu)if(player.pu[k]>0){const t=PU_TYPES[k];chip(t.icon+' '+t.label+' '+Math.ceil(player.pu[k])+'s',t.col,player.pu[k]/10)}
   HUD_CHIP_B=py;   // ล่างสุดของชิปสถานะ (ให้ข้อความบนจอหลบลงมา)
   // minimap
@@ -1860,6 +1866,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['📯 หวูดไล่ศัตรู','กด 📯 (คอม: คลิกปุ่มกลางเมาส์ หรือ H) · <b>หวูดไอน้ำที่ติดมากับเกมมีแค่เสียง</b> ต้องซื้อหวูดในร้านค้าถึงจะไล่ได้: บอทในวงตกใจหนีออกด้านข้างชั่วครู่ ใช้หนีหรือเปิดทาง · <b>ผู้เล่นจริงในวงโดนช้าลง 🐌</b> (หวูดแพง = ช้ามากและนานกว่า) · ใช้ได้ทุก 8 วิ · หวูดแพงกว่า ไล่ได้วงกว้างกว่าและหนีนานกว่า (บอสหนีแค่ครึ่งเดียว)'],
   ['❄️ ไอเทม','🧲 แม่เหล็ก · ⭐ โต ×3 · ⚡ เร็วขึ้น · ❄️ แช่แข็งศัตรูรอบตัว'],
   ['👑 บอสยักษ์','โผล่ทุก ๆ 2 นาที มีหัวใจ ❤️❤️❤️ (เห็นเหนือชื่อบอส)'],
+  ['🎯 ยาวแล้วโดนหมายหัว','ขบวนยาวครบทุก <b>1,000</b> บอทจะสนใจไล่ล่าคุณมากขึ้น 1 ระดับ (สูงสุด 5 ระดับที่ 5,000): มองเห็นคุณจากไกลขึ้น เลือกไล่คุณก่อนคนอื่น และไล่ตามนานขึ้น · ดูระดับได้ที่ชิป 🎯 มุมซ้ายบน'],
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · ชนะ 2v2 +15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],

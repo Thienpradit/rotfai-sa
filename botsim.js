@@ -113,6 +113,8 @@ function bodyNear(S, room, x, y, rad, self) {
 }
 
 // ---------- AI (เหมือน aiThink ในเกม ระดับ Normal) ----------
+// ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (11 พ.ย. 2026 · ต้องตรงกับ index.html bigTier)
+const BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human ? Math.min(BIG_MAX, Math.floor((o.mass || 0) / BIG_STEP)) : 0;
 function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
   if (ai.t <= 0) {
@@ -120,8 +122,8 @@ function aiThink(S, room, w, f, trains) {
     let bh = null, bd0 = 1100 + 250 * bossRage(w);
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
-    else if (w.mass > 22) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human;
-      if (!(hu && (o.safe || o.ghost)) && d < (hu ? D.huntR : 380) && d < bd && Math.random() < (hu ? D.huntP : D.others)) { bd = d; ai.hunt = o; } } }
+    else if (w.mass > 22) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt);
+      if (!(hu && (o.safe || o.ghost)) && d < (hu ? D.huntR + 200 * bt : 380) && de < bd && Math.random() < (hu ? D.huntP + (1 - D.huntP) * Math.min(1, .1 * bt) : D.others)) { bd = de; ai.hunt = o; } } }
     if (!ai.hunt) {
       let best = null, bs = 0; const cx = Math.floor(h.x / CS), cy = Math.floor(h.y / CS);
       for (let gx = cx - 4; gx <= cx + 4; gx++) for (let gy = cy - 4; gy <= cy + 4; gy++) { const a = S.fgrid.get(key(gx, gy)); if (!a) continue;
@@ -132,7 +134,7 @@ function aiThink(S, room, w, f, trains) {
   }
   let tx = ai.tx, ty = ai.ty, boost = false;
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
-    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : 850)) ai.hunt = null;
+    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : 850 + 200 * bigTier(o))) ai.hunt = null;
     else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 + 150 * bossRage(w) && w.mass > 18; } }
   else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
   if (w.flee && w.flee.t > 0) { w.flee.t -= f / 60; tx = h.x + Math.cos(w.flee.a) * 400; ty = h.y + Math.sin(w.flee.a) * 400; boost = false; }   // โดนหวูดไล่

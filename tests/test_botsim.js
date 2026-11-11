@@ -113,4 +113,17 @@ ok(ms < 8, 'เวลาคำนวณต่อ tick ' + ms.toFixed(2) + ' ms (
   place(bs[0], 230); place(bs[1], 460); botsim.onHorn(r, { id: 1 }, 0, 0, 'dragon');
   ok(bs[0].flee && bs[1].flee && bs[1].flee.t === 3.2, 'แตรมังกร (500): ไล่ได้ไกลถึง 460 หนี 3.2 วิ');
   const ad = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))), a0 = bs[1].angle, fa = bs[1].flee.a; step(r, 10); ok(!bs[1].alive || ad(bs[1].angle, fa) < ad(a0, fa) - .3 || ad(bs[1].angle, fa) < .2, 'บอทเลี้ยวไปทางหนีจริง'); }
+
+// ผู้เล่นยาวเกินทุก 1,000 → บอทไล่มากขึ้น (11 พ.ย. 2026): นับบอทที่เลือกไล่แต่ละคน (คนสั้นซ้าย คนทดสอบขวา)
+{ const hunters = (mB) => { let nA = 0, nB = 0; for (let rep = 0; rep < 6; rep++) { const r = mkRoom(true);
+    r.players.set(1, { id: 1, kills: 0, st: { x: -500, y: 0, a: 0, m: 150, f: 4 } }); r.players.set(2, { id: 2, kills: 0, st: { x: 500, y: 0, a: Math.PI, m: mB, f: 4 } });
+    step(r, 3); for (const b of live(r)) { b.mass = Math.max(b.mass, 60); b.safe = b.ghost = 0; }
+    for (let k = 0; k < 40; k++) { for (const b of live(r)) b.ai.t = 0; step(r, 1);
+      for (const b of live(r)) { if (b.ai.hunt && b.ai.hunt.pid === 1) nA++; if (b.ai.hunt && b.ai.hunt.pid === 2) nB++; }
+      for (const b of live(r)) { const h = b.pts[0]; if (Math.hypot(h.x, h.y) > 2600) continue; } } }
+    return [nA, nB]; };
+  const [a0, b0] = hunters(150), [a3, b3] = hunters(3200);
+  console.log('   ยาว 150 vs 150: ไล่คนซ้าย', a0, 'คนขวา', b0, '· ยาว 150 vs 3200: ไล่คนซ้าย', a3, 'คนขวา', b3);
+  ok(b3 > b0 * 1.8, 'ยาว 3,200 (ระดับ 3) โดนบอทไล่มากกว่าตอนยาว 150 เกือบ 2 เท่าขึ้นไป');
+}
 console.log(fail ? `\n${fail} ข้อไม่ผ่าน` : '\nผ่านทั้งหมด'); process.exit(fail ? 1 : 0);
