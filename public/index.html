@@ -1246,14 +1246,15 @@ function spawnBoss(){
 // =====================================================================
 const STAGE_T=600,MUD_SLOW=.55,GATE_LEN=230,STAGE_N=30;
 const CHAPTERS=[{n:'🌾 ทุ่งพลอย',rock:'#7d8296',roof:'#b5523b',mud:'#6b4a2b'},{n:'🏭 ย่านโกดัง',rock:'#6f7480',roof:'#4e6e9e',mud:'#5c4632'},{n:'🌋 หุบเขาไฟ',rock:'#6e3b35',roof:'#7b2d26',mud:'#4a2c1c'}];
-const STAGES=Array.from({length:STAGE_N},(_,i)=>{const t=i/(STAGE_N-1),c=Math.floor(i/10),k=i%5,R=Math.round;
+const STAGES=Array.from({length:STAGE_N},(_,i)=>{const t=i/(STAGE_N-1),e=Math.pow(t,1.7),c=Math.floor(i/10),k=i%5,R=Math.round;
+  // 11 พ.ย. 18:12 เจ้าของบอกด่านแรก ๆ ยากไป บอทเยอะไป → ความยากไต่แบบโค้ง e=t^1.7 (ด่านต้นง่ายมาก ด่านท้ายยากเท่าเดิม) · นักล่าเริ่มด่าน 1-4
   // 11 พ.ย. 17:47 เจ้าของบอกง่ายไป/ไม่เจอศัตรู → สนามเล็กลง (1,500→2,400) บอทเยอะขึ้น ไล่เราแรงขึ้น + 🎯 นักล่ามาเป็นระลอก
   const g=k===0||k===2?['len',R((300+65*i)/50)*50]:k===1?['kills',2+R(i*.4)]:k===3?['survive',R((180+6*i)/30)*30]:['boss',1];
-  return{i,code:(c+1)+'-'+(i%10+1),ch:c,g,ai:R(12+26*t),R:R((1500+900*t)/50)*50,
-    d:{huntP:.45+.5*t,huntR:R(700+700*t),others:.1+.25*t,look:.7+.55*t,think:[R(16-10*t),R(32-18*t)],big:.12+.33*t,regen:.1+.3*t},
-    wave:R(45-20*t),waveN:2+Math.floor(4*t),waveM:R(60+340*t),
-    boss:g[0]==='boss'?R(40-20*t):0,bossM:R(600+25*i),
-    ob:{rock:R(4+12*t),house:i<2?0:R(2+10*t),gate:i<4?0:R(2+8*t),mud:R(1+5*t)},
+  return{i,code:(c+1)+'-'+(i%10+1),ch:c,g,ai:R(5+33*e),R:R((1500+900*t)/50)*50,
+    d:{huntP:.15+.8*e,huntR:R(450+950*e),others:.05+.3*e,look:.5+.75*e,think:[R(22-16*e),R(42-28*e)],big:.06+.39*e,regen:.4*e},
+    wave:R(60-35*e),waveN:i<3?0:1+Math.floor(4.99*e),waveM:R(60+340*e),
+    boss:g[0]==='boss'?R(45-25*t):0,bossM:R(500+30*i),
+    ob:{rock:R(3+13*e),house:i<2?0:R(1+11*e),gate:i<4?0:R(2+8*e),mud:R(1+5*e)},
     st:g[0]==='survive'?[R(600+40*i),R(300+20*i)]:[R(180+4*i),R(360+5*i)],coin:100+20*i}});
 const goalText=(g,cur)=>g[0]==='len'?'ยาว '+(cur!==undefined?Math.min(cur,g[1])+'/':'')+g[1]:g[0]==='kills'?'กำจัด '+(cur!==undefined?Math.min(cur,g[1])+'/':'')+g[1]+' ขบวน':g[0]==='survive'?'รอด '+(cur!==undefined?fmtT(Math.min(cur,g[1]))+'/':'')+fmtT(g[1]):'ล้มบอส 👑'+(cur!==undefined?' '+cur+'/1':'');
 const fmtT=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -1311,7 +1312,7 @@ function stageGoal(){const g=STAGE.g,cur=g[0]==='len'?Math.floor(player.mass):g[
 function startStage(i){if(!stageUnlocked(i))return;STAGE_I=i;STAGE=STAGES[i];
   STAGE_D={...DIFF.normal,...STAGE.d,ai:STAGE.ai,boss:STAGE.boss||1e9,bossM:STAGE.bossM};
   STAGE_RES=null;STAGE_BOSS=false;stageClock=0;STAGE_RUN=true;$('sheet').classList.add('hidden');
-  startGame('stage');bossTimer=STAGE.boss||1e9;STAGE_WAVE=15;
+  startGame('stage');bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;
   {const[x,y]=farSpot(800,600);for(const q of player.pts){q.x+=x-player.pts[0].x;q.y+=y-player.pts[0].y}}   // จุดเกิดห่างสิ่งกีดขวาง/บอท
   player.ghost=SPAWN_GHOST;announce('🗺️ ด่าน '+STAGE.code+' · '+goalText(STAGE.g)+' ภายใน 10 นาที · ⚠️ ไม่นับสถิติ')}
 function spawnHunters(n,m){const h=player.pts[0];let k=0;
@@ -1321,7 +1322,7 @@ function spawnHunters(n,m){const h=player.pts[0];let k=0;
     w.mass=w.maxMass=m*rnd(.8,1.2);w.hunter=true;w.ghost=w.safe=1.2;w.energy=6;w.ai.t=0;worms.push(w);k++}
   if(k){announce('⚠️ นักล่ามาแล้ว '+k+' ขบวน! ระวังตัว');sfx('siren')}}
 function stageTick(dt){stageClock+=dt;if(!player||!player.alive)return;
-  STAGE_WAVE-=dt;if(STAGE_WAVE<=0){STAGE_WAVE=STAGE.wave;spawnHunters(STAGE.waveN,STAGE.waveM)}
+  if(STAGE.waveN){STAGE_WAVE-=dt;if(STAGE_WAVE<=0){STAGE_WAVE=STAGE.wave;spawnHunters(STAGE.waveN,STAGE.waveM)}}
   if(stageGoal().done){STAGE_RES={ok:true,t:stageClock};finish(true);player.alive=false}
   else if(stageClock>=STAGE_T){STAGE_RES={ok:false,why:'time'};finish(true);player.alive=false}}
 function stageStars(S,res,len){if(!res||!res.ok)return 0;if(S.g[0]==='survive')return len>=S.st[0]?3:len>=S.st[1]?2:1;return res.t<=S.st[0]?3:res.t<=S.st[1]?2:1}
