@@ -40,6 +40,6 @@ async def main():
         await pg.evaluate("(()=>{const o=OBST.find(o=>o.k==='gate');const h=player.pts[0];const dx=o.x-120*Math.cos(o.a-Math.PI/2)-h.x,dy=o.y-120*Math.sin(o.a-Math.PI/2)-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}player.angle=o.a-Math.PI/2;cam.x=o.x;cam.y=o.y})()")
         await pg.wait_for_timeout(600);await pg.screenshot(path=SP+'/adv_stage15.png')
         print('cards',len(cards),sum('lock' in c for c in cards),'| locked click mode',locked);print('stage1',r1);print('rock death',dead,fail);print('clear',win);print('next',nxt);print('stage15',g)
-        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'หมด 3 ชีวิต' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300+80 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
+        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'หมด 3 ชีวิต' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+3*40+20 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
         print('errors',errs[:3]);print('PASS' if ok and not errs else 'FAIL');await b.close()
 asyncio.run(main())
