@@ -14,6 +14,7 @@ async def main():
         await pg.evaluate("document.querySelector('.stc[data-i=\"1\"]').click()");await pg.wait_for_timeout(200)
         locked=await pg.evaluate("mode")
         await pg.evaluate("document.querySelector('.stc[data-i=\"0\"]').click()");await pg.wait_for_timeout(1500)
+        st0=await pg.evaluate("JSON.stringify(prof.st)")
         r1=await pg.evaluate("({mode,stage:STAGE&&STAGE.code,ai:worms.filter(w=>!w.isP).length,obst:OBST.length,muds:MUDS.length,alive:player.alive,rp:prof.rp,coins:prof.coins,inRock:OBST.some(o=>obstStatic(player.pts[0].x,player.pts[0].y,0))})")
         # ชนหิน = ตาย
         await pg.evaluate("(()=>{player.ghost=0;player.safe=0;const o=OBST.find(o=>o.k==='rock');const h=player.pts[0];const dx=o.x-h.x,dy=o.y-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}})()");await pg.wait_for_timeout(400)
@@ -24,6 +25,9 @@ async def main():
         await pg.evaluate("player.mass=STAGE.g[1]+5");await pg.wait_for_timeout(500)
         win=await pg.evaluate("[state,document.getElementById('overTitle').textContent,document.getElementById('coinEarn').innerText,document.getElementById('again').textContent,prof.stage.slice(0,3),prof.coins,prof.rp,prof.st.maxLen||0]")
         await pg.screenshot(path=SP+'/adv_clear.png')
+        await pg.evaluate("track('kills');trackMax('maxLen',9999)")
+        st1=await pg.evaluate("JSON.stringify(Object.fromEntries(Object.entries(prof.st).filter(([k])=>k!=='coinsEarned')))");st0=__import__('json').loads(st0);st0.pop('coinsEarned',None)
+        stats_same=__import__('json').loads(st1)==st0;note=await pg.evaluate("document.getElementById('rankOver').textContent");print('stats unchanged',stats_same,'| note',note)
         # ด่านถัดไป + ไม้กั้น/โคลน (ด่าน 15)
         await pg.click('#again');await pg.wait_for_timeout(800);nxt=await pg.evaluate("STAGE.code")
         await pg.evaluate("prof.stage=Array(14).fill(1);startStage(14)");await pg.wait_for_timeout(1200)
@@ -32,6 +36,6 @@ async def main():
         await pg.evaluate("(()=>{const o=OBST.find(o=>o.k==='gate');const h=player.pts[0];const dx=o.x-120*Math.cos(o.a-Math.PI/2)-h.x,dy=o.y-120*Math.sin(o.a-Math.PI/2)-h.y;for(const q of player.pts){q.x+=dx;q.y+=dy}player.angle=o.a-Math.PI/2;cam.x=o.x;cam.y=o.y})()")
         await pg.wait_for_timeout(600);await pg.screenshot(path=SP+'/adv_stage15.png')
         print('cards',len(cards),sum('lock' in c for c in cards),'| locked click mode',locked);print('stage1',r1);print('rock death',dead,fail);print('clear',win);print('next',nxt);print('stage15',g)
-        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'ไม่ผ่าน' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds']
+        ok=len(cards)==30 and r1['stage']=='1-1' and r1['obst']>0 and not r1['inRock'] and not dead and 'ไม่ผ่าน' in fail[1] and fail[3]==r1['coins'] and win[4][0]==3 and win[5]==r1['coins']+300 and win[6]==r1['rp'] and win[3]=='ด่านต่อไป ▶' and nxt=='1-2' and g['gate'][0].startswith('open:false') and g['gate'][3].startswith('closed:true') and g['mud'] and 'gate' in g['kinds'] and stats_same and 'ไม่นับสถิติ' in note
         print('errors',errs[:3]);print('PASS' if ok and not errs else 'FAIL');await b.close()
 asyncio.run(main())
