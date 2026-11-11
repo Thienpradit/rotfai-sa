@@ -8,7 +8,7 @@ const crypto = require('crypto');
 
 const SHOP = {
   loco: { classic: 0, diesel: 25000, bullet: 60000, tram: 120000, metro: 250000, comet: 500000 },
-  wagon: { gem: 0, cargo: 12000, coach: 18000, glass: 30000 },
+  wagon: { gem: 0, cargo: 12000, coach: 18000, glass: 30000, mine: 22000, sweets: 25000, crystal: 35000, pearl: 40000, magma: 45000, vault: 50000, royal: 60000, cosmos: 80000 },
   smoke: { normal: 0, sparkle: 10000, bubbles: 15000, rainbow: 20000, snow: 25000, flame: 40000 },
   skin: { candy: 10000, galaxy: 15000, lava: 15000, neon: 25000 },
   kfx: { none: 0, firework: 15000, gems: 20000, ring: 25000, confetti: 30000, coins: 35000, bolt: 45000 },

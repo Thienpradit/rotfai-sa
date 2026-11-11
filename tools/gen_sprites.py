@@ -26,6 +26,8 @@ for lid, v in zip(['classic', 'diesel', 'bullet', 'tram', 'metro', 'comet'], svg
 # ---------- ตู้: defs ทั้งชุด + กลุ่ม wgGem/wgChest/wgGiant/wgGlass ----------
 wag = (D / 'Wagons.dc.html').read_text()
 wdefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', wag, re.S).group(1)
+# ตู้พิเศษ 8 แบบ (Wagons2.dc.html) — ต่อท้ายเฉพาะส่วน W2 (defs ร่วมมีใน Wagons.dc.html แล้ว)
+wdefs += re.search(r'<!--W2-BEGIN-->(.*?)<!--W2-END-->', (D / 'Wagons2.dc.html').read_text(), re.S).group(1)
 # ---------- หวูด ----------
 hrn = (D / 'Horns.dc.html').read_text()
 hdefs = re.search(r'<svg width="0" height="0"[^>]*>\s*<defs>(.*?)</defs>', hrn, re.S).group(1)
