@@ -113,6 +113,14 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
 #resetBar{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;width:min(92vw,440px);box-sizing:border-box;padding:8px 12px;border-radius:12px;background:linear-gradient(#ff8c42,#e0601a);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:left}
 #resetBar.hidden{display:none}#resetBar span{flex:1;min-width:0}#resetBar small{font-weight:400;font-size:11.5px;opacity:.92}#resetBar b{font-size:18px;color:#fff3a8}#resetBar button{flex:none;border:0;border-radius:9px;padding:6px 10px;background:#fff;color:#c24a00;font:700 12.5px Mitr,sans-serif;cursor:pointer}
+#killBadge{position:fixed;left:50%;top:calc(50px + env(safe-area-inset-top));z-index:9;pointer-events:none;display:flex;align-items:center;gap:8px;padding:4px 14px 4px 4px;border-radius:40px;background:rgba(14,18,44,.12);border:1.5px solid color-mix(in srgb,var(--kc,#ffd23f) 45%,transparent);transform:translateX(-50%);white-space:nowrap}   /* มองทะลุ ไม่บังเกม (เจ้าของสั่ง 12:09) */
+#killBadge.hidden{display:none}#killBadge img{width:56px;height:56px;display:block;opacity:.8}#killBadge>div{opacity:.85}
+#killBadge .kt{font:700 21px Mitr,sans-serif;color:var(--kc,#ffd23f);text-shadow:0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.8);line-height:1.1}#killBadge .ks{font:500 12px Mitr,sans-serif;color:#eef0ff;text-shadow:0 0 3px rgba(0,0,0,.95);line-height:1.2}
+#killBadge.pop{animation:kbPop 2.1s ease forwards}
+@keyframes kbPop{0%{opacity:0;transform:translateX(-50%) scale(.3)}10%{opacity:.92;transform:translateX(-50%) scale(1.15)}18%{transform:translateX(-50%) scale(.95)}24%{transform:translateX(-50%) scale(1)}82%{opacity:.92;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(.9) translateY(-8px)}}
+body.stageOn #killBadge{top:calc(108px + env(safe-area-inset-top))}
+@media (orientation:portrait) and (max-width:600px){#killBadge,body.stageOn #killBadge{top:calc(252px + env(safe-area-inset-top))}#killBadge img{width:46px;height:46px}#killBadge .kt{font-size:18px}}
+@media (max-height:500px){#killBadge img{width:44px;height:44px}#killBadge .kt{font-size:17px}#killBadge{top:calc(44px + env(safe-area-inset-top))}body.stageOn #killBadge{top:calc(96px + env(safe-area-inset-top))}}
 #bossDown{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;width:max-content;max-width:72vw;line-height:1.25;text-align:center;background:rgba(15,19,48,.88);border:1.5px solid rgba(255,210,63,.55);border-radius:12px;padding:4px 14px;
   font:700 clamp(14px,4vw,22px) Mitr,sans-serif;color:#ffd23f;text-shadow:0 0 8px rgba(255,170,0,.5),0 2px 0 rgba(60,30,0,.85);opacity:0}
 #bossDown b{color:#fff}#bossDown.rage{color:#ff6b6b;border-color:rgba(255,80,80,.6);text-shadow:0 0 8px rgba(255,0,0,.5),0 2px 0 rgba(60,0,0,.85)}#bossDown small{display:block;font-size:.72em;color:#ffe9a8}
@@ -356,7 +364,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <div id="pauseOv" class="hidden"><div class="pbox"><h2 id="pTitle">⏸ หยุดชั่วคราว</h2><div class="help" id="pInfo"></div>
   <button class="btn play" id="pResume">▶ เล่นต่อ</button><button class="btn alt" id="pRetry">🔄 เริ่มด่านนี้ใหม่</button><button class="btn alt" id="pQuit">🚪 ออกจากด่าน</button></div></div>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
-<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
+<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
 <script>
@@ -1088,6 +1096,34 @@ function bossRageMsg(left,max){const e=$('bossDown');e.classList.add('rage');
   e.innerHTML=`💢 บอสโกรธแล้ว! เร็วขึ้น<small>เหลือ ${'❤️'.repeat(left)}${'🤍'.repeat(Math.max(0,(max||BOSS_HEARTS)-left))}</small>`;
   e.classList.remove('go');void e.offsetWidth;e.classList.add('go')}
 // ล้มบอส: แบนเนอร์ทองบนสุดของจอ บอกทุกคนว่าใครล้ม (ไม่บังรถไฟ · เจ้าของสั่ง 7 พ.ย.) · name=null = เราเอง
+// ===== ป้ายฉายาตอนกำจัด (เจ้าของสั่ง 12 พ.ย. 12:07): รูปเหรียญวาดเอง + ฉายา · กำจัดติดกันภายใน 8 วิ = ฉายาขั้นสูงขึ้น =====
+const KB_TIERS=[
+  {t:'ปาดหน้า!',c:'#ffd23f',ic:'⚔️',a:'#ffe98a',b:'#c98a00'},
+  {t:'ดับเบิ้ลปาด!',c:'#ff9a2e',ic:'💥',a:'#ffc27a',b:'#c4530a'},
+  {t:'สามศพซ้อน!',c:'#ff4d5e',ic:'💀',a:'#ff8f9a',b:'#9e1022'},
+  {t:'โหดเกินต้าน!',c:'#c65bff',ic:'😈',a:'#e2a8ff',b:'#5e1594'},
+  {t:'มัจจุราชรางเหล็ก!',c:'#ff3b3b',ic:'☠️',a:'#ffe14d',b:'#3a0010',rb:1}],
+  KB_BOMB={t:'บึ้มกระจาย!',c:'#ff7a2e',ic:'💣',a:'#ffcf7a',b:'#8a2b00'},
+  KB_HUMAN={t:'ล่าคนจริง!',c:'#3de2ff',ic:'🎯',a:'#bff5ff',b:'#0a6f8a'};
+const KB_IMG={};let kbStreak=0,kbLast=0,kbTimer=0;
+function kbImg(T,n){const key=T.t+n;if(KB_IMG[key])return KB_IMG[key];
+  const S=128,cv=document.createElement('canvas');cv.width=cv.height=S;const c=cv.getContext('2d'),m=S/2;
+  c.save();c.translate(m,m);   // แฉกรัศมีรอบเหรียญ
+  for(let i=0;i<16;i++){c.rotate(Math.PI/8);c.fillStyle=T.rb?`hsl(${i*22.5},95%,60%)`:(i%2?T.a:T.c);c.beginPath();c.moveTo(-7,-36);c.lineTo(0,-62);c.lineTo(7,-36);c.closePath();c.fill()}
+  c.restore();
+  const g=c.createRadialGradient(m-12,m-14,6,m,m,44);g.addColorStop(0,T.a);g.addColorStop(.65,T.c);g.addColorStop(1,T.b);
+  c.fillStyle=g;c.beginPath();c.arc(m,m,42,0,Math.PI*2);c.fill();
+  c.lineWidth=5;c.strokeStyle=T.b;c.stroke();c.lineWidth=2;c.strokeStyle='rgba(255,255,255,.7)';c.beginPath();c.arc(m,m,35,0,Math.PI*2);c.stroke();
+  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(m-10,m-20,18,8,-.5,0,Math.PI*2);c.fill();   // เงาวาว
+  c.font='40px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(T.ic,m,m+2);
+  const k=Math.min(5,n);c.fillStyle='#fff6c2';c.strokeStyle='rgba(0,0,0,.6)';c.lineWidth=1.5;   // ดาวบอกจำนวนติดกัน
+  for(let i=0;i<k;i++){const x=m+(i-(k-1)/2)*14,y=S-14;c.beginPath();for(let j=0;j<10;j++){const r=j%2?3:7,a=-Math.PI/2+j*Math.PI/5;c[j?'lineTo':'moveTo'](x+Math.cos(a)*r,y+Math.sin(a)*r)}c.closePath();c.fill();c.stroke()}
+  return KB_IMG[key]=cv.toDataURL()}
+function killBadge(name,human,bomb){const now=performance.now();kbStreak=now-kbLast<8000?kbStreak+1:1;kbLast=now;
+  const T=kbStreak>=2?KB_TIERS[Math.min(kbStreak,5)-1]:bomb?KB_BOMB:human?KB_HUMAN:KB_TIERS[0],el=$('killBadge');
+  el.style.setProperty('--kc',T.c);el.querySelector('img').src=kbImg(T,kbStreak);el.querySelector('.kt').textContent=T.t;
+  el.querySelector('.ks').textContent=(kbStreak>=2?'กำจัดติดกัน '+kbStreak+' · ':'')+'กำจัด '+String(name||'').slice(0,16);
+  el.classList.remove('hidden','pop');void el.offsetWidth;el.classList.add('pop');clearTimeout(kbTimer);kbTimer=setTimeout(()=>el.classList.add('hidden'),2150)}
 function bossDown(name,me){const e=$('bossDown'),esc=t=>String(t).replace(/[<>&]/g,'');
   e.classList.remove('rage');e.innerHTML=me?`👑 คุณล้มบอสรถไฟยักษ์ได้!<small>+${BOSS_COINS.toLocaleString()} 🪙</small>`:name?`👑 <b>${esc(name)}</b><small>ล้มบอสรถไฟยักษ์ได้!</small>`:'👑 บอสรถไฟยักษ์ถูกทำลายแล้ว';
   e.classList.remove('go');void e.offsetWidth;e.classList.add('go');$('bossWarn').classList.remove('go');if(me)sfx('coin')}
@@ -1144,7 +1180,7 @@ class Worm{
     if(NET&&this.isP&&killer&&killer.netId>0&&NET.players.has(killer.netId))pvpFeed(killer.netId,NET.id);   // เราโดนผู้เล่นกำจัด → ขึ้นประกาศให้เราเห็นด้วย
     if(NET&&this.isP)netSend({t:'die',k:killer&&killer.netId||null,drop,v});else if(NET&&this.isBot)netSend({t:'bdie',id:this.netId,k:killer&&killer.netId||null,drop,v});else if(!NET)for(const[x,y]of drop)addFood(x,y,v,DROP_TTL);
     {const kf=killer&&(killer.isP?prof.eq.kfx:killer.kfx);if(kf&&kf!=='none'){const q=this.pts[0];killFx(q.x,q.y,kf)}}
-    if(killer&&(!NET||this.isBot&&killer.isP)){killer.kills++;if(killer.isP){const h=killer.pts[0];if(!this.isBoss)texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+this.name+'!',t:1.6,c:'#ffd23f'});sfx('kill');track('kills');trackMax('killsGame',killer.kills);if(bombing)bombHits++}}
+    if(killer&&(!NET||this.isBot&&killer.isP)){killer.kills++;if(killer.isP){if(!this.isBoss&&!NET)killBadge(this.name,false,bombing);sfx('kill');track('kills');trackMax('killsGame',killer.kills);if(bombing)bombHits++}}
     if(this.isBoss){bossActive=null;bossTimer=150;if(STAGE&&killer&&killer.isP)STAGE_BOSS=true;if(killer&&killer.isP){addCoins(BOSS_COINS);track('boss')}bossDown(killer&&killer.isP?null:killer&&killer.name||'',killer&&killer.isP)}
     if(this.isP){sfx('die');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
       if(mode==='stage'&&STAGE&&!STAGE_RES)STAGE_LIFE--;
@@ -2249,6 +2285,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:21,d:'12 พ.ย. 2026',t:'⚔️ ป้ายฉายาตอนกำจัด + 2v2 เหลือ 2 สถานี',l:['ปาดหน้าหรือกำจัดใครได้ จะมีรูปเหรียญพร้อมฉายาเด้งขึ้นมา (โปร่งใส ไม่บังเกม): ⚔️ ปาดหน้า! · 🎯 ล่าคนจริง! · 💣 บึ้มกระจาย!','กำจัดติดกันภายใน 8 วิ ฉายาจะโหดขึ้น: 💥 ดับเบิ้ลปาด! → 💀 สามศพซ้อน! → 😈 โหดเกินต้าน! → ☠️ มัจจุราชรางเหล็ก!','⚔️ 2v2 เหลือ 2 สถานี อยู่ฝั่งทีมละ 1 แห่ง']},
   {id:20,d:'12 พ.ย. 2026',t:'🚉 ป้ายชื่อสถานี',l:['ทุกสถานีมีป้ายชื่อตัวใหญ่อ่านง่าย: สถานีทับทิม · สถานีมรกต · สถานีไพลิน · สถานีบุษราคัม','ป้ายบอกด้วยว่า ✅ ส่งพลอยได้เลย หรือ ⏳ ต้องรออีกกี่วิ']},
   {id:19,d:'12 พ.ย. 2026',t:'🏷️ ฉายาใหม่ 14 แบบ + 🎨 สีใหม่ 9 สี',l:['ฉายา: 🌶️ แซบจีด · 🫡 ไม่ไหวบอกไหว · 💥 ปังไม่ไหว · 💪 ตัวตึง · 💅 ตัวแม่ · 💯 ตึงเปรี๊ยะ · 😎 เกินต้าน · 🕶️ เจ้าพ่อขบวน · 🌪️ จ้าวพายุ · 🥷 นักล่าไร้เงา · 😈 ปีศาจความเร็ว · 🐉 มังกรเหล็ก · ☠️ มัจจุราชรางเหล็ก · 🏆 ราชันไร้พ่าย','สี: มะม่วงสุก · ชาเขียวมัทฉะ · ชาไทย · หมากฝรั่ง · พิษ · โรสโกลด์ · โครเมียม · น้ำแข็งดำ · โอปอล']},
   {id:18,d:'12 พ.ย. 2026',t:'🌈 ควันสีรุ้งเป็นรุ้งจริงแล้ว',l:['ควันสีรุ้งในร้านค้าเปลี่ยนจากควันเปลี่ยนสี เป็นรุ้ง 7 แถบพุ่งออกจากปล่อง ลอยโค้งขึ้นตามทางที่รถไฟวิ่ง มีประกายวิบ ๆ']},
@@ -2759,7 +2796,8 @@ function netMsg(m){
     case'reset':startResetCountdown(m.s);break;
     case'err':if(NET.ffa){const n=NET;NET=null;try{n.ws.close()}catch(e){}announce(m.msg+' — หาโลกอื่นให้แทน');netConnect('','','ffa');break}netStatus('❌ '+m.msg);break;
     case'welcome':{
-      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;loadBest();resetPlayBtn();resetItems()}
+      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';if(!NET.ffa)stations=[stations[0],stations[2]];   // 2v2 เหลือ 2 สถานี อยู่ตรงข้ามกัน (เจ้าของสั่ง 12 พ.ย. 12:08)
+      mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;loadBest();resetPlayBtn();resetItems()}
       NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;
       setFoods(m.foods);whites=m.whites.map(a=>({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false}));pups=m.pups.map(a=>({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false}));
       setItems(m.items);NET.timeLeft=m.timeLeft;netPlayers(m.players);worms=[];player=null;
@@ -2799,7 +2837,7 @@ function netMsg(m){
       {const kf=m.k===NET.id?prof.eq.kfx:(NET.players.get(m.k)||{}).kfx,q=w&&w.alive?w.pts[0]:null;if(q&&kf)killFx(q.x,q.y,kf)}
       if(w)w.alive=false;const bi=NET.bots.get(m.v);NET.bots.delete(m.v);
       if(bi&&bi.boss){bossActive=null;bossDown(m.k===NET.id?null:((NET.players.get(m.k)||NET.bots.get(m.k)||{}).name||''),m.k===NET.id)}
-      if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');track('okills');trackMax('killsGame',player.kills);if(!NET.ffa)track('vsKills');if(m.b){NET.bombN=(performance.now()-(NET.bombAt||0)<1500?NET.bombN||0:0)+1;track('bombKills');trackMax('bestBomb',NET.bombN)}const h=player.pts[0];if(!(bi&&bi.boss)&&!(m.v>0))texts.push({x:h.x,y:h.y-30,txt:'กำจัด '+((bi||NET.players.get(m.v))?.name||'')+'!',t:1.6,c:'#ffd23f'});
+      if(m.k===NET.id&&player){player.kills++;sfx('kill');track('kills');track('okills');trackMax('killsGame',player.kills);if(!NET.ffa)track('vsKills');if(m.b){NET.bombN=(performance.now()-(NET.bombAt||0)<1500?NET.bombN||0:0)+1;track('bombKills');trackMax('bestBomb',NET.bombN)}if(!(bi&&bi.boss))killBadge((bi||NET.players.get(m.v))?.name||'',m.v>0,!!m.b);
         if(bi&&bi.boss){addCoins(BOSS_COINS);track('boss')}}break}
     case'bomb':{booms.push({x:m.x,y:m.y,t:0});sfx('bomb');const by=NET.players.get(m.by);
       if(player&&player.alive&&by&&!(by.team&&by.team===player.team)&&player.safe<=0&&!(player.ghost>0)){const r=bombHit(player,m.x,m.y);if(r==='head')player.die({netId:m.by})}
