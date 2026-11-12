@@ -5,7 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const { handleApi } = require('./accounts');
-const botsim = require('./botsim');   // บอทรันบนเซิร์ฟเวอร์
+const botsim = require('./botsim');
+// กันเซิร์ฟเวอร์ล่มทั้งตัวเพราะ error จุดเดียว (12 พ.ย. 13:10 ล่มเพราะ farSpot) — log ไว้แล้วเล่นต่อ
+process.on('uncaughtException', e => console.error('uncaught', e && e.stack || e));   // บอทรันบนเซิร์ฟเวอร์
 
 const PORT = process.env.PORT || 3000;
 const R2 = 2200, RF = 3800;  // รัศมีสนาม: 2v2 / free-for-all (ffa ขยาย 3000→3800 เจ้าของสั่ง 11 พ.ย. 22:44 · พื้นที่ ×1.6 → ของเพิ่ม ×1.6)
@@ -113,12 +115,19 @@ function getRoom(code, ffa) {
   }
   return r;
 }
-const pubPlayers = room => [...room.players.values()].map(p => ({ id: p.id, name: p.name, team: p.team, host: p.host, skin: p.skin, loco: p.loco, smoke: p.smoke, wag: p.wag, kfx: p.kfx, title: p.title, rk: p.rk }));
+const pubPlayers = room => [...room.players.values()].map(p => ({ id: p.id, name: p.name, team: p.team, host: p.host, skin: p.skin, loco: p.loco, smoke: p.smoke, wag: p.wag, kfx: p.kfx, title: p.title, rk: p.rk, ready: !!p.ready }));
 const pubBots = room => [...room.bots.values()].map(b => b.info);
 // บอททั้งหมดรันบนเซิร์ฟเวอร์ (botsim.js) — หัวหน้าห้องมีไว้กดเริ่มแมตช์ 2v2 เท่านั้น
 function clearBots(room) { room.deadBots = 0; const had = room.bots.size; botsim.clear(room); if (had) bcast(room, { t: 'bclr' }); }
 function setHost(room, p) { for (const q of room.players.values()) q.host = q === p; lobby(room); }
-const lobby = room => bcast(room, { t: 'lobby', players: pubPlayers(room), phase: room.phase });
+// ---------- ชวนผู้เล่น / พร้อม / นับถอยหลัง 2v2 (เจ้าของสั่ง 12 พ.ย. 13:11) ----------
+// ผู้เล่นที่ชวนได้ = คนในโลกออนไลน์ (ffa) ทุกโลก + คนเล่นผจญภัยที่ต่อ ws แบบ idle ไว้
+const idle = new Map();   // ws → {name}
+const VS_CD = +process.env.VS_CD_MS || 30000, INVITE_CD = 15000;
+function availCount() { let n = idle.size; for (const r of rooms.values()) if (r.ffa) n += r.players.size; return n; }
+function inviteTargets() { const out = []; for (const ws of idle.keys()) out.push(ws); for (const r of rooms.values()) if (r.ffa) for (const p of r.players.values()) out.push(p.ws); return out; }
+const lobby = room => { if (!room.ffa) room.avail = availCount();
+  bcast(room, { t: 'lobby', players: pubPlayers(room), phase: room.phase, avail: room.ffa ? 0 : room.avail, cd: room.cdAt ? Math.max(0, room.cdAt - Date.now()) : 0 }); };
 function teamScore(room) {
   const sc = { A: { k: 0, l: 0 }, B: { k: 0, l: 0 } };
   for (const p of room.players.values()) { if (!sc[p.team]) continue; sc[p.team].k += p.kills; if (p.st && p.st.f & 4) sc[p.team].l += p.st.m; }
@@ -128,7 +137,7 @@ function teamScore(room) {
 
 // ---------- match flow ----------
 function startMatch(room) {
-  clearBots(room);
+  clearBots(room); room.cdAt = null; for (const p of room.players.values()) p.ready = false;
   room.phase = 'play'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.timers = { tgs: 30, gold: 50 };
   const spawns = {}; const per = { A: 0, B: 0 };
   for (const p of room.players.values()) {
@@ -149,7 +158,7 @@ function endMatch(room) {
   bcast(room, { t: 'end', winner: A > B ? 'A' : B > A ? 'B' : 'draw', A, B, mvp,
     players: ps.map(p => ({ id: p.id, name: p.name, team: p.team, kills: p.kills, maxLen: p.maxLen })).concat(bots) });
   clearBots(room);
-  room.phase = 'lobby'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null };
+  room.phase = 'lobby'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.cdAt = null; for (const p of room.players.values()) p.ready = false;
   lobby(room);
 }
 
@@ -166,7 +175,9 @@ wss.on('connection', (ws, req) => {
   ws.on('message', raw => {
     let m; try { m = JSON.parse(raw); } catch (e) { return; }
     if (!me) {
+      if (m.t === 'idle') { idle.set(ws, { name: clean(m.name, 14) }); return; }   // เล่นผจญภัยอยู่ → รอรับคำชวน 2v2
       if (m.t !== 'join') return;
+      idle.delete(ws);
       const ffa = m.mode === 'ffa' || m.mode === 'coop', d = ffa ? 'normal' : (DIFFS.includes(m.diff) ? m.diff : 'normal');   // ออนไลน์ใช้ Normal อย่างเดียว ทุกคนอยู่โลกเดียวกัน
       let code = clean(m.room, 8).toUpperCase().replace(/[^0-9A-Z]/g, '');
       if (ffa && !code) {   // จับคู่อัตโนมัติ: เข้าโลกที่ระดับความยากเดียวกันและยังไม่เต็ม ถ้าไม่มีก็เปิดโลกใหม่
@@ -183,6 +194,7 @@ wss.on('connection', (ws, req) => {
         host: room.players.size === 0, skin: Array.isArray(m.skin) ? m.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffd23f', '#ff8c42'],
         loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
       room.players.set(me.id, me);
+      if (!ffa && room.phase === 'lobby') room.cdAt = null;   // มีคนเข้ามาใหม่ → นับ 30 วิใหม่ให้เขา
       send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room) });
       if (resetAt) send(ws, { t: 'reset', s: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) });
@@ -196,11 +208,21 @@ wss.on('connection', (ws, req) => {
           if (want !== me.team && [...room.players.values()].filter(p => p.team === want).length < TEAM_MAX) { me.team = want; lobby(room); } }
         break;
       case 'start':
-        if (!room.ffa && me.host && room.phase === 'lobby') {
+        if (!room.ffa && room.phase === 'lobby') {
           const ps = [...room.players.values()];
-          if (ps.length) startMatch(room);   // คนไม่ครบ → เซิร์ฟเวอร์เติมบอทให้ทีมที่ขาด
+          // คนเดียว = หัวหน้ากดเริ่มได้ · หลายคน = ต้องพร้อมทุกคนก่อน (ไม่งั้นรอนับถอยหลัง 30 วิ)
+          if (ps.length === 1 ? me.host : ps.every(p => p.ready)) startMatch(room);   // คนไม่ครบ → เซิร์ฟเวอร์เติมบอทให้ทีมที่ขาด
         }
         break;
+      case 'ready':
+        if (!room.ffa && room.phase === 'lobby') { me.ready = !!m.v; lobby(room); }
+        break;
+      case 'invite': {
+        if (room.ffa || room.phase !== 'lobby' || room.players.size >= room.cfg.max) break;
+        const now = Date.now(); if (now - (room.invT || 0) < INVITE_CD) { send(ws, { t: 'invd', n: 0, wait: Math.ceil((INVITE_CD - now + room.invT) / 1000) }); break; }
+        room.invT = now; const msg = JSON.stringify({ t: 'inv', code: room.code, from: me.name, n: room.players.size }); let n = 0;
+        for (const w of inviteTargets()) if (w !== ws && w.readyState === 1) { w.send(msg); n++; }
+        send(ws, { t: 'invd', n }); break; }
       case 'st':
         me.lastT = Date.now();
         me.st = { x: +m.x || 0, y: +m.y || 0, a: +m.a || 0, m: Math.min(5000, +m.m || 0), f: m.f | 0, ts: +m.ts || Date.now() };   // ts = เวลาของเครื่องผู้ส่ง ใช้ทำการเคลื่อนไหวให้ลื่น
@@ -250,6 +272,7 @@ wss.on('connection', (ws, req) => {
     }
   });
   ws.on('close', () => {
+    idle.delete(ws);
     if (!room || !me) return;
     room.players.delete(me.id);
     bcast(room, { t: 'left', id: me.id });
@@ -264,6 +287,18 @@ function dropFoods(room, drop, v, ttl) {
   for (const d of drop.slice(0, 200)) if (Array.isArray(d)) add.push(newFood(room, +d[0] || 0, +d[1] || 0, v, ttl));
   if (add.length) bcast(room, { t: 'fa', f: add });
 }
+
+// ---------- ห้อง 2v2 ที่รออยู่: นับถอยหลัง 30 วิเมื่อมีคนจริง ≥ 2 · อัปเดตจำนวนคนที่ชวนได้ ----------
+setInterval(() => {
+  const av = availCount(), now = Date.now();
+  for (const room of rooms.values()) {
+    if (room.ffa || room.phase !== 'lobby') continue;
+    let ch = room.avail !== av;
+    if (room.players.size >= 2) { if (!room.cdAt) { room.cdAt = now + VS_CD; ch = true; } else if (now >= room.cdAt) { startMatch(room); continue; } }
+    else if (room.cdAt) { room.cdAt = null; ch = true; }
+    if (ch) lobby(room);
+  }
+}, 500);
 
 // ---------- game loop ----------
 setInterval(() => {
@@ -286,7 +321,7 @@ setInterval(() => {
       if (!room.items[k]) { room.timers[k] -= TICK; if (room.timers[k] <= 0) { room.items[k] = randIn(room, 300); bcast(room, { t: 'it', items: room.items }); } }
     }
     // บอท: คิด + ขยับ + ชน + กิน บนเซิร์ฟเวอร์
-    botsim.step(room, TICK, bcast, dropFoods);
+    try { botsim.step(room, TICK, bcast, dropFoods); } catch (e) { console.error('botsim error in room', room.key, e && e.stack || e); }   // บอทพังห้องเดียว ไม่ให้ล่มทั้งเซิร์ฟเวอร์
     // states
     // ส่งแบบย่อ (cz) ให้เครื่องที่รองรับ: เวลาเป็นส่วนต่างจาก T, id บอทสั้นลง (−(1e8+k) → −(k+1)) · Render ตัด permessage-deflate ทิ้ง เลยย่อเองแทน
     const p = [], pc = [], T = Date.now(), tl = +room.timeLeft.toFixed(2), sc = teamScore(room);

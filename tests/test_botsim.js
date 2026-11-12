@@ -130,4 +130,10 @@ ok(ms < 8, 'เวลาคำนวณต่อ tick ' + ms.toFixed(2) + ' ms (
   console.log('   คนขวายาว 150:', b0, '· 1,900:', b1, '· 4,200:', b3);
   ok(b3 > b0 * 1.8 && b3 > b1 * 1.8, 'ยาว 4,200 (ระดับ 3) โดนบอทไล่มากกว่ายาว 150 และ 1,900 (ยังไม่ถึง 2,000) เกือบ 2 เท่าขึ้นไป');
 }
+// 13 พ.ย. hotfix: วง 2v2 หดเหลือ 30% แน่นมาก → farSpot ต้องไม่คืน null (เดิมเซิร์ฟเวอร์ล่ม 12 พ.ย. 13:10)
+{ const r = mkRoom(false); r.arena = () => r.cfg.R * .3;
+  for (let i = 1; i <= 4; i++) r.players.set(i, { id: i, team: i % 2 ? 'A' : 'B', kills: 0, st: { x: (i - 2.5) * 60, y: 0, a: 0, m: 900, f: 4 } });
+  let crashed = null; try { for (let k = 0; k < 400; k++) { step(r, 1); for (const b of r.bots.values()) if (b.alive && Math.random() < .05) { b.alive = false; b.dead = 0.01; } } } catch (e) { crashed = e; }
+  ok(!crashed, 'วง 2v2 หดแน่น + บอทตาย/เกิดใหม่รัว ๆ ไม่ล่ม' + (crashed ? ' — ' + crashed.message : '')); }
+
 console.log(fail ? `\n${fail} ข้อไม่ผ่าน` : '\nผ่านทั้งหมด'); process.exit(fail ? 1 : 0);

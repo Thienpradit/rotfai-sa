@@ -48,12 +48,12 @@ function arenaR(room) { return room.arena ? room.arena(room) : room.cfg.R; }
 function randIn(room, m) { const a = Math.random() * TAU, r = Math.sqrt(Math.random()) * Math.max(50, arenaR(room) - m); return [Math.cos(a) * r, Math.sin(a) * r]; }
 // ที่เกิดใหม่: ไกลจากทุกขบวนให้มากที่สุด (2v2 เกิดฝั่งทีมตัวเอง)
 function farSpot(room, trains, margin, minD, side) {
-  let best = null, bd = -1; const AR = arenaR(room);
+  let best = null, bd = -Infinity; const AR = arenaR(room);   // -Infinity: คืนจุดที่ดีที่สุดเสมอ (เดิม -1 → วงหดแน่นแล้วคืน null → เซิร์ฟเวอร์ล่ม 12 พ.ย. 13:10)
   for (let i = 0; i < 36; i++) { let x, y;
     if (side !== undefined && i < 24) { const a = side + rnd(-.8, .8), rr = Math.sqrt(Math.random()) * Math.max(100, AR - margin); x = Math.cos(a) * rr; y = Math.sin(a) * rr; } else [x, y] = randIn(room, margin);
     let d = 1e9; for (const t of trains) { if (!t.alive) continue; const p = t.pts; for (let k = 0; k < p.length; k += 8) { const dd = Math.hypot(p[k].x - x, p[k].y - y) - (k ? 0 : 350); if (dd < d) d = dd; } }
     if (d >= minD) return [x, y]; if (d > bd) { bd = d; best = [x, y]; } }
-  return best;
+  return best || randIn(room, margin);
 }
 
 function freeName(room) {   // ชื่อไม่ซ้ำกับบอทที่ยังอยู่ (ถ้าชื่อหมดค่อยยอมซ้ำ)

@@ -113,6 +113,12 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
 #resetBar{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;width:min(92vw,440px);box-sizing:border-box;padding:8px 12px;border-radius:12px;background:linear-gradient(#ff8c42,#e0601a);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:left}
 #resetBar.hidden{display:none}#resetBar span{flex:1;min-width:0}#resetBar small{font-weight:400;font-size:11.5px;opacity:.92}#resetBar b{font-size:18px;color:#fff3a8}#resetBar button{flex:none;border:0;border-radius:9px;padding:6px 10px;background:#fff;color:#c24a00;font:700 12.5px Mitr,sans-serif;cursor:pointer}
+#invTip{position:fixed;left:50%;bottom:calc(118px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:26;width:min(340px,92vw);background:rgba(16,22,52,.94);border:2px solid #4da3ff;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.45);font-family:Mitr,sans-serif;animation:kbyIn .3s ease}
+#invTip.hidden{display:none}#invTip .it1{font-size:15px;color:#fff}#invTip .it1 b{color:#ffd23f}#invTip .it2{font-size:12px;color:#aeb6e8;margin:2px 0 8px}
+#invTip .ib{display:flex;gap:8px}#invTip button{font:600 15px Mitr,sans-serif;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}#invYes{flex:1;background:#ffd23f;color:#2a1a00}#invNo{background:#2d355f;color:#cfd5ff}
+#invTip .bar{height:3px;background:#4da3ff;border-radius:2px;margin-top:8px;transform-origin:left;animation:invBar 15s linear forwards}@keyframes invBar{to{transform:scaleX(0)}}
+.lobrd{color:#7cfc9a}.lobcd{font-size:14px!important;color:#ffd23f!important}
+@media (max-height:500px){#invTip{bottom:calc(10px + env(safe-area-inset-bottom))}}
 #kby{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);z-index:20;pointer-events:none;min-width:260px;max-width:88vw;text-align:center;background:rgba(18,12,30,.9);border:2px solid #ff5e5e;border-radius:18px;padding:12px 18px 14px;box-shadow:0 0 30px rgba(255,60,60,.35);animation:kbyIn .35s ease}
 #kby.hidden{display:none}#kby .h{font:600 14px Mitr,sans-serif;color:#ffb3b3}#kby .n{font:700 24px Mitr,sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0}
 #kby .tt{display:inline-block;font:700 17px Mitr,sans-serif;color:#ffe9a8;background:rgba(255,210,63,.12);border:1px solid rgba(255,210,63,.45);border-radius:20px;padding:2px 12px;margin:2px 0 8px}
@@ -371,7 +377,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <div id="pauseOv" class="hidden"><div class="pbox"><h2 id="pTitle">⏸ หยุดชั่วคราว</h2><div class="help" id="pInfo"></div>
   <button class="btn play" id="pResume">▶ เล่นต่อ</button><button class="btn alt" id="pRetry">🔄 เริ่มด่านนี้ใหม่</button><button class="btn alt" id="pQuit">🚪 ออกจากด่าน</button></div></div>
 <div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
-<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="kby" class="hidden"><div class="h">💀 คุณโดนกำจัดโดย</div><div class="n"></div><div class="tt"></div><div><div class="say"></div></div><div class="cd"></div></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
+<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="invTip" class="hidden"><div class="it1">📨 <b></b> ชวนคุณเล่น ⚔️ 2v2</div><div class="it2"></div><div class="ib"><button id="invYes">⚔️ เข้าร่วม</button><button id="invNo">✕</button></div><div class="bar"></div></div><div id="kby" class="hidden"><div class="h">💀 คุณโดนกำจัดโดย</div><div class="n"></div><div class="tt"></div><div><div class="say"></div></div><div class="cd"></div></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
 <script>
@@ -1421,7 +1427,7 @@ function stageRespawn(){const old=player,kills=old?old.kills:0;worms=worms.filte
   input.angle=player.angle;worms.push(player);cam.x=x;cam.y=y;state='play';lastBtn='';updBtns();
   announce('💔 เสีย 1 ชีวิต · เหลือ '+hearts(STAGE_LIFE))}
 function stageAutoStop(){if(STAGE_AUTO){clearInterval(STAGE_AUTO);STAGE_AUTO=null}}
-function startStage(i){if(!stageUnlocked(i))return;stageAutoStop();STAGE_I=i;STAGE=STAGES[i];STAGE_LIFE=STAGE_LIVES;
+function startStage(i){if(!stageUnlocked(i))return;setTimeout(presOpen,500);stageAutoStop();STAGE_I=i;STAGE=STAGES[i];STAGE_LIFE=STAGE_LIVES;
   STAGE_D={...DIFF.normal,...STAGE.d,ai:STAGE.ai,boss:STAGE.boss||1e9,bossM:STAGE.bossM};
   STAGE_RES=null;STAGE_BOSS=false;stageClock=0;STAGE_RUN=true;$('sheet').classList.add('hidden');
   startGame('stage');try{obPreload(STAGE.ch+1)}catch(e){}bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;setPause(false);$('advBar').classList.remove('hidden');document.body.classList.add('stageOn');
@@ -2259,7 +2265,7 @@ const DNOTE={easy:'คู่แข่งน้อย ไม่ค่อยไล
 function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}loadBest();showBest();
   document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d));const dn=document.getElementById('dnote');if(dn)dn.textContent=DNOTE[d];
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
-function toMenu(){stageAutoStop();
+function toMenu(){stageAutoStop();presClose();
   if(NET)netLeave(true);
   STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];$('advBar').classList.add('hidden');setPause(false);document.body.classList.remove('stageOn');
   mode='inf';AR=WR;   // กลับหน้าแรกหลังจบ 2v2: วงสนามที่หดไว้ต้องคืนขนาด ไม่งั้นบอทฉากหลังเกิดไม่ได้แล้วค้าง
@@ -2307,6 +2313,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:24,d:'12 พ.ย. 2026',t:'📨 ชวนเพื่อนเข้า 2v2 + กดพร้อม',l:['เปิดห้อง ⚔️ 2v2 แล้วถ้ามีคนเล่นออนไลน์หรือผจญภัยอยู่ กด 📨 ชวนได้เลย · คนที่ได้รับคำชวนกด ⚔️ เข้าร่วม ก็เข้าห้องทันที','มีหลายคนในห้อง: กด ✋ พร้อม · ทุกคนพร้อมแล้วกด ▶ เล่นเลย ได้ · ไม่งั้นเกมเริ่มเองใน 30 วิ','เล่นคนเดียวและไม่มีใครออนไลน์ → เริ่มเล่นกับบอทให้เองเลย','แก้เซิร์ฟเวอร์หลุด (502) ตอนวงสนาม 2v2 หด']},
   {id:23,d:'12 พ.ย. 2026',t:'💀 รู้ว่าใครเก็บเรา',l:['โดนผู้เล่นจริงกำจัด จะมีการ์ดขึ้นก่อนเล่นต่อ: ชื่อ แรงก์ ฉายาของคนที่เก็บเรา พร้อมคำพูดกวน ๆ จากเขา','หน้าสรุปผลก็บอกว่าโดนใครกำจัด · ไปซื้อฉายาเท่ ๆ ในร้าน ให้คนที่โดนเราเก็บได้เห็นกัน!']},
   {id:22,d:'12 พ.ย. 2026',t:'😜 ป้ายกำจัดคำกวน ๆ + แก้บอท 2v2',l:['ป้ายตอนกำจัดสุ่มคำเฟี้ยว ๆ กวน ๆ ไม่ซ้ำ เช่น บ๊ายบาย~ · จบข่าว! · เบรกไม่ทันเหรอ? · ตกรถไฟแล้วจ้า · กลับไปฝึกมาใหม่นะ · ตูม! เละเลย · ทั้งสนามคือของฉัน!','ตอนวงสนามหดใน 2v2 บอทไม่หลุดออกนอกกำแพงแล้ว (ออกนอกวง = ตายเหมือนผู้เล่น)','บอทไม่เข้าอุโมงค์ที่ปิดอยู่ (สีเทา ❌) แล้ว']},
   {id:21,d:'12 พ.ย. 2026',t:'⚔️ ป้ายฉายาตอนกำจัด + 2v2 เหลือ 2 สถานี',l:['ปาดหน้าหรือกำจัดใครได้ จะมีรูปเหรียญพร้อมฉายาเด้งขึ้นมา (โปร่งใส ไม่บังเกม): ⚔️ ปาดหน้า! · 🎯 ล่าคนจริง! · 💣 บึ้มกระจาย!','กำจัดติดกันภายใน 8 วิ ฉายาจะโหดขึ้น: 💥 ดับเบิ้ลปาด! → 💀 สามศพซ้อน! → 😈 โหดเกินต้าน! → ☠️ มัจจุราชรางเหล็ก!','⚔️ 2v2 เหลือ 2 สถานี อยู่ฝั่งทีมละ 1 แห่ง']},
@@ -2782,7 +2789,7 @@ function renderOnlineJoin(b){
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
-function netConnect(room,srv,nmode){const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];document.body.classList.remove('stageOn');
+function netConnect(room,srv,nmode){presClose();hideInvite();const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];document.body.classList.remove('stageOn');
   if(NET)netLeave(true);
   let ws;netStatus('กำลังเชื่อมต่อ...');
   const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกดเข้าห้องอีกครั้ง');NET=null};
@@ -2829,12 +2836,14 @@ function netMsg(m){
         announce(NET.players.size>1?'🌍 เข้าโลก '+NET.room+' · มีผู้เล่นจริง '+NET.players.size+' คน':'🌍 โลก '+NET.room+' · กด 📤 ชวนเพื่อนเข้ามาเล่นด้วยได้')}}
       else{state='lobby';openSheet('🌐 ห้อง '+NET.room,renderLobby)}
       $('menu').classList.add('hidden');break}
-    case'lobby':{const old=NET.players;netPlayers(m.players);NET.phase=m.phase;refreshSheet();
+    case'lobby':{const old=NET.players;netPlayers(m.players);NET.phase=m.phase;NET.avail=m.avail|0;NET.cdEnd=m.cd?performance.now()+m.cd:0;refreshSheet();
       if(NET.ffa&&state==='play'){for(const p of NET.players.values())if(!old.has(p.id)&&p.id!==NET.id)announce('🚂 '+p.name+' เข้ามาในโลกนี้แล้ว!');
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
+    case'inv':showInvite(m);break;
+    case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
+    case'start':{netPlayers(m.players);NET.phase='play';NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
@@ -2879,23 +2888,58 @@ function setItems(it){goldItem=it.gold?{x:it.gold[0],y:it.gold[1]}:null;tgsItem=
 function netPlayers(list){NET.players=new Map(list.map(p=>[p.id,p]));NET.me=NET.players.get(NET.id);NET.host=!!(NET.me&&NET.me.host);
   for(const w of worms)if(w.isRemote){const p=NET.players.get(w.netId);if(p)w.team=p.team}if(player&&NET.me)player.team=NET.me.team;
   if(!NET.host&&worms.some(w=>w.isBot&&!w.isRemote)){worms=worms.filter(w=>!(w.isBot&&!w.isRemote));if(bossActive&&!bossActive.isRemote)bossActive=null}}
+// ----- ห้อง 2v2: นับถอยหลังบนหน้าล็อบบี้ + คนเดียวเริ่มกับบอทเอง -----
+function lobTick(){const el=$('lobCd');if(!NET||NET.ffa||NET.phase!=='lobby'||!el||!el.isConnected){if(NET)NET.soloAt=0;return}
+  const now=performance.now(),hum=NET.players.size;
+  if(hum>=2){NET.soloAt=0;el.textContent=NET.cdEnd?'⏱ เริ่มอัตโนมัติใน '+Math.max(0,Math.ceil((NET.cdEnd-now)/1000))+' วิ (ไม่ต้องรอใครแล้ว)':'⏱ กำลังนับถอยหลัง…'}
+  else if(!(NET.avail>0)&&NET.host){if(!NET.soloAt)NET.soloAt=now+3000;const l=Math.max(0,Math.ceil((NET.soloAt-now)/1000));
+    el.textContent='🤖 ตอนนี้ไม่มีผู้เล่นออนไลน์ · เริ่มเล่นกับบอทใน '+l+'…';if(now>=NET.soloAt&&!NET.soloSent){NET.soloSent=1;netSend({t:'start'})}}
+  else NET.soloAt=0}
+setInterval(lobTick,250);
+// ----- คำชวนเข้า 2v2 (คนในโลกออนไลน์ + คนเล่นผจญภัย) -----
+let PRES=null,invTimer=0,INV_CODE='';
+function presOpen(){presClose();if(!/^https?:/.test(location.protocol))return;try{const ws=new WebSocket(netURL(''));PRES=ws;
+  ws.onopen=()=>{try{ws.send(JSON.stringify({t:'idle',name:playerName()}))}catch(e){}};
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='inv')showInvite(m)};ws.onclose=()=>{if(PRES===ws)PRES=null}}catch(e){}}
+function presClose(){if(PRES){const w=PRES;PRES=null;try{w.close()}catch(e){}}}
+function showInvite(m){if(NET&&!NET.ffa)return;const el=$('invTip'),esc=t=>String(t||'').replace(/[<>&]/g,'');INV_CODE=String(m.code||'');
+  el.querySelector('.it1 b').textContent=m.from||'ผู้เล่น';
+  el.querySelector('.it2').textContent='ห้อง '+esc(m.code)+' · มีคนอยู่ '+(m.n|0)+'/4'+(mode==='stage'?' · กดเข้าร่วม = ออกจากด่านนี้':NET&&NET.ffa&&state==='play'?' · กดเข้าร่วม = จบรอบนี้ (ไม่หักแต้ม)':'');
+  el.classList.remove('hidden');const bar=el.querySelector('.bar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
+  clearTimeout(invTimer);invTimer=setTimeout(hideInvite,15000);sfx('item')}
+function hideInvite(){$('invTip').classList.add('hidden');clearTimeout(invTimer)}
+function acceptInvite(){const code=INV_CODE;hideInvite();if(!code)return;
+  if(NET&&NET.ffa&&state==='play'&&player&&player.alive){try{finish(false,true,true)}catch(e){}}   // ออกจากโลกออนไลน์แบบไม่หักแต้ม
+  presClose();toMenu();$('over').classList.add('hidden');
+  setTimeout(()=>{openSheet('🌐 ออนไลน์ 2v2',renderOnlineJoin);netConnect(code,'')},80)}
+$('invYes').onclick=acceptInvite;$('invNo').onclick=hideInvite;
 function renderLobby(b){
   if(!NET)return;const ps=[...NET.players.values()];
   const myT=NET.me?NET.me.team:'A';
-  const col=t=>{const l=ps.filter(p=>p.team===t);return l.map(p=>`<div>${p.id===NET.id?'⭐ ':''}${p.rk!==undefined?rankImgC(p.rk,16)+' ':''}${String(p.name).replace(/[<>&]/g,'')}${p.host?' 👑':''}</div>`).join('')+
+  const col=t=>{const l=ps.filter(p=>p.team===t);return l.map(p=>`<div>${p.id===NET.id?'⭐ ':''}${p.rk!==undefined?rankImgC(p.rk,16)+' ':''}${String(p.name).replace(/[<>&]/g,'')}${p.host?' 👑':''}${ps.length>1?(p.ready?' <span class="lobrd">✅ พร้อม</span>':' <span style="color:#8891c4">…</span>'):''}</div>`).join('')+
     Array.from({length:Math.max(0,2-l.length)},()=>'<div style="color:#8891c4">🤖 บอท (ว่าง)</div>').join('')+
     (t===myT?'<div class="tpick on">✓ คุณอยู่ทีมนี้</div>':l.length>=2?'<div class="tpick off">ทีมเต็ม</div>':`<button class="tpick" data-t="${t}">เข้าทีมนี้</button>`)};
-  const canStart=NET.host&&ps.length>=1;
+  // ชวน / พร้อม / นับถอยหลัง (เจ้าของสั่ง 12 พ.ย. 13:11): คนเดียว+ไม่มีใครออนไลน์ = เริ่มกับบอทเองใน 3 วิ (ไม่มีปุ่ม) · คนเดียว+มีคนออนไลน์ = ปุ่มชวน + เริ่มเลย ·
+  // หลายคน = กดพร้อม · ทุกคนพร้อมกด "เล่นเลย" ได้ · ไม่งั้นเริ่มเองเมื่อครบ 30 วิ
+  const hum=ps.length,me=NET.me||{},nR=ps.filter(p=>p.ready).length,allR=nR===hum,av=NET.avail|0;
+  const invB=av>0&&hum<4?`<button class="btn alt" id="invBtn">📨 ชวนผู้เล่นที่ออนไลน์อยู่ (${av} คน)</button><div class="help" id="invMsg" style="margin:0 0 4px"></div>`:'';
+  const ctl=hum===1?(av>0?invB+`<button class="btn team" id="startBtn">▶ เริ่มเลย (เล่นกับบอท)</button>`:`<div class="status lobcd" id="lobCd">🤖 ตอนนี้ไม่มีผู้เล่นออนไลน์ · เริ่มเล่นกับบอท…</div>`)
+    :`<button class="btn ${me.ready?'alt':'team'}" id="readyBtn">${me.ready?'✅ พร้อมแล้ว (แตะเพื่อยกเลิก)':'✋ กดพร้อม'}</button>
+      <button class="btn team" id="startBtn" ${allR?'':'disabled'}>▶ เล่นเลย${allR?'':' (พร้อม '+nR+'/'+hum+')'}</button>
+      <div class="status lobcd" id="lobCd">⏱ เริ่มอัตโนมัติใน …</div>${invB}`;
   b.innerHTML=`<div class="help" style="margin:0">รหัสห้อง</div><div style="font-size:30px;font-weight:600;letter-spacing:6px;color:#ffd23f">${NET.room}</div>
    <div class="help" style="margin:2px 0 6px">ส่งรหัสนี้ให้เพื่อน แล้วให้เพื่อนเปิดเว็บเกมเดียวกันและใส่รหัสห้องนี้</div>
    <div class="vsnote">${VS_LEN_NOTE}</div>
    <div class="help" style="margin:0">เลือกทีมที่จะอยู่ (ทีมละไม่เกิน 2 คน)</div>
    <div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b>${col('A')}</div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b>${col('B')}</div></div>
-   ${NET.host?`<button class="btn team" id="startBtn" ${canStart?'':'disabled'}>⚔️ เริ่มเกม (5 นาที)</button>`:'<div class="status">รอหัวหน้าห้อง 👑 กดเริ่มเกม...</div>'}
-   <div class="help" style="margin:4px 0 0">ช่องที่ว่างจะเติมบอท 🤖 ระดับ Normal ให้อัตโนมัติ · เล่นคนเดียวก็เริ่มได้</div>
+   ${ctl}
+   <div class="help" style="margin:4px 0 0">ช่องที่ว่างจะเติมบอท 🤖 ระดับ Normal ให้อัตโนมัติ · แมตช์ละ 5 นาที</div>
    <button class="btn alt" id="leaveBtn">ออกจากห้อง</button>`;
   b.querySelectorAll('button.tpick').forEach(x=>x.onclick=()=>netSend({t:'team',k:x.dataset.t}));
   const sb=b.querySelector('#startBtn');if(sb)sb.onclick=()=>netSend({t:'start'});
+  const rb=b.querySelector('#readyBtn');if(rb)rb.onclick=()=>netSend({t:'ready',v:!me.ready});
+  const ib=b.querySelector('#invBtn');if(ib)ib.onclick=()=>{netSend({t:'invite'});ib.disabled=true;setTimeout(()=>{if(ib.isConnected)ib.disabled=false},15000)};
+  lobTick();
   b.querySelector('#leaveBtn').onclick=()=>netLeave();
 }
 function netSpawnMe(sp){hideKby();LAST_KILLER=null;

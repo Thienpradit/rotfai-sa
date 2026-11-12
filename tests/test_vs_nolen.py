@@ -11,7 +11,7 @@ async def main():
         join_note=await pg.evaluate("(document.querySelector('#sheetBody .vsnote')||{}).textContent||''")
         await pg.evaluate("document.getElementById('sheet').classList.add('hidden');netConnect('NOLEN','')");await pg.wait_for_timeout(1200)
         lobby_note=await pg.evaluate("(document.querySelector('#sheetBody .vsnote')||{}).textContent||''");await pg.screenshot(path='/tmp/claude-0/-home-claude/25cb9392-c762-56ab-9405-b678b539416b/scratchpad/vs_lobby_note.png')
-        await pg.click('#startBtn');await pg.wait_for_timeout(3300)
+        await pg.evaluate("netSend({t:'start'})");await pg.wait_for_timeout(3300)
         ann=await pg.evaluate("document.getElementById('ann').textContent")
         b0=json.loads(await pg.evaluate(SNAP))
         await pg.evaluate("(async()=>{player.safe=99;player.die=()=>{};player.mass=player.maxMass=4000;for(let i=0;i<5;i++)await new Promise(r=>requestAnimationFrame(r));const bt=worms.find(w=>w.isBot&&w.alive);netMsg({t:'kill',v:bt.netId,k:NET.id});netEnd({winner:NET.me.team,A:5,B:1,mvp:NET.id,players:[]})})()");await pg.wait_for_timeout(500)

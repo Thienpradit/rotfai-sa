@@ -1,6 +1,12 @@
 # ทดสอบ: อุโมงค์ที่ปลายทางอยู่นอกวง (วงหด) ต้องปิด ไม่วาร์ปไปตาย · ขบวนเกิดใหม่ไกลจากทุกคัน + 2.5 วิแรกชนทะลุ (ออนไลน์ด้วย)
 # รันเซิร์ฟเวอร์ก่อน: PORT=3456 MATCH_SECS=40 npm start
 import asyncio
+_PAGES=[]
+async def __readyall():
+    for pg in _PAGES:
+        try: await pg.evaluate("NET&&netSend({t:'ready',v:true})")
+        except Exception: pass
+    await asyncio.sleep(.4)
 from playwright.async_api import async_playwright
 URL = 'http://127.0.0.1:3456/'
 ARGS = ['--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows']
@@ -9,7 +15,7 @@ async def main():
     async with async_playwright() as p:
         errs, pages = [], []
         async def page(i):
-            b = await p.chromium.launch(args=ARGS); pg = await (await b.new_context(viewport={'width': 700, 'height': 600})).new_page()
+            b = await p.chromium.launch(args=ARGS); pg = await (await b.new_context(viewport={'width': 700, 'height': 600})).new_page(); _PAGES.append(pg)
             pg.on('pageerror', lambda e, i=i: errs.append((i, str(e)))); await pg.goto(URL); await pg.wait_for_timeout(600)
             await pg.evaluate("document.getElementById('sheet').classList.add('hidden')"); return pg
         a = await page(0); ev = a.evaluate
@@ -39,7 +45,7 @@ async def main():
         # ---- ออนไลน์ 2v2: บอทเกิดใหม่ คนอื่นเห็นเป็นผี ชนทะลุ ----
         await ev("netConnect('GHOST','')"); await a.wait_for_timeout(1200)
         c = await page(1); await c.evaluate("netConnect('GHOST','')"); await c.wait_for_timeout(1200)
-        await c.click("button.tpick[data-t=A]"); await c.wait_for_timeout(400); await a.click('#startBtn'); await a.wait_for_timeout(1200)
+        await c.click("button.tpick[data-t=A]"); await c.wait_for_timeout(400); await __readyall(); await a.evaluate("netSend({t:'start'})"); await a.wait_for_timeout(1200)
         print('guest sees new bots as ghost', await c.evaluate("worms.filter(w=>w.isBot&&w.alive).map(w=>w.ghost)"))
         await c.evaluate(f"window.MV={MOVE};player.safe=0;player.ghost=0;(()=>{{const w=worms.find(w=>w.isBot&&w.alive&&w.ghost>0);const q=w.pts[10];MV(q.x,q.y)}})()"); await c.wait_for_timeout(250)
         print('guest hits ghost bot -> alive', await c.evaluate("player.alive"))

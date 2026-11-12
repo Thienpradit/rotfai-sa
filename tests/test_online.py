@@ -1,5 +1,11 @@
 # ทดสอบออนไลน์ 4 คน: รันเซิร์ฟเวอร์ก่อนด้วย  PORT=3456 MATCH_SECS=40 npm start  แล้ว python tests/test_online.py
 import asyncio
+_PAGES=[]
+async def __readyall():
+    for pg in _PAGES:
+        try: await pg.evaluate("NET&&netSend({t:'ready',v:true})")
+        except Exception: pass
+    await asyncio.sleep(.4)
 from playwright.async_api import async_playwright
 URL='http://127.0.0.1:3456/'
 async def main():
@@ -8,7 +14,7 @@ async def main():
         for i in range(4):
             b=await p.chromium.launch(args=['--disable-renderer-backgrounding','--disable-background-timer-throttling','--disable-backgrounding-occluded-windows']);bs.append(b)
             ctxb=await b.new_context(viewport={'width':400,'height':800},has_touch=True)
-            pg=await ctxb.new_page();pg.on('pageerror',lambda e,i=i:errs.append((i,str(e))))
+            pg=await ctxb.new_page();_PAGES.append(pg);pg.on('pageerror',lambda e,i=i:errs.append((i,str(e))))
             await pg.goto(URL);await pg.wait_for_timeout(500)
             await pg.evaluate("document.getElementById('sheet').classList.add('hidden')")
             await pg.fill('#name',f'P{i+1}')

@@ -1,6 +1,12 @@
 # ทดสอบ 2v2 เติมบอท: คน 2 คนอยู่ทีมแดง → เซิร์ฟเวอร์เติมบอท 2 ตัวให้ทีมน้ำเงิน, บอทชนคนตายได้แต้ม, จบแมตช์มีบอทในสรุป
 # รันเซิร์ฟเวอร์ก่อน: PORT=3456 MATCH_SECS=40 npm start  แล้ว python tests/test_vs_bots.py
 import asyncio
+_PAGES=[]
+async def __readyall():
+    for pg in _PAGES:
+        try: await pg.evaluate("NET&&netSend({t:'ready',v:true})")
+        except Exception: pass
+    await asyncio.sleep(.4)
 from playwright.async_api import async_playwright
 URL = 'http://127.0.0.1:3456/'
 ARGS = ['--disable-renderer-backgrounding', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows']
@@ -9,7 +15,7 @@ async def main():
         errs, pages = [], []
         for i in range(2):
             b = await p.chromium.launch(args=ARGS)
-            pg = await (await b.new_context(viewport={'width': 700, 'height': 600})).new_page()
+            pg = await (await b.new_context(viewport={'width': 700, 'height': 600})).new_page(); _PAGES.append(pg)
             pg.on('pageerror', lambda e, i=i: errs.append((i, str(e))))
             await pg.goto(URL); await pg.wait_for_timeout(600)
             await pg.evaluate("document.getElementById('sheet').classList.add('hidden')"); await pg.fill('#name', f'คน{i+1}')
@@ -19,7 +25,7 @@ async def main():
         await c.click("button.tpick[data-t=A]"); await c.wait_for_timeout(500)
         await a.screenshot(path='/tmp/vs_lobby.png')
         print('after pick', await a.evaluate("[...NET.players.values()].map(p=>p.name+':'+p.team)"), 'slots', await a.evaluate("[...document.querySelectorAll('.tcol div')].map(d=>d.textContent).join(' | ')"))
-        await a.click('#startBtn'); await a.wait_for_timeout(2500)
+        await __readyall(); await a.evaluate("netSend({t:'start'})"); await a.wait_for_timeout(2500)
         print('host bots', await a.evaluate("worms.filter(w=>w.isBot&&w.alive).map(w=>w.team)"), 'guest sees', await c.evaluate("worms.filter(w=>w.isBot&&w.alive).map(w=>w.team+(w.isRemote?'(remote)':''))"))
         # คน2 (ไม่ใช่หัวหน้า) พุ่งชนลำตัวบอท → ตาย, บอทได้แต้มให้ทีมน้ำเงิน
         await c.evaluate("player.safe=0")
