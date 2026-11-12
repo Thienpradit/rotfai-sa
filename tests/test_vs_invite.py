@@ -15,8 +15,9 @@ async def main():
     async with async_playwright() as p:
         # 1) คนเดียว ไม่มีใครออนไลน์ → ไม่มีปุ่ม เริ่มเองใน ~3 วิ
         s=await mk(p,'เดี่ยว');await vsJoin(s,'SOLO1')
-        chk('solo: ไม่มีปุ่มเริ่ม/ชวน',await s.evaluate("!document.getElementById('startBtn')&&!document.getElementById('invBtn')&&!!document.getElementById('lobCd')"))
-        await s.wait_for_timeout(3800);chk('solo: เริ่มเองกับบอท',await s.evaluate("NET.phase==='play'"))
+        chk('solo: มีปุ่มเริ่มเลย ไม่มีปุ่มชวน ไม่นับถอยหลัง',await s.evaluate("!!document.getElementById('startBtn')&&!document.getElementById('invBtn')&&!document.getElementById('lobCd')"))
+        await s.wait_for_timeout(4500);chk('solo: รอ 4.5 วิ ยังไม่เริ่มเอง',await s.evaluate("NET.phase==='lobby'"))
+        await s.click('#startBtn');await s.wait_for_timeout(800);chk('solo: กดเริ่มเลย → เล่นกับบอท',await s.evaluate("NET.phase==='play'"))
         await s.evaluate("netLeave()");await s.wait_for_timeout(400)
         # 2) A อยู่โลกออนไลน์ · C เล่นผจญภัย · B เปิดห้อง 2v2 → มีปุ่มชวน
         a=await mk(p,'เอ');await a.evaluate("playEndless()");await a.wait_for_timeout(1500)

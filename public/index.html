@@ -2313,7 +2313,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
-  {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ']},
+  {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ','เล่น 2v2 คนเดียว: เกมรอให้กด ▶ เริ่มเลย ก่อน ไม่นับถอยหลังเอง']},
   {id:24,d:'12 พ.ย. 2026',t:'📨 ชวนเพื่อนเข้า 2v2 + กดพร้อม',l:['เปิดห้อง ⚔️ 2v2 แล้วถ้ามีคนเล่นออนไลน์หรือผจญภัยอยู่ กด 📨 ชวนได้เลย · คนที่ได้รับคำชวนกด ⚔️ เข้าร่วม ก็เข้าห้องทันที','มีหลายคนในห้อง: กด ✋ พร้อม · ทุกคนพร้อมแล้วกด ▶ เล่นเลย ได้ · ไม่งั้นเกมเริ่มเองใน 30 วิ','เล่นคนเดียวและไม่มีใครออนไลน์ → เริ่มเล่นกับบอทให้เองเลย','แก้เซิร์ฟเวอร์หลุด (502) ตอนวงสนาม 2v2 หด']},
   {id:23,d:'12 พ.ย. 2026',t:'💀 รู้ว่าใครเก็บเรา',l:['โดนผู้เล่นจริงกำจัด จะมีการ์ดขึ้นก่อนเล่นต่อ: ชื่อ แรงก์ ฉายาของคนที่เก็บเรา พร้อมคำพูดกวน ๆ จากเขา','หน้าสรุปผลก็บอกว่าโดนใครกำจัด · ไปซื้อฉายาเท่ ๆ ในร้าน ให้คนที่โดนเราเก็บได้เห็นกัน!']},
   {id:22,d:'12 พ.ย. 2026',t:'😜 ป้ายกำจัดคำกวน ๆ + แก้บอท 2v2',l:['ป้ายตอนกำจัดสุ่มคำเฟี้ยว ๆ กวน ๆ ไม่ซ้ำ เช่น บ๊ายบาย~ · จบข่าว! · เบรกไม่ทันเหรอ? · ตกรถไฟแล้วจ้า · กลับไปฝึกมาใหม่นะ · ตูม! เละเลย · ทั้งสนามคือของฉัน!','ตอนวงสนามหดใน 2v2 บอทไม่หลุดออกนอกกำแพงแล้ว (ออกนอกวง = ตายเหมือนผู้เล่น)','บอทไม่เข้าอุโมงค์ที่ปิดอยู่ (สีเทา ❌) แล้ว']},
@@ -2889,12 +2889,10 @@ function setItems(it){goldItem=it.gold?{x:it.gold[0],y:it.gold[1]}:null;tgsItem=
 function netPlayers(list){NET.players=new Map(list.map(p=>[p.id,p]));NET.me=NET.players.get(NET.id);NET.host=!!(NET.me&&NET.me.host);
   for(const w of worms)if(w.isRemote){const p=NET.players.get(w.netId);if(p)w.team=p.team}if(player&&NET.me)player.team=NET.me.team;
   if(!NET.host&&worms.some(w=>w.isBot&&!w.isRemote)){worms=worms.filter(w=>!(w.isBot&&!w.isRemote));if(bossActive&&!bossActive.isRemote)bossActive=null}}
-// ----- ห้อง 2v2: นับถอยหลังบนหน้าล็อบบี้ + คนเดียวเริ่มกับบอทเอง -----
+// ----- ห้อง 2v2: นับถอยหลังบนหน้าล็อบบี้ (เฉพาะ ≥2 คน · คนเดียวรอกด ▶ เริ่มเลย) -----
 function lobTick(){const el=$('lobCd');if(!NET||NET.ffa||NET.phase!=='lobby'||!el||!el.isConnected){if(NET)NET.soloAt=0;return}
   const now=performance.now(),hum=NET.players.size;
   if(hum>=2){NET.soloAt=0;el.textContent=NET.cdEnd?'⏱ เริ่มอัตโนมัติใน '+Math.max(0,Math.ceil((NET.cdEnd-now)/1000))+' วิ (ไม่ต้องรอใครแล้ว)':'⏱ กำลังนับถอยหลัง…'}
-  else if(!(NET.avail>0)&&NET.host){if(!NET.soloAt)NET.soloAt=now+3000;const l=Math.max(0,Math.ceil((NET.soloAt-now)/1000));
-    el.textContent='🤖 ตอนนี้ไม่มีผู้เล่นออนไลน์ · เริ่มเล่นกับบอทใน '+l+'…';if(now>=NET.soloAt&&!NET.soloSent){NET.soloSent=1;netSend({t:'start'})}}
   else NET.soloAt=0}
 setInterval(lobTick,250);
 // ----- คำชวนเข้า 2v2 (คนในโลกออนไลน์ + คนเล่นผจญภัย) -----
@@ -2924,7 +2922,7 @@ function renderLobby(b){
   // หลายคน = กดพร้อม · ทุกคนพร้อมกด "เล่นเลย" ได้ · ไม่งั้นเริ่มเองเมื่อครบ 30 วิ
   const hum=ps.length,me=NET.me||{},nR=ps.filter(p=>p.ready).length,allR=nR===hum,av=NET.avail|0;
   const invB=av>0&&hum<4?`<button class="btn alt" id="invBtn">📨 ชวนผู้เล่นที่ออนไลน์อยู่ (${av} คน)</button><div class="help" id="invMsg" style="margin:0 0 4px"></div>`:'';
-  const ctl=hum===1?(av>0?invB+`<button class="btn team" id="startBtn">▶ เริ่มเลย (เล่นกับบอท)</button>`:`<div class="status lobcd" id="lobCd">🤖 ตอนนี้ไม่มีผู้เล่นออนไลน์ · เริ่มเล่นกับบอท…</div>`)
+  const ctl=hum===1?`<button class="btn team" id="startBtn">▶ เริ่มเลย (เล่นกับบอท)</button>`+invB   // คนเดียว: รอกดเริ่มเอง ไม่นับถอยหลัง (เจ้าของสั่ง 12 พ.ย. 13:54)
     :`<button class="btn ${me.ready?'alt':'team'}" id="readyBtn">${me.ready?'✅ พร้อมแล้ว (แตะเพื่อยกเลิก)':'✋ กดพร้อม'}</button>
       <button class="btn team" id="startBtn" ${allR?'':'disabled'}>▶ เล่นเลย${allR?'':' (พร้อม '+nR+'/'+hum+')'}</button>
       <div class="status lobcd" id="lobCd">⏱ เริ่มอัตโนมัติใน …</div>${invB}`;
