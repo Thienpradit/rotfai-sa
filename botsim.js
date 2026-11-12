@@ -13,8 +13,8 @@ const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .2
 const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
 const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
 const NAMES = ['ไส้เดือนสายซิ่ง', 'น้องหนอนน้อย', 'Wiggle', 'Noodle', 'ต้มยำกุ้ง', 'SlimJim', 'หนอนชาเขียว', 'กัปตันหนอน', 'มะม่วงสุก', 'Zigzag', 'ข้าวเหนียว', 'Spaghetti', 'หนอนหิว', 'Bubbles', 'Doodle', 'ลูกชิ้นปิ้ง', 'Mochi', 'Sneaky', 'Turbo', 'ปลาทูทอด', 'Pixel', 'Squiggle', 'Banana', 'ส้มตำ', 'Ninja', 'Gummy', 'ขนมครก', 'Shadow', 'หนอนบุ้ง', 'Lucky', 'ชาไทย', 'Bobo'];
-// 2v2 (เจ้าของสั่ง 12 พ.ย. 01:53 "บอทใน 2v2 ให้เป็นสีอื่น"): บอทประจำทีมใช้สีทีม (แดง/น้ำเงิน) · นักล่ากลางสีส้มดำลายเตือน ไม่ซ้ำสีผู้เล่น
-const TEAM_SKIN = { A: ['#ff5e5e', '#ffd0d0', '#b02a2a'], B: ['#4da3ff', '#d6ebff', '#1f5fb8'] }, HUNTER_SKIN = ['#ff7b1a', '#14141c', '#ff7b1a', '#14141c'];
+// 2v2 (เจ้าของสั่ง 12 พ.ย. 01:53 "บอทใน 2v2 ให้เป็นสีอื่น"): บอทประจำทีมใช้สีทีม (แดง/น้ำเงิน) · นักล่ากลางสีเหลือง (เดิมส้มดำ)
+const TEAM_SKIN = { A: ['#ff5e5e', '#ffd0d0', '#b02a2a'], B: ['#4da3ff', '#d6ebff', '#1f5fb8'] }, HUNTER_SKIN = ['#ffd60a', '#fff3a6', '#d9a600'];   // นักล่ากลาง 2v2 = สีเหลือง ต่างจากทีมแดง/น้ำเงิน (เจ้าของสั่ง 12 พ.ย. 20:25)
 const BOSS_SKIN = ['#3a0d0d', '#ff3b3b', '#1a1a1a'], LOCOS = ['classic', 'classic', 'diesel', 'bullet'];
 const rnd = (a, b) => a + Math.random() * (b - a), pick = a => a[(Math.random() * a.length) | 0];
 const key = (cx, cy) => (cx + 500) * 1000 + (cy + 500);
