@@ -126,6 +126,10 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 #kby .cd{font:500 12px Mitr,sans-serif;color:#aab;margin-top:8px}
 @keyframes kbyIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}70%{transform:translate(-50%,-50%) scale(1.05)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 @media (max-height:500px){#kby{top:42%;padding:8px 14px 10px}#kby .n{font-size:20px}#kby .tt{font-size:15px;margin-bottom:5px}}
+#sheet .vsres{border:1px solid #ffd23f55;background:#ffd23f12;border-radius:14px;padding:8px 10px;margin:0 0 10px}
+#sheet .vsrh{font-size:18px;font-weight:700;text-align:center;margin-bottom:4px}#sheet .vsrh small{font-size:11px;color:#a8b0e0;font-weight:400}
+#sheet .vsres .teams{margin:4px 0}#sheet .vsres .tcol{min-height:0;padding:5px 6px}#sheet .vsrp{display:flex;justify-content:space-between;font-size:12.5px;padding:2px 2px;border-bottom:1px solid #ffffff10}
+#sheet .vsrc{text-align:center;font-size:13px;color:#ffd23f;margin-top:6px}#sheet .vsrn{text-align:center;font-size:13px;font-weight:600;color:#7cfc9a;margin-top:4px}
 #killBadge{position:fixed;left:50%;top:calc(50px + env(safe-area-inset-top));z-index:9;pointer-events:none;display:flex;align-items:center;gap:8px;padding:4px 14px 4px 4px;border-radius:40px;background:rgba(14,18,44,.12);border:1.5px solid color-mix(in srgb,var(--kc,#ffd23f) 45%,transparent);transform:translateX(-50%);white-space:nowrap}   /* มองทะลุ ไม่บังเกม (เจ้าของสั่ง 12:09) */
 #killBadge.hidden{display:none}#killBadge img{width:56px;height:56px;display:block;opacity:.8}#killBadge>div{opacity:.85}
 #killBadge .kt{font:700 21px Mitr,sans-serif;color:var(--kc,#ffd23f);text-shadow:0 0 3px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.8);line-height:1.1}#killBadge .ks{font:500 12px Mitr,sans-serif;color:#eef0ff;text-shadow:0 0 3px rgba(0,0,0,.95);line-height:1.2}
@@ -2265,7 +2269,7 @@ const DNOTE={easy:'คู่แข่งน้อย ไม่ค่อยไล
 function setDiff(d){diff=d;try{localStorage.setItem('wormDiff',d)}catch(e){}loadBest();showBest();
   document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d));const dn=document.getElementById('dnote');if(dn)dn.textContent=DNOTE[d];
   const bb2=document.getElementById('botBest');if(bb2)bb2.textContent=best?'🏆 สถิติดีสุดระดับนี้: '+best:''}
-function toMenu(){stageAutoStop();presClose();
+function toMenu(){stageAutoStop();presClose();setTimeout(presOpen,600);
   if(NET)netLeave(true);
   STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];$('advBar').classList.add('hidden');setPause(false);document.body.classList.remove('stageOn');
   mode='inf';AR=WR;   // กลับหน้าแรกหลังจบ 2v2: วงสนามที่หดไว้ต้องคืนขนาด ไม่งั้นบอทฉากหลังเกิดไม่ได้แล้วค้าง
@@ -2314,7 +2318,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:26,d:'12 พ.ย. 2026',t:'🎯 นักล่า 2v2 เป็นสีเหลือง',l:['บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง','แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
+  {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ผลรอบที่แล้วโชว์บนสุด ทุกคนกดพร้อมเล่นอีกรอบ','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
   {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ','เล่น 2v2 คนเดียว: เกมรอให้กด ▶ เริ่มเลย ก่อน ไม่นับถอยหลังเอง']},
   {id:24,d:'12 พ.ย. 2026',t:'📨 ชวนเพื่อนเข้า 2v2 + กดพร้อม',l:['เปิดห้อง ⚔️ 2v2 แล้วถ้ามีคนเล่นออนไลน์หรือผจญภัยอยู่ กด 📨 ชวนได้เลย · คนที่ได้รับคำชวนกด ⚔️ เข้าร่วม ก็เข้าห้องทันที','มีหลายคนในห้อง: กด ✋ พร้อม · ทุกคนพร้อมแล้วกด ▶ เล่นเลย ได้ · ไม่งั้นเกมเริ่มเองใน 30 วิ','เล่นคนเดียวและไม่มีใครออนไลน์ → เริ่มเล่นกับบอทให้เองเลย','แก้เซิร์ฟเวอร์หลุด (502) ตอนวงสนาม 2v2 หด']},
   {id:23,d:'12 พ.ย. 2026',t:'💀 รู้ว่าใครเก็บเรา',l:['โดนผู้เล่นจริงกำจัด จะมีการ์ดขึ้นก่อนเล่นต่อ: ชื่อ แรงก์ ฉายาของคนที่เก็บเรา พร้อมคำพูดกวน ๆ จากเขา','หน้าสรุปผลก็บอกว่าโดนใครกำจัด · ไปซื้อฉายาเท่ ๆ ในร้าน ให้คนที่โดนเราเก็บได้เห็นกัน!']},
@@ -2846,7 +2850,7 @@ function netMsg(m){
     case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
+    case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
@@ -2899,7 +2903,8 @@ function lobTick(){const el=$('lobCd');if(!NET||NET.ffa||NET.phase!=='lobby'||!e
 setInterval(lobTick,250);
 // ----- คำชวนเข้า 2v2 (คนในโลกออนไลน์ + คนเล่นผจญภัย) -----
 let PRES=null,invTimer=0,INV_CODE='';
-function presOpen(){presClose();if(!/^https?:/.test(location.protocol))return;try{const ws=new WebSocket(netURL(''));PRES=ws;
+function presOpen(){presClose();if(NET||document.hidden||!/^https?:/.test(location.protocol))return;   // อยู่หน้าเมนู/ผจญภัย = รอรับคำชวน 2v2 (หน้าเมนูด้วย ตั้งแต่ 12 พ.ย. 21:21)
+try{const ws=new WebSocket(netURL(''));PRES=ws;
   ws.onopen=()=>{try{ws.send(JSON.stringify({t:'idle',name:playerName()}))}catch(e){}};
   ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='inv')showInvite(m)};ws.onclose=()=>{if(PRES===ws)PRES=null}}catch(e){}}
 function presClose(){if(PRES){const w=PRES;PRES=null;try{w.close()}catch(e){}}}
@@ -2928,12 +2933,18 @@ function renderLobby(b){
     :`<button class="btn ${me.ready?'alt':'team'}" id="readyBtn">${me.ready?'✅ พร้อมแล้ว (แตะเพื่อยกเลิก)':'✋ กดพร้อม'}</button>
       <button class="btn team" id="startBtn" ${allR?'':'disabled'}>▶ เล่นเลย${allR?'':' (พร้อม '+nR+'/'+hum+')'}</button>
       <div class="status lobcd" id="lobCd">⏱ เริ่มอัตโนมัติใน …</div>${invB}`;
-  b.innerHTML=`<div class="help" style="margin:0">รหัสห้อง</div><div style="font-size:30px;font-weight:600;letter-spacing:6px;color:#ffd23f">${NET.room}</div>
+  const E=NET.lastEnd,esc=t=>String(t).replace(/[<>&]/g,'');
+  const res=E?`<div class="vsres"><div class="vsrh">${E.m.winner==='draw'?'🤝 เสมอ!':E.win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้'} <small>ผลรอบที่แล้ว</small></div>
+    <div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:22px;font-weight:600">${E.m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:22px;font-weight:600">${E.m.B}</div></div></div>
+    ${E.m.players.map(p=>`<div class="vsrp"><span style="color:${TEAM_COL[p.team]}">${p.id===E.m.mvp?'🏅 ':''}${p.bot?'':'🚂 '}${esc(p.name)}</span><span>💀 ${p.kills} · ยาว ${Math.floor(p.maxLen)}</span></div>`).join('')}
+    <div class="vsrc">รอบนี้ได้ +${E.coins} 🪙 · ${E.rp>=0?'+':''}${E.rp} RP</div>
+    <div class="vsrn">${hum>1?'✋ กดพร้อมเพื่อเล่นอีกรอบ':'▶ กดเริ่มเลยเพื่อเล่นอีกรอบ'}</div>${ctl}</div>`:'';   // ปุ่มพร้อม/เริ่มอยู่ในกล่องผล เห็นได้ไม่ต้องเลื่อน (จอแนวนอน)
+  b.innerHTML=`${res}<div class="help" style="margin:0">รหัสห้อง</div><div style="font-size:30px;font-weight:600;letter-spacing:6px;color:#ffd23f">${NET.room}</div>
    <div class="help" style="margin:2px 0 6px">ส่งรหัสนี้ให้เพื่อน แล้วให้เพื่อนเปิดเว็บเกมเดียวกันและใส่รหัสห้องนี้</div>
    <div class="vsnote">${VS_LEN_NOTE}</div>
    <div class="help" style="margin:0">เลือกทีมที่จะอยู่ (ทีมละไม่เกิน 2 คน)</div>
    <div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b>${col('A')}</div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b>${col('B')}</div></div>
-   ${ctl}
+   ${E?'':ctl}
    <div class="help" style="margin:4px 0 0">ช่องที่ว่างจะเติมบอท 🤖 ระดับ Normal ให้อัตโนมัติ · แมตช์ละ 5 นาที</div>
    <button class="btn alt" id="leaveBtn">ออกจากห้อง</button>`;
   b.querySelectorAll('button.tpick').forEach(x=>x.onclick=()=>netSend({t:'team',k:x.dataset.t}));
@@ -2992,13 +3003,9 @@ function netEnd(m){
   roundRP=0;const rw={len:0,kill:0,kills:0,win:win?50:0,draw:m.winner==='draw',ok:!!player};
   if(player){rw.len=Math.floor(player.maxMass/10);rw.kills=player.kills;rw.kill=player.kills*5;addCoins(rw.len+rw.kill+rw.win);addRP(gameRP(0,player.kills,win?15:-5,1));   /* 2v2: RP = กำจัด×2 + ชนะ 15 / แพ้ −5 ไม่คิดความยาว (11 พ.ย.) */track('games');track('vsGames');if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
-  openSheet(m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้',b=>{
-    b.innerHTML=`<div class="teams"><div class="tcol A"><b>🔴 ทีมแดง</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B"><b>🔵 ทีมน้ำเงิน</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
-    ${m.players.map(p=>`<div class="item"><div class="ic" style="background:${TEAM_COL[p.team]}33">${p.id===m.mvp?'🏅':p.bot?'🤖':'🚂'}</div><div class="tx">${String(p.name).replace(/[<>&]/g,'')}<small>💀 ${p.kills} · ยาวสุด ${Math.floor(p.maxLen)}</small></div></div>`).join('')}
-    <div id="coinEarn">รอบนี้ได้ +${roundCoins} 🪙${win?' (รวมโบนัสชนะ 50)':''}</div>${rankHTML(roundRP)}<div class="help">⚔️ 2v2 ไม่นับความยาวเข้าสถิติ</div>
-    <button class="btn team" id="toLobby">กลับห้องรอ</button><button class="btn alt" id="leave2">ออกจากห้อง</button>`;
-    b.querySelector('#toLobby').onclick=()=>openSheet('🌐 ห้อง '+NET.room,renderLobby);
-    b.querySelector('#leave2').onclick=()=>netLeave()});
+  // จบแมตช์ → กลับห้องรอทันที (เจ้าของสั่ง 12 พ.ย. 21:21) ผลแมตช์อยู่บนสุดของหน้าห้อง ทุกคนกดพร้อมเล่นอีกรอบ
+  NET.lastEnd={m,win,coins:roundCoins,rp:roundRP};NET.inLobbySent=false;
+  openSheet((m.winner==='draw'?'🤝 เสมอ!':win?'🏆 ทีมคุณชนะ!':'😢 ทีมคุณแพ้')+' · ห้อง '+NET.room,renderLobby);
   if(rw.ok)setTimeout(()=>vsRewardPop(rw,win),450);
 }
 // ===== ป๊อปอัปรางวัลตอนจบ 2v2 (เจ้าของสั่ง 12 พ.ย. 00:49) — บอกว่าได้อะไรเท่าไหร่ =====
@@ -3043,6 +3050,7 @@ let last=performance.now(),profT=0;
 $('advPause').onclick=()=>setPause(!PAUSED);$('advExit').onclick=()=>setPause(true,true);
 $('pResume').onclick=()=>setPause(false);$('pRetry').onclick=()=>{const i=STAGE_I;setPause(false);startStage(i)};$('pQuit').onclick=quitStage;
 addEventListener('keydown',e=>{if((e.code==='KeyP'||e.code==='Escape')&&canPause()){setPause(!PAUSED);e.preventDefault()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden)presClose();else if(!NET&&!PRES)presOpen()});   // พับแอป = ไม่นับว่าว่างรับคำชวน
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&canPause()&&!PAUSED)setPause(true)});
 function loop(t){
   requestAnimationFrame(loop);
@@ -3054,7 +3062,7 @@ requestAnimationFrame(loop);
 {const sp=new URLSearchParams(location.search),q=sp.get('w')||sp.get('coop');if(q){const code=q.replace(/[^0-9a-z]/gi,'').slice(0,8).toUpperCase();if(code){inviteOpen=true;history.replaceState(null,'',location.pathname);openSheet('🌍 เพื่อนชวนมาเล่น',b=>renderInvite(b,code))}}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&ACCT.mode==='acct'&&(profDirty||saveT))pushProf()});
 addEventListener('pagehide',()=>{if(ACCT.mode==='acct'){if(profDirty||saveT)pushProf()}else if(profDirty)saveProf()});
-bootAccount();
+bootAccount();setTimeout(presOpen,1500);
 setTimeout(()=>maybeNews(),1200);
 </script>
 </body>

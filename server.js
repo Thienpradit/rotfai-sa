@@ -123,7 +123,7 @@ const pubBots = room => [...room.bots.values()].map(b => b.info);
 function clearBots(room) { room.deadBots = 0; const had = room.bots.size; botsim.clear(room); if (had) bcast(room, { t: 'bclr' }); }
 function setHost(room, p) { for (const q of room.players.values()) q.host = q === p; lobby(room); }
 // ---------- ชวนผู้เล่น / พร้อม / นับถอยหลัง 2v2 (เจ้าของสั่ง 12 พ.ย. 13:11) ----------
-// ผู้เล่นที่ชวนได้ = คนในโลกออนไลน์ (ffa) ทุกโลก + คนเล่นผจญภัยที่ต่อ ws แบบ idle ไว้
+// ผู้เล่นที่ชวนได้ = คนในโลกออนไลน์ (ffa) ทุกโลก + คนอยู่หน้าแรก/เล่นผจญภัยที่ต่อ ws แบบ idle ไว้ (หน้าแรกตั้งแต่ 12 พ.ย. 21:21)
 const idle = new Map();   // ws → {name}
 const VS_CD = +process.env.VS_CD_MS || 30000, INVITE_CD = 15000;
 function availCount() { let n = idle.size; for (const r of rooms.values()) if (r.ffa) n += r.players.size; return n; }

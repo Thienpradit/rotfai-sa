@@ -27,11 +27,14 @@ async def main():
         # A) จบแมตช์ปกติ
         async def wait_end(a,b):await a.wait_for_timeout(20000)
         a,b=await match(p,'http://127.0.0.1:3456/','END'+str(int(time.time())%1000),wait_end)
-        await a.wait_for_timeout(9000)
-        chk('ยังดูหน้าสรุปอยู่ 9 วิ → ไม่โดนดึงเข้าแมตช์ใหม่',await a.evaluate("NET.phase==='lobby'&&!document.getElementById('sheet').classList.contains('hidden')"))
         for pg in (a,b):
-            await pg.evaluate("document.getElementById('rwPop')&&document.getElementById('rwPop').remove()");await pg.click('#toLobby');await pg.wait_for_timeout(300)
-        await a.wait_for_timeout(6000);chk('กลับห้องรอครบ → นับ 5 วิแล้วเริ่มเอง',await a.evaluate("NET.phase==='play'"))
+            chk('จบแล้วอยู่หน้าห้องรอ: ผลรอบที่แล้ว + ปุ่มพร้อม (ไม่ใช่หน้าแรก)',await pg.evaluate("NET.phase==='lobby'&&!!document.querySelector('#sheet .vsres')&&!!document.getElementById('readyBtn')&&document.getElementById('menu').classList.contains('hidden')===false?true:NET.phase==='lobby'&&!!document.querySelector('#sheet .vsres')&&!!document.getElementById('readyBtn')"))
+        await a.screenshot(path='/tmp/claude-0/-home-claude/25cb9392-c762-56ab-9405-b678b539416b/scratchpad/vs_end_lobby.png')
+        for pg in (a,b):
+            await pg.evaluate("document.getElementById('rwPop')&&document.getElementById('rwPop').remove()");await pg.click('#readyBtn');await pg.wait_for_timeout(300)
+        chk('ทุกคนกดพร้อม → เล่นเลยกดได้',await a.evaluate("!document.getElementById('startBtn').disabled"))
+        await a.click('#startBtn');await a.wait_for_timeout(1200)
+        chk('เริ่มรอบใหม่ในห้องเดิม · ผลรอบเก่าหายไป',await b.evaluate("NET.phase==='play'&&NET.lastEnd===null"))
         # B) อัปเดตเซิร์ฟเวอร์ระหว่างเล่น → จบแมตช์ให้ก่อน
         env=dict(os.environ,PORT='3458',MATCH_SECS='300',GRACEFUL='1',RESET_SECS='8')
         srv=subprocess.Popen(['node','server.js'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(1.5)
