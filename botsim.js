@@ -65,7 +65,7 @@ function spawnBot(room, o = {}) {
   const side = o.team ? (o.team === 'A' ? Math.PI : 0) : undefined;
   const [x, y] = farSpot(room, trains, o.boss ? 500 : 400, o.boss ? 1100 : 650, side);
   const a = side !== undefined ? side + Math.PI + rnd(-.5, .5) : Math.random() * TAU;
-  let mass = o.boss ? D.bossM : rnd(25, 120); if (!o.boss && !o.team && !o.hunter && Math.random() < D.big) mass = rnd(150, 450); if (o.team) mass = rnd(20, 45); if (o.hunter) mass = rnd(45, 90);
+  let mass = o.boss ? D.bossM : rnd(25, 120); if (!o.boss && !o.team && !o.hunter && Math.random() < D.big) mass = rnd(150, 450); if (o.team) mass = rnd(40, 80); if (o.hunter) mass = rnd(80, 140);
   const id = -(100000000 + (nextBot++ % 90000000));
   const b = { id, bot: true, name: o.boss ? '👑 บอสยักษ์' : (o.hunter ? '🎯 ' : o.team ? '🤖 ' : '') + freeName(room), skin: o.boss ? BOSS_SKIN : o.hunter ? HUNTER_SKIN : o.team ? TEAM_SKIN[o.team] : pick(SKINS), loco: o.boss ? 'diesel' : pick(LOCOS), team: o.team,
     mass, maxLen: mass, pts: mkPts(x, y, a, mass), angle: a, target: a, boost: false, energy: o.boss ? 10 : 5, alive: true, safe: SPAWN_GHOST, ghost: SPAWN_GHOST, slow: 0, selfCD: 0, tunCD: 0,
@@ -107,21 +107,24 @@ function bodyNear(S, room, x, y, rad, self) {
 const BIG_START = 2000, BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human && (o.mass || 0) >= BIG_START ? Math.min(BIG_MAX, 1 + Math.floor(((o.mass || 0) - BIG_START) / BIG_STEP)) : 0;   // เริ่ม 2,000 (เจ้าของปรับ 11 พ.ย. 17:42)
 // ⚔️ 2v2: บอทโหดขึ้น (เจ้าของสั่ง 12 พ.ย. 00:45 — ไล่ล่า โจมตี หลบเก่ง) · ใช้เฉพาะห้อง 2v2 (!room.ffa) · โลกออนไลน์ใช้ D เดิม
 const VS_HUNTERS = 2;   // จำนวนนักล่ากลางในห้อง 2v2
-const DV = { huntP: .97, huntR: 1500, others: .85, othersR: 1600, look: 1.3, think: [5, 12], leadK: .6, boostR: 750, regen: .55, dodge: 1 };
+// โหดขึ้นอีกรอบ (เจ้าของสั่ง 13 พ.ย. 06:54): คิดถี่ขึ้น ไล่ไกลขึ้น เร่งบ่อยขึ้น เลี้ยวไวขึ้น (VS_TURN) ขบวนเกิดยาวขึ้น · 2 ตัวไล่เป้าเดียวกัน = ประกบสองข้าง (คีม)
+const DV = { huntP: .99, huntR: 1900, others: .9, othersR: 1800, look: 1.5, think: [3, 8], leadK: .7, boostR: 950, regen: .9, enMax: 8, dodge: 1 };
+const VS_TURN = 1.15, VS_RESPAWN = 2, VS_HUNT_RESPAWN = 4;
 const enemyHeadNear = (room, w, x, y, rr, trains) => { for (const o of trains) { if (o === w || !o.alive || ally(o, w) || o.ghost > 0) continue;   // หลบหัวศัตรูที่กำลังพุ่งมา (คาดตำแหน่งล่วงหน้า ~0.3 วิ)
     const oh = o.pts[0], oa = o.angle || 0, sp = (o.boost ? 5.4 : 2.7) * 18, px = oh.x + Math.cos(oa) * sp, py = oh.y + Math.sin(oa) * sp, R = rr + rOf(o.mass) + 14;
     if ((px - x) ** 2 + (py - y) ** 2 < R * R || (oh.x - x) ** 2 + (oh.y - y) ** 2 < R * R) return true; } return false; };
 function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
   const vs = !room.ffa && !w.isBoss, P = vs ? DV : D;
-  if (vs && w.energy < 6) w.energy += f / 60 * DV.regen;   // 2v2: บอทเติมพลังเร่งเองช้า ๆ ไว้พุ่งตัดหน้า/หนี
+  if (vs && w.energy < DV.enMax) w.energy += f / 60 * DV.regen;   // 2v2: บอทเติมพลังเร่งเองช้า ๆ ไว้พุ่งตัดหน้า/หนี
   if (ai.t <= 0) {
     ai.t = rnd(P.think[0], P.think[1]) / (1 + .4 * bossRage(w)); ai.hunt = null;
     let bh = null, bd0 = 1100 + 250 * bossRage(w);
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
     else if (w.mass > (vs ? 12 : 22)) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt) / (vs && hu ? 1.8 : 1);   // 2v2: เล็งคนจริงก่อนบอท
-      if (!(hu ? (o.safe || o.ghost) : vs && (o.safe > 0 || o.ghost > 0)) && d < (hu ? P.huntR + 200 * bt : vs ? DV.othersR : 380) && de < bd && Math.random() < (hu ? P.huntP + (1 - P.huntP) * Math.min(1, .1 * bt) : P.others)) { bd = de; ai.hunt = o; } } }
+      if (!(hu ? (o.safe || o.ghost) : vs && (o.safe > 0 || o.ghost > 0)) && d < (hu ? P.huntR + 200 * bt : vs ? DV.othersR : 380) && de < bd && Math.random() < (hu ? P.huntP + (1 - P.huntP) * Math.min(1, .1 * bt) : P.others)) { bd = de; ai.hunt = o; } }
+      if (vs && ai.hunt && !ai.hunt.human) { let hb = null, hd = 1e9; for (const o of trains) if (o.human && o.alive && !ally(o, w) && !(o.safe || o.ghost)) { const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < DV.huntR && d < hd) { hd = d; hb = o; } } if (hb) ai.hunt = hb; } }   // 2v2: มีคนจริงในระยะ = ไล่คนก่อนเสมอ
     if (!ai.hunt) {
       let best = null, bs = 0; const cx = Math.floor(h.x / CS), cy = Math.floor(h.y / CS);
       for (let gx = cx - 4; gx <= cx + 4; gx++) for (let gy = cy - 4; gy <= cy + 4; gy++) { const a = S.fgrid.get(key(gx, gy)); if (!a) continue;
@@ -134,7 +137,9 @@ function aiThink(S, room, w, f, trains) {
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
     if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : vs ? 1700 : 850 + 200 * bigTier(o)) || (vs && (o.ghost > 0))) ai.hunt = null;
     else if (vs) {   // 2v2: วิ่งขนาน แล้วพุ่งตัดหน้าให้ศัตรูชนลำตัวเรา
-      const oa = o.angle || 0, osp = o.boost ? 5.4 : 2.7, lead = 90 + rOf(o.mass) * 4 + d * DV.leadK, side = Math.sign(Math.cos(oa) * (h.y - oh.y) - Math.sin(oa) * (h.x - oh.x)) || 1;
+      const oa = o.angle || 0, osp = o.boost ? 5.4 : 2.7; let lead = 90 + rOf(o.mass) * 4 + d * DV.leadK, side = Math.sign(Math.cos(oa) * (h.y - oh.y) - Math.sin(oa) * (h.x - oh.x)) || 1;
+      // คีม: มีพวกเดียวกัน (หรือนักล่าตัวอื่น) ไล่เป้าเดียวกันอยู่ → ตัวที่ id น้อยกว่าอ้อมไปอีกข้าง + ตัดไกลกว่า ปิดทางหนีสองฝั่ง
+      for (const q of trains) if (q !== w && q.bot && q.alive && q.ai && q.ai.hunt === o && (ally(q, w) || (q.hunter && w.hunter)) && q.id < w.id) { side = -(Math.sign(Math.cos(oa) * (q.pts[0].y - oh.y) - Math.sin(oa) * (q.pts[0].x - oh.x)) || 1); lead *= 1.35; break; }
       const off = d > 380 ? 140 * side : 0; tx = oh.x + Math.cos(oa) * lead - Math.sin(oa) * off; ty = oh.y + Math.sin(oa) * lead + Math.cos(oa) * off;
       boost = w.mass > 14 && (d < DV.boostR || osp > 3) && w.energy > .4; }
     else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 + 150 * bossRage(w) && w.mass > 18; } }
@@ -154,7 +159,7 @@ function aiThink(S, room, w, f, trains) {
 function portalOpen(room, p) { const q = room.sim.world.portals[p.pair], AR = arenaR(room); return Math.hypot(q.x, q.y) < AR - PORTAL_EDGE && Math.hypot(p.x, p.y) < AR - 60; }
 function moveBot(S, room, w, f, dt) {
   const r = rOf(w.mass); let d = w.target - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d));
-  const rg = bossRage(w), tr = .12 / (1 + r / 30) * f * (1 + RAGE_TURN * rg); w.angle += Math.max(-tr, Math.min(tr, d));
+  const rg = bossRage(w), tr = .12 / (1 + r / 30) * f * (1 + RAGE_TURN * rg) * (!room.ffa && !w.isBoss ? VS_TURN : 1); w.angle += Math.max(-tr, Math.min(tr, d));
   let sp = 2.7 * (w.isBoss ? RAGE_SPD[Math.min(2, rg)] : 1); const slowed = w.slow > 0; if (slowed) { w.slow -= dt; sp *= .45; }
   if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
   if (w.isBoss) sp = Math.min(sp, BOSS_CAP * (slowed ? .45 : 1));
@@ -246,10 +251,10 @@ function fill(S, room, dt) {
     const hum = { A: 0, B: 0 }; for (const p of room.players.values()) if (hum[p.team] !== undefined) hum[p.team]++;
     for (const t of ['A', 'B']) { const mine = live.filter(b => b.team === t), want = Math.max(0, TEAM_MAX - hum[t]);
       if (mine.length > want) killBot(room, mine[0], null, 'trim');
-      else if (mine.length < want) { S.vsT[t] -= dt; if (S.vsT[t] <= 0) { for (let i = mine.length; i < want; i++) spawnBot(room, { team: t }); S.vsT[t] = 3; } } else S.vsT[t] = 3; }
+      else if (mine.length < want) { S.vsT[t] -= dt; if (S.vsT[t] <= 0) { for (let i = mine.length; i < want; i++) spawnBot(room, { team: t }); S.vsT[t] = VS_RESPAWN; } } else S.vsT[t] = VS_RESPAWN; }
     // 🎯 นักล่ากลาง (เจ้าของสั่ง 12 พ.ย. 01:22 "2v2 ให้มีบอทไล่ฆ่าทั้ง 2 ทีม"): ไม่มีทีม ไล่ฆ่าทุกคนทั้งทีมแดง/น้ำเงิน · ตายแล้วเกิดใหม่ใน 6 วิ · แต้มที่มันทำไม่เข้าทีมไหน
     const hn = live.filter(b => b.hunter).length;
-    if (hn < VS_HUNTERS) { S.vsT.H = (S.vsT.H ?? 4) - dt; if (S.vsT.H <= 0) { for (let i = hn; i < VS_HUNTERS; i++) spawnBot(room, { hunter: true }); S.vsT.H = 6; } } else S.vsT.H = 6;
+    if (hn < VS_HUNTERS) { S.vsT.H = (S.vsT.H ?? 4) - dt; if (S.vsT.H <= 0) { for (let i = hn; i < VS_HUNTERS; i++) spawnBot(room, { hunter: true }); S.vsT.H = VS_HUNT_RESPAWN; } } else S.vsT.H = VS_HUNT_RESPAWN;
   }
 }
 
