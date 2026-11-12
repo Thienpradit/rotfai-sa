@@ -103,7 +103,8 @@ function getRoom(code, ffa) {
   let r = rooms.get(key);
   if (!r) {
     const cfg = ffa ? CFG.ffa : CFG.vs;
-    r = { key, code, ffa, diff: 'normal', cfg, players: new Map(), foods: new Map(), whites: new Map(), pups: new Map(), items: { tgs: null, gold: null },
+    r = { key, code, ffa, diff: 'normal', cfg, arena,   // arena = รัศมีวงตอนนี้ (หดใน 2v2) — botsim ใช้หลบขอบ/ปิดอุโมงค์ ต้องตรงกับที่ผู้เล่นเห็น
+      players: new Map(), foods: new Map(), whites: new Map(), pups: new Map(), items: { tgs: null, gold: null },
       timers: { tgs: 30, gold: 50 }, phase: ffa ? 'play' : 'lobby', timeLeft: MATCH, nid: 1, bots: new Map(), exp: new Map() };
     for (let w = 0; w < cfg.food;) w += isJewel(newFood(r)) ? JEWEL_V : 1;
     for (let i = 0; i < cfg.white; i++) newWhite(r);
