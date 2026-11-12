@@ -10,10 +10,10 @@ const SHOP = {
   loco: { classic: 0, diesel: 25000, bullet: 60000, tram: 120000, metro: 250000, comet: 500000 },
   wagon: { gem: 0, cargo: 12000, coach: 18000, glass: 30000, mine: 22000, sweets: 25000, crystal: 35000, pearl: 40000, magma: 45000, vault: 50000, royal: 60000, cosmos: 80000 },
   smoke: { normal: 0, sparkle: 10000, bubbles: 15000, rainbow: 20000, snow: 25000, flame: 40000 },
-  skin: { candy: 10000, galaxy: 15000, lava: 15000, neon: 25000 },
+  skin: { candy: 10000, galaxy: 15000, lava: 15000, neon: 25000, mango: 12000, matcha: 12000, thaitea: 14000, bubblegum: 15000, toxic: 20000, rosegold: 22000, chrome: 25000, blackice: 30000, opal: 35000 },
   kfx: { none: 0, firework: 15000, gems: 20000, ring: 25000, confetti: 30000, coins: 35000, bolt: 45000 },
   horn: { classic: 0, deep: 20000, chime: 35000, tune: 60000, siren: 100000, thunder: 180000, dragon: 300000 },
-  title: { speed: 10000, gemking: 25000, rich: 60000 },
+  title: { speed: 10000, gemking: 25000, rich: 60000, zaab: 15000, maiwai: 12000, pang: 15000, tueng: 18000, tuamae: 18000, tuengpria: 22000, koentan: 25000, jaopo: 35000, storm: 40000, ninja: 45000, speeddemon: 50000, irondragon: 60000, reaper: 80000, unbeaten: 100000 },
 };
 const LIMITED = [['skin', 'sunset', 22000], ['skin', 'ocean', 22000], ['skin', 'sakura', 24000], ['skin', 'aurora', 28000], ['skin', 'royal', 30000],
   ['smoke', 'hearts', 26000], ['smoke', 'leaves', 22000], ['title', 'lucky', 20000], ['title', 'night', 24000],
