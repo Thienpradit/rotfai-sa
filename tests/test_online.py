@@ -24,7 +24,7 @@ async def main():
         await pages[0].screenshot(path='/tmp/n0.png')
         teams=[await pg.evaluate("NET&&NET.me&&NET.me.team") for pg in pages]
         print('teams',teams,'host',await pages[0].evaluate("NET.host"))
-        await pages[0].click('#startBtn');await pages[0].wait_for_timeout(1500)
+        await __readyall();await pages[0].click('#startBtn');await pages[0].wait_for_timeout(1500)
         st=[await pg.evaluate("[state,!!player,worms.length,NET.phase]") for pg in pages]
         await pages[1].wait_for_timeout(1000)
         print('remotes visible',[await pg.evaluate("worms.filter(w=>w.isRemote&&w.alive).length") for pg in pages])

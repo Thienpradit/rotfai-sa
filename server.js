@@ -278,7 +278,7 @@ wss.on('connection', (ws, req) => {
   });
   ws.on('close', () => {
     idle.delete(ws);
-    if (!room || !me) return;
+    if (!room || !me || me.kicked) return;
     room.players.delete(me.id);
     bcast(room, { t: 'left', id: me.id });
     if (!room.players.size) { rooms.delete(room.key); return; }
@@ -293,6 +293,19 @@ function dropFoods(room, drop, v, ttl) {
   if (add.length) bcast(room, { t: 'fa', f: add });
 }
 
+// ครบเวลานับถอยหลังแล้วใครไม่กดพร้อม → เชิญออกจากห้อง บอทเข้าแทน (เจ้าของสั่ง 12 พ.ย. 21:31) · คืน false ถ้าไม่เหลือใครในห้อง
+function kickUnready(room) {
+  const out = [...room.players.values()].filter(p => !p.ready);
+  for (const p of out) {
+    p.kicked = true; room.players.delete(p.id);
+    try { p.ws.send(JSON.stringify({ t: 'kick', why: 'ready' })); } catch (e) {}
+    try { p.ws.close(4001, 'not ready'); } catch (e) {}
+    bcast(room, { t: 'left', id: p.id });
+  }
+  if (!room.players.size) { rooms.delete(room.key); return false; }
+  if (out.some(p => p.host)) { const h = room.players.values().next().value; for (const q of room.players.values()) q.host = q === h; }
+  return true;
+}
 // ---------- ห้อง 2v2 ที่รออยู่: นับถอยหลัง 30 วิเมื่อมีคนจริง ≥ 2 · อัปเดตจำนวนคนที่ชวนได้ ----------
 setInterval(() => {
   const av = availCount(), now = Date.now();
@@ -301,7 +314,7 @@ setInterval(() => {
     let ch = room.avail !== av;
     // นับถอยหลังเมื่อคนจริง ≥2 และทุกคนอยู่หน้าห้องแล้ว (ไม่ดึงคนที่ยังดูหน้าสรุปผลเข้าแมตช์ใหม่) หรือจบแมตช์ไปเกิน 45 วิ · ระหว่างอัปเดตไม่เริ่ม
     const inL = [...room.players.values()].every(p => p.inLobby) || now - (room.endAt || 0) > 45000;
-    if (room.players.size >= 2 && inL && !resetAt) { if (!room.cdAt) { room.cdAt = now + VS_CD; ch = true; } else if (now >= room.cdAt) { startMatch(room); continue; } }
+    if (room.players.size >= 2 && inL && !resetAt) { if (!room.cdAt) { room.cdAt = now + VS_CD; ch = true; } else if (now >= room.cdAt) { if (kickUnready(room)) startMatch(room); continue; } }
     else if (room.cdAt) { room.cdAt = null; ch = true; }
     if (ch) lobby(room);
   }
