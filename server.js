@@ -31,6 +31,8 @@ function startReset(secs, why) {
   if (resetAt) return; resetAt = Date.now() + secs * 1000; console.log(`reset countdown ${secs}s (${why})`);
   const msg = JSON.stringify({ t: 'reset', s: secs });
   for (const ws of wss.clients) if (ws.readyState === 1) ws.send(msg);
+  // 2v2 ที่เล่นอยู่ → จบแมตช์ทันที ให้ทุกคนได้สรุปผล+รางวัลก่อนปิดเครื่อง (เจ้าของแจ้ง 12 พ.ย. 13:48 ว่าโดนเด้งออกไม่ได้อะไรเลย)
+  for (const r of rooms.values()) if (!r.ffa && r.phase === 'play') { try { endMatch(r); } catch (e) { console.error('endMatch on reset', e); } }
   setTimeout(() => { console.log('reset: closing'); for (const ws of wss.clients) try { ws.close(4000, 'update'); } catch (e) {} setTimeout(() => process.exit(0), 1500).unref(); }, secs * 1000 + 3000);
 }
 function checkNewVersion() {
@@ -137,7 +139,7 @@ function teamScore(room) {
 
 // ---------- match flow ----------
 function startMatch(room) {
-  clearBots(room); room.cdAt = null; for (const p of room.players.values()) p.ready = false;
+  clearBots(room); room.cdAt = null; for (const p of room.players.values()) { p.ready = false; p.inLobby = false; }
   room.phase = 'play'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.timers = { tgs: 30, gold: 50 };
   const spawns = {}; const per = { A: 0, B: 0 };
   for (const p of room.players.values()) {
@@ -158,7 +160,7 @@ function endMatch(room) {
   bcast(room, { t: 'end', winner: A > B ? 'A' : B > A ? 'B' : 'draw', A, B, mvp,
     players: ps.map(p => ({ id: p.id, name: p.name, team: p.team, kills: p.kills, maxLen: p.maxLen })).concat(bots) });
   clearBots(room);
-  room.phase = 'lobby'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.cdAt = null; for (const p of room.players.values()) p.ready = false;
+  room.phase = 'lobby'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.cdAt = null; room.endAt = Date.now(); for (const p of room.players.values()) { p.ready = false; p.inLobby = false; }
   lobby(room);
 }
 
@@ -194,6 +196,7 @@ wss.on('connection', (ws, req) => {
         host: room.players.size === 0, skin: Array.isArray(m.skin) ? m.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffd23f', '#ff8c42'],
         loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
       room.players.set(me.id, me);
+      me.inLobby = true;
       if (!ffa && room.phase === 'lobby') room.cdAt = null;   // มีคนเข้ามาใหม่ → นับ 30 วิใหม่ให้เขา
       send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room) });
@@ -211,9 +214,11 @@ wss.on('connection', (ws, req) => {
         if (!room.ffa && room.phase === 'lobby') {
           const ps = [...room.players.values()];
           // คนเดียว = หัวหน้ากดเริ่มได้ · หลายคน = ต้องพร้อมทุกคนก่อน (ไม่งั้นรอนับถอยหลัง 30 วิ)
+          if (resetAt) { send(ws, { t: 'err', msg: 'กำลังอัปเดตเวอร์ชันใหม่ เริ่มแมตช์ไม่ได้ รอสักครู่นะ' }); break; }
           if (ps.length === 1 ? me.host : ps.every(p => p.ready)) startMatch(room);   // คนไม่ครบ → เซิร์ฟเวอร์เติมบอทให้ทีมที่ขาด
         }
         break;
+      case 'inlobby': me.inLobby = true; break;   // เปิดหน้าห้องแล้ว (ไม่ได้ค้างหน้าสรุปผล)
       case 'ready':
         if (!room.ffa && room.phase === 'lobby') { me.ready = !!m.v; lobby(room); }
         break;
@@ -294,7 +299,9 @@ setInterval(() => {
   for (const room of rooms.values()) {
     if (room.ffa || room.phase !== 'lobby') continue;
     let ch = room.avail !== av;
-    if (room.players.size >= 2) { if (!room.cdAt) { room.cdAt = now + VS_CD; ch = true; } else if (now >= room.cdAt) { startMatch(room); continue; } }
+    // นับถอยหลังเมื่อคนจริง ≥2 และทุกคนอยู่หน้าห้องแล้ว (ไม่ดึงคนที่ยังดูหน้าสรุปผลเข้าแมตช์ใหม่) หรือจบแมตช์ไปเกิน 45 วิ · ระหว่างอัปเดตไม่เริ่ม
+    const inL = [...room.players.values()].every(p => p.inLobby) || now - (room.endAt || 0) > 45000;
+    if (room.players.size >= 2 && inL && !resetAt) { if (!room.cdAt) { room.cdAt = now + VS_CD; ch = true; } else if (now >= room.cdAt) { startMatch(room); continue; } }
     else if (room.cdAt) { room.cdAt = null; ch = true; }
     if (ch) lobby(room);
   }

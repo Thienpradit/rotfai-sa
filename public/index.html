@@ -2313,6 +2313,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ']},
   {id:24,d:'12 พ.ย. 2026',t:'📨 ชวนเพื่อนเข้า 2v2 + กดพร้อม',l:['เปิดห้อง ⚔️ 2v2 แล้วถ้ามีคนเล่นออนไลน์หรือผจญภัยอยู่ กด 📨 ชวนได้เลย · คนที่ได้รับคำชวนกด ⚔️ เข้าร่วม ก็เข้าห้องทันที','มีหลายคนในห้อง: กด ✋ พร้อม · ทุกคนพร้อมแล้วกด ▶ เล่นเลย ได้ · ไม่งั้นเกมเริ่มเองใน 30 วิ','เล่นคนเดียวและไม่มีใครออนไลน์ → เริ่มเล่นกับบอทให้เองเลย','แก้เซิร์ฟเวอร์หลุด (502) ตอนวงสนาม 2v2 หด']},
   {id:23,d:'12 พ.ย. 2026',t:'💀 รู้ว่าใครเก็บเรา',l:['โดนผู้เล่นจริงกำจัด จะมีการ์ดขึ้นก่อนเล่นต่อ: ชื่อ แรงก์ ฉายาของคนที่เก็บเรา พร้อมคำพูดกวน ๆ จากเขา','หน้าสรุปผลก็บอกว่าโดนใครกำจัด · ไปซื้อฉายาเท่ ๆ ในร้าน ให้คนที่โดนเราเก็บได้เห็นกัน!']},
   {id:22,d:'12 พ.ย. 2026',t:'😜 ป้ายกำจัดคำกวน ๆ + แก้บอท 2v2',l:['ป้ายตอนกำจัดสุ่มคำเฟี้ยว ๆ กวน ๆ ไม่ซ้ำ เช่น บ๊ายบาย~ · จบข่าว! · เบรกไม่ทันเหรอ? · ตกรถไฟแล้วจ้า · กลับไปฝึกมาใหม่นะ · ตูม! เละเลย · ทั้งสนามคือของฉัน!','ตอนวงสนามหดใน 2v2 บอทไม่หลุดออกนอกกำแพงแล้ว (ออกนอกวง = ตายเหมือนผู้เล่น)','บอทไม่เข้าอุโมงค์ที่ปิดอยู่ (สีเทา ❌) แล้ว']},
@@ -2843,7 +2844,7 @@ function netMsg(m){
     case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
+    case'start':{netPlayers(m.players);NET.phase='play';NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
@@ -2940,6 +2941,7 @@ function renderLobby(b){
   const rb=b.querySelector('#readyBtn');if(rb)rb.onclick=()=>netSend({t:'ready',v:!me.ready});
   const ib=b.querySelector('#invBtn');if(ib)ib.onclick=()=>{netSend({t:'invite'});ib.disabled=true;setTimeout(()=>{if(ib.isConnected)ib.disabled=false},15000)};
   lobTick();
+  if(NET&&NET.phase==='lobby'&&!NET.inLobbySent){NET.inLobbySent=true;netSend({t:'inlobby'})}
   b.querySelector('#leaveBtn').onclick=()=>netLeave();
 }
 function netSpawnMe(sp){hideKby();LAST_KILLER=null;
