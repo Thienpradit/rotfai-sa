@@ -1907,7 +1907,8 @@ function drawStations(vx0,vy0,vx1,vy1){
       const sx=k%4===3?-40:0,sy=(k%4===2?6:8)*ST_SC;ctx.translate(sx*ST_SC,sy);if(Math.cos(st.a)<0)ctx.rotate(Math.PI);   // ป้ายบนสถานี: ตัวหนังสือไม่กลับหัว
       if(!ready){ctx.fillStyle='#1b2150';roundRect(-50*ST_SC,-10*ST_SC,100*ST_SC,20*ST_SC,6);ctx.fill();ctx.strokeStyle='#8a93c8';ctx.lineWidth=2;ctx.stroke()}
       ctx.fillStyle=ready?'#4a1a10':'#e9ecff';ctx.font='600 12px Mitr,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText(ready?'🚉 ส่งพลอย':'⏳ รอ '+Math.ceil(st.cd)+' วิ',0,1);ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.restore();continue}
+      ctx.fillText(ready?'🚉 ส่งพลอย':'⏳ รอ '+Math.ceil(st.cd)+' วิ',0,1);ctx.textBaseline='alphabetic';ctx.textAlign='left';ctx.restore();
+      const ca=Math.abs(Math.cos(st.a)),sa=Math.abs(Math.sin(st.a));stationBanner(k,x,y-(sa*W/2+ca*H/2)*.78,ready,st.cd);continue}
     ctx.save();ctx.translate(x,y);ctx.rotate(st.a);
     const ready=st.cd<=0;
     if(ready){ctx.fillStyle=`rgba(255,210,63,${.18+.12*Math.sin(frame*.1)})`;roundRect(-90,-38,180,76,14);ctx.fill()}
@@ -1915,8 +1916,23 @@ function drawStations(vx0,vy0,vx1,vy1){
     ctx.fillStyle='#c94f4f';roundRect(-84,-30,168,22,6);ctx.fill();
     ctx.fillStyle='#e9e2cf';ctx.font='600 15px Mitr,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.rotate(-st.a);ctx.fillText(ready?'🚉 สถานีส่งพลอย':'🚉 รอ '+Math.ceil(st.cd)+' วิ',0,8);ctx.textBaseline='alphabetic';
-    ctx.restore()}
+    ctx.restore();stationBanner(k,x,y-70,ready,st.cd)}
 }
+// ป้ายชื่อสถานีตั้งตรงเสมอ อ่านง่าย (เจ้าของสั่ง 12 พ.ย. 12:02 "Station ให้ตัวหนังสือเขียนด้วย")
+const ST_NAME=[['สถานีทับทิม','#ff5e7a'],['สถานีมรกต','#3ddc84'],['สถานีไพลิน','#4da3ff'],['สถานีบุษราคัม','#ffc23f']];
+let ST_BAN=[];
+function stationBanner(k,x,y,ready,cd){ST_BAN.push([k,x,y,ready,cd])}   // เก็บไว้วาดทีหลังพลอย/ไอเทม (ไม่โดนทับ)
+function drawStationBanners(){for(const b of ST_BAN)stationBanner0(...b);ST_BAN=[]}
+function stationBanner0(k,x,y,ready,cd){const [nm,col]=ST_NAME[k%4],t1='🚉 '+nm,t2=ready?'✅ ส่งพลอยได้เลย!':'⏳ รอ '+Math.ceil(cd)+' วิ';
+  ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='700 19px Mitr,sans-serif';const w1=ctx.measureText(t1).width;ctx.font='600 13px Mitr,sans-serif';const w2=ctx.measureText(t2).width;
+  const bw=Math.max(w1,w2)+30,bh=50,bx=x-bw/2,by=y-bh/2,pl=ready?.5+.5*Math.sin(frame*.1):0;
+  ctx.globalAlpha=ready?1:.85;ctx.fillStyle='rgba(12,16,40,.82)';roundRect(bx,by,bw,bh,14);ctx.fill();
+  ctx.lineWidth=ready?2.5+pl*1.5:2;ctx.strokeStyle=ready?col:'rgba(160,170,210,.7)';roundRect(bx,by,bw,bh,14);ctx.stroke();
+  ctx.fillStyle=col;ctx.beginPath();ctx.moveTo(x-8,by+bh);ctx.lineTo(x+8,by+bh);ctx.lineTo(x,by+bh+8);ctx.closePath();ctx.fill();   // หางชี้ลงที่สถานี
+  ctx.font='700 19px Mitr,sans-serif';ctx.lineWidth=4;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.strokeText(t1,x,by+17);ctx.fillStyle=col;ctx.fillText(t1,x,by+17);
+  ctx.font='600 13px Mitr,sans-serif';ctx.fillStyle=ready?'#fff3b0':'#c9cff0';ctx.fillText(t2,x,by+37);
+  ctx.restore()}
 function drawPortals(vx0,vy0,vx1,vy1){
   for(const p of portals){if(p.x<vx0-80||p.x>vx1+80||p.y<vy0-80||p.y>vy1+80)continue;
     if(!portalOpen(p)){ctx.fillStyle='#262a3d';ctx.beginPath();ctx.arc(p.x,p.y,46,0,TAU);ctx.fill();ctx.strokeStyle='#5a6080';ctx.lineWidth=4;ctx.beginPath();ctx.arc(p.x,p.y,46,0,TAU);ctx.stroke();
@@ -1982,6 +1998,7 @@ function render(){
     ctx.fillStyle='#1a1f3d';ctx.beginPath();ctx.arc(p.x,p.y+bob,16,0,TAU);ctx.fill();ctx.strokeStyle=t.col;ctx.lineWidth=3;ctx.stroke();ctx.fillText(t.icon,p.x,p.y+bob+1)}
   ctx.textBaseline='alphabetic';
   const list=worms.filter(w=>w.alive).sort((a,b)=>(a.isP-b.isP)||(a.mass-b.mass));
+  drawStationBanners();
   drawSmoke();
   for(const w of list)drawWorm(w,vx0,vy0,vx1,vy1);
   drawPortalMouths(vx0,vy0,vx1,vy1);
@@ -2232,6 +2249,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // ผู้เล่นใหม่ไม่เคยเล่น = ไม่โชว์ (จำว่าเห็นหมดแล้ว) · **ทุกครั้งที่ขึ้นเว็บจริงให้เพิ่มรายการใหม่ไว้บนสุด (id +1)**
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const NEWS=[
+  {id:20,d:'12 พ.ย. 2026',t:'🚉 ป้ายชื่อสถานี',l:['ทุกสถานีมีป้ายชื่อตัวใหญ่อ่านง่าย: สถานีทับทิม · สถานีมรกต · สถานีไพลิน · สถานีบุษราคัม','ป้ายบอกด้วยว่า ✅ ส่งพลอยได้เลย หรือ ⏳ ต้องรออีกกี่วิ']},
   {id:19,d:'12 พ.ย. 2026',t:'🏷️ ฉายาใหม่ 14 แบบ + 🎨 สีใหม่ 9 สี',l:['ฉายา: 🌶️ แซบจีด · 🫡 ไม่ไหวบอกไหว · 💥 ปังไม่ไหว · 💪 ตัวตึง · 💅 ตัวแม่ · 💯 ตึงเปรี๊ยะ · 😎 เกินต้าน · 🕶️ เจ้าพ่อขบวน · 🌪️ จ้าวพายุ · 🥷 นักล่าไร้เงา · 😈 ปีศาจความเร็ว · 🐉 มังกรเหล็ก · ☠️ มัจจุราชรางเหล็ก · 🏆 ราชันไร้พ่าย','สี: มะม่วงสุก · ชาเขียวมัทฉะ · ชาไทย · หมากฝรั่ง · พิษ · โรสโกลด์ · โครเมียม · น้ำแข็งดำ · โอปอล']},
   {id:18,d:'12 พ.ย. 2026',t:'🌈 ควันสีรุ้งเป็นรุ้งจริงแล้ว',l:['ควันสีรุ้งในร้านค้าเปลี่ยนจากควันเปลี่ยนสี เป็นรุ้ง 7 แถบพุ่งออกจากปล่อง ลอยโค้งขึ้นตามทางที่รถไฟวิ่ง มีประกายวิบ ๆ']},
   {id:17,d:'12 พ.ย. 2026',t:'💨 หลอดพลังเร่งบนหัวรถไฟ',l:['ใต้ชื่อรถไฟของเรามีหลอดแก้วไอน้ำเล็ก ๆ บอกพลังเร่งที่เหลือ ดูได้โดยไม่ต้องละสายตาจากรถไฟ','กำลังเร่ง = ไอน้ำไหลในหลอด · เหลือน้อยกว่า 1.5 วิ หลอดเป็นสีแดงกะพริบ']},
