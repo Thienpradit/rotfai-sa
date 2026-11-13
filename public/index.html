@@ -638,11 +638,14 @@ let profDirty=false,saveT=null;
 function saveProf(){profDirty=false;
   if(ACCT.mode==='local'){try{localStorage.setItem(PROF_KEY,JSON.stringify(prof))}catch(e){}}
   else if(ACCT.mode==='acct'){clearTimeout(saveT);saveT=setTimeout(pushProf,600)}}
-function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;const tok=ACCT.token;
+function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;const tok=ACCT.token,sent={coins:prof.coins,rp:prof.rp,onrp:prof.onrp||0};   // ค่าตอนส่ง → ถ้าเซิร์ฟเวอร์ปรับ ให้คงของที่ได้เพิ่มหลังส่ง (13 พ.ย.)
   fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ACCT.token},body:JSON.stringify({data:prof}),keepalive:true})
-    .then(async r=>{if(r.status===401)return authExpired();if(r.status===403){const j=await r.json().catch(()=>({}));return bannedOut(j.err)}const j=await r.json().catch(()=>({}));if(j.fix&&ACCT.mode==='acct'&&ACCT.token===tok)applyFix(j.fix)}).catch(()=>{profDirty=true})}
+    .then(async r=>{if(r.status===401)return authExpired();if(r.status===403){const j=await r.json().catch(()=>({}));return bannedOut(j.err)}const j=await r.json().catch(()=>({}));if(j.fix&&ACCT.mode==='acct'&&ACCT.token===tok)applyFix(j.fix,sent)}).catch(()=>{profDirty=true})}
 // เซิร์ฟเวอร์ตรวจเหรียญ/RP/ของที่ซื้อแล้วไม่ตรง (เช่น แก้ค่าในเบราว์เซอร์) → ใช้ค่าจากเซิร์ฟเวอร์แทน
-function applyFix(d){prof.coins=Math.max(0,+d.coins||0);prof.rp=Math.max(0,+d.rp||0);if(d.onrp!==undefined)prof.onrp=Math.max(0,+d.onrp||0);if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
+function applyFix(d,sent){sent=sent||{coins:prof.coins,rp:prof.rp,onrp:prof.onrp||0};
+  // เดิมเขียนทับด้วยค่าที่ส่งไปก่อนหน้า → เหรียญ/RP ที่ได้ระหว่างรอคำตอบ (เช่น จบเกมพอดี) หาย · ตอนนี้ = ค่าเซิร์ฟเวอร์ + ส่วนที่ได้เพิ่มหลังส่ง
+  const dc=prof.coins-sent.coins,dr=prof.rp-sent.rp,dor=(prof.onrp||0)-sent.onrp;
+  prof.coins=Math.max(0,(+d.coins||0)+dc);prof.rp=Math.max(0,(+d.rp||0)+dr);if(d.onrp!==undefined)prof.onrp=Math.min(prof.rp,Math.max(0,(+d.onrp||0)+dor));if(dc||dr)profDirty=true;if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
   if(player)player.rk=myRank();showBest();announce('⚠️ ข้อมูลเหรียญ/แรงก์ไม่ตรงกับเซิร์ฟเวอร์ ปรับให้ตรงแล้ว')}
 // ภารกิจที่เลิกใช้ (รางรถไฟเอาออก 11 พ.ย.) — เก็บไว้ให้ภารกิจที่รับรางวัลไปแล้ววันนี้ยังแสดงได้ · ที่ยังไม่รับ → สุ่มข้อใหม่แทนที่ช่องเดิม
 const MRETIRED=[{id:'rail',ev:'railSec',lo:6,hi:20,mul:10,txt:n=>`วิ่งบนราง ${n} วินาที`,ru:1}];
