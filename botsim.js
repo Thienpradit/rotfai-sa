@@ -4,7 +4,7 @@
 const TAU = Math.PI * 2, CS = 100, SELF_IDX = 20, GROW = .7, BOMB_R_FFA = 500, BOMB_R_VS = 300, FREEZE_R = 650, FREEZE_T = 6, PORTAL_EDGE = 260;
 const LAG_STEPS = 12;
 const BOSS_HEARTS = 3, BOSS_HIT_CD = 1.5;   // บอส 👑 มีหัวใจ 3 ดวง เสียเฉพาะตอนบอสเอาหัวชนตัวผู้เล่น (เครื่องผู้เล่นส่ง bhit มา) · บอทธรรมดาชนครั้งเดียวตายเหมือนเดิม
-const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 30, TEAM_MAX = 2, DROP_TTL = 30;
+const SPAWN_GHOST = 2.5, TUNNEL_SAFE = 2, FFA_MAX = 40, TEAM_MAX = 2, DROP_TTL = 30;
 const RAGE_SPD = [1, 1.4, 2], RAGE_TURN = .15, BOSS_CAP = 2.7 * 2;   // บอสเสียหัวใจ → เร็วขึ้น ×1.4 / ชีวิตสุดท้าย ×2 (= ผู้เล่นเร่งเพชร) และไม่เร็วกว่านั้น (ต้องตรงกับ index.html)
 const bossRage = w => w.isBoss ? Math.max(0, (w.maxHp || BOSS_HEARTS) - w.hp) : 0;
 // หวูดไล่ศัตรู: ต้องตรงกับ HORN_PERK ใน index.html

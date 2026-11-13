@@ -13,12 +13,12 @@ const live = room => [...room.bots.values()].filter(b => b.alive && !b.isBoss);
 // 1) โลกออนไลน์: คน 1 คน → บอทเติมเกือบ 29
 let room = mkRoom(true);
 room.players.set(1, { id: 1, kills: 0, st: { x: 0, y: 0, a: 0, m: 40, f: 4 } });
-step(room, 3); ok(live(room).length >= 27 && live(room).length <= 29, 'ffa เติมบอท 27–29 ตัว (ได้ ' + live(room).length + ')');
+step(room, 3); ok(live(room).length >= 37 && live(room).length <= 39, 'ffa เติมบอท 37–39 ตัว (40 ขบวน) (ได้ ' + live(room).length + ')');
 ok(room.msgs.some(m => m.t === 'binfo'), 'ส่ง binfo ให้ผู้เล่น');
 ok(live(room).every(b => b.st && b.st[0] < 0 && b.st[5] & 4), 'สถานะบอทมี id ติดลบ + flag มีชีวิต');
 // คนเพิ่มอีก 4 → บอทลดทีละตัว
 for (let i = 2; i <= 5; i++) room.players.set(i, { id: i, kills: 0, st: { x: i * 300, y: 0, a: 0, m: 40, f: 4 } });
-step(room, 60); ok(live(room).length <= 25, 'คนเข้า 4 → บอทลดเหลือ ≤25 (ได้ ' + live(room).length + ')');
+step(room, 60); ok(live(room).length <= 35, 'คนเข้า 4 → บอทลดเหลือ ≤35 (ได้ ' + live(room).length + ')');
 
 // 2) หัวบอทชนลำตัวผู้เล่น → บอทตาย ผู้เล่นได้แต้ม
 room = mkRoom(true); room.players.set(7, { id: 7, kills: 0, st: { x: 500, y: 0, a: 0, m: 200, f: 4 } });

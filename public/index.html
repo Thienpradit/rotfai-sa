@@ -340,7 +340,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
       <div class="skins" id="skins"></div>
     </div>
     <div class="lbl" style="margin-top:12px">เลือกโหมด</div>
-    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>เจอผู้เล่นจริง · สูงสุด 30 ขบวน (คนไม่ครบเติมบอท)</small></button>
+    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>เจอผู้เล่นจริง · สูงสุด 40 ขบวน (คนไม่ครบเติมบอท)</small></button>
     <button class="btn team play" id="playOnline"><span class="bt">🌐 2v2 กับเพื่อน</span><small>สร้างห้องแข่งทีม · คนไม่ครบเติมบอทให้</small></button>
     <button class="btn adv play" id="playAdv"><span class="bt">🗺️ ผจญภัย (เล่นคนเดียว)</span><small id="advSub">30 ด่าน · ❤️ 3 ชีวิต · สิ่งกีดขวาง · ไม่นับสถิติ/แรงก์</small></button>
     <div id="rankMenu"></div>
@@ -1095,7 +1095,7 @@ const DIFF={
   normal:{label:'Normal',ai:26,huntP:.8,huntR:700,others:.3,look:1,think:[10,25],big:.25,safe:2.5,regen:0,boss:120,bossM:900,bossHp:120},
   hard:{label:'Hard',ai:32,huntP:.95,huntR:950,others:.4,look:1.25,think:[6,14],big:.4,safe:2,regen:.25,boss:90,bossM:1300,bossHp:180}};
 let diff='normal';try{diff=localStorage.getItem('wormDiff')||'normal';if(!DIFF[diff])diff='normal'}catch(e){}
-const ONLINE_DIFF='normal',FFA_MAX=30;   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 30 ขบวน (คนจริง + บอท)
+const ONLINE_DIFF='normal',FFA_MAX=40;   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 40 ขบวน (คนจริง + บอท)
 const netOn=()=>{try{return NET}catch(e){return null}};   // ปลอดภัยแม้เรียกก่อนประกาศ NET ตอนเริ่มเกม
 const D=()=>STAGE_D||DIFF[netOn()?ONLINE_DIFF:diff];
 const bestKey=()=>{const n=netOn();return n&&n.ffa?'online':diff};
@@ -1113,7 +1113,7 @@ const foodW=()=>{let n=0;for(const f of foods)if(!f.dead)n+=f.j!==undefined?JEWE
 function addFood(x,y,v,ttl){if(NET)return;let ci;
   if(x===undefined){if(!v&&Math.random()<JEWEL_P){v=JEWEL_V;ci=7+((Math.random()*3)|0);[x,y]=gemInWorld(40);for(const f of foods)if(f.j===undefined&&!f.ttl&&(f.x-x)**2+(f.y-y)**2<JEWEL_CLEAR*JEWEL_CLEAR)f.dead=true}
     else for(let k=0;k<6;k++){[x,y]=gemInWorld(40);if(!nearJewel(x,y))break}}
-  foods.push(mkFood(x,y,v||1,undefined,ci,ttl));return v===JEWEL_V&&ci?JEWEL_V:1}
+  foods.push(mkFood(x,y,v||1,undefined,ci,ttl));FG_V++;return v===JEWEL_V&&ci?JEWEL_V:1}
 function addPu(){const[x,y]=randInWorld(150),k=Object.keys(PU_TYPES);pups.push({x,y,type:k[(Math.random()*k.length)|0],dead:false,ph:Math.random()*TAU})}
 function addWhite(){const[x,y]=gemInWorld(60);whites.push({x,y,ph:Math.random()*TAU,dead:false})}
 const key=(cx,cy)=>(cx+500)*1000+(cy+500);
@@ -1255,7 +1255,9 @@ function cutSelf(w,idx,byGold){
 //  grids
 // =====================================================================
 let bgrid=new Map(),fgrid=new Map();
-function buildFoodGrid(){fgrid.clear();for(const fd of foods){const k=key(Math.floor(fd.x/CS),Math.floor(fd.y/CS));let a=fgrid.get(k);if(!a)fgrid.set(k,a=[]);a.push(fd)}}
+// กริดพลอยสร้างใหม่เฉพาะตอนพลอยเปลี่ยน (เพิ่ม/หาย/โดนแม่เหล็กดูด) — เดิมสร้างใหม่ทุกเฟรม (13 พ.ย. · โลกออนไลน์ใหญ่ขึ้น พลอย ~3,000 เม็ด)
+let FG_V=0,FG_B=-1,FG_A=null;const foodsChanged=()=>{FG_V++};
+function buildFoodGrid(){if(FG_B===FG_V&&FG_A===foods)return;FG_B=FG_V;FG_A=foods;fgrid.clear();for(const fd of foods){const k=key(Math.floor(fd.x/CS),Math.floor(fd.y/CS));let a=fgrid.get(k);if(!a)fgrid.set(k,a=[]);a.push(fd)}}
 function buildBodyGrid(){bgrid.clear();for(const w of worms){if(!w.alive)continue;const p=w.pts;for(let i=0;i<p.length;i+=2){const k=key(Math.floor(p[i].x/CS),Math.floor(p[i].y/CS));let a=bgrid.get(k);if(!a)bgrid.set(k,a=[]);a.push(w,i)}}}
 function bodyNear(x,y,rad,self){
   if(x*x+y*y>(AR-30)**2)return true;
@@ -1681,7 +1683,7 @@ function step(f,dt){
       for(const fd of a){if(fd.dead)continue;const dx=fd.x-h.x,dy=fd.y-h.y,d2=dx*dx+dy*dy,er=r+fd.r+6+lb;
         if(d2<er*er){fd.dead=true;w.mass+=fd.v*mult*GROW;ate=true;if(NET)NET.q.eat.push(fd.id);
           if(fd.j!==undefined&&w.isP){texts.push({x:fd.x,y:fd.y-30,txt:JEWEL_NAME[fd.j]+' = พลอย ×'+JEWEL_V+'!',t:1.6,c:'#ffd23f'});sfx('gold');track('jewels')}}
-        else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f}}}
+        else if(mr&&d2<(r+mr)**2){const d=Math.sqrt(d2);fd.x-=dx/d*8*f;fd.y-=dy/d*8*f;FG_V++}}}
     if(ate&&w.isP)sfx('eat');
     for(const wd of whites){if(wd.dead)continue;if(Math.hypot(wd.x-h.x,wd.y-h.y)<r+20+lb){wd.dead=true;w.energy=Math.min(maxEn(w),w.energy+5);
       if(NET)netSend({t:'white',id:wd.id});if(w.isP){texts.push({x:h.x,y:h.y-30,txt:'💎 +5 วิ พลังเร่ง!',t:1.4,c:'#ffffff'});sfx('white');track('whites')}}}
@@ -1694,7 +1696,7 @@ function step(f,dt){
       else{w.pu[p.type]=10;if(w.isP){sfx('item');texts.push({x:h.x,y:h.y-30,txt:PU_TYPES[p.type].icon+' '+PU_TYPES[p.type].label+'!',t:1.4,c:PU_TYPES[p.type].col})}}}}
   }
   for(const fd of foods)if(fd.ttl){fd.ttl-=dt;if(fd.ttl<=0)fd.dead=true}
-  foods=foods.filter(x=>!x.dead);pups=pups.filter(x=>!x.dead);whites=whites.filter(x=>!x.dead);
+  {let dd=false;for(const fd of foods)if(fd.dead){dd=true;break}if(dd){foods=foods.filter(x=>!x.dead);FG_V++}}pups=pups.filter(x=>!x.dead);whites=whites.filter(x=>!x.dead);
   if(!NET){
     if(whites.length<WHITE_CAP&&Math.random()<.05)addWhite();
     if(!goldItem&&state==='play'&&!(player&&player.gold)){goldTimer-=dt;if(goldTimer<=0){const[x,y]=randInWorld(300);goldItem={x,y};announce('{G} ทองคำแท่งปรากฏแล้ว! เก็บเพื่อเป็นร่างทอง')}}
@@ -1752,10 +1754,16 @@ function sprite(kind,id,m,s){const k=kind+'|'+id+'|'+m+'|'+s,o=SPR[k];if(o){if(o
   const src=kind==='L'?LOCO_SVG[id]:WAG_SPR[id]&&`<defs>${WAG_DEFS}</defs><use href="#${WAG_SPR[id]}"/>`;
   if(!src||typeof Image==='undefined'){SPR[k]={bad:1};return null}
   const c=sprCols(m,s),vb=kind==='L'?LOCO_VB:WAG_VB,me=SPR[k]={},img=new Image();SPR_MISS=true;
-  img.onload=()=>{try{const cv=document.createElement('canvas');cv.width=Math.round(vb[2]*SPR_RES);cv.height=Math.round(vb[3]*SPR_RES);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);me.cv=cv}catch(e){me.bad=1}
-    const cb=SPR_CB.splice(0);for(const f of cb)try{f()}catch(e){}};
+  img.onload=()=>SPR_Q.push(()=>{try{const cv=document.createElement('canvas');cv.width=Math.round(vb[2]*SPR_RES);cv.height=Math.round(vb[3]*SPR_RES);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);me.cv=cv}catch(e){me.bad=1}
+    const cb=SPR_CB.splice(0);for(const f of cb)try{f()}catch(e){}});
   img.onerror=()=>{me.bad=1};
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgDoc(vb,src.replace(/\{\{c\.(\w+)\}\}/g,(_,q)=>c[q]||'#888')));return null}
+// 2v2/ออนไลน์กระตุก (เจ้าของแจ้ง 13 พ.ย.): วัดแล้วเฟรมช้า 100–500 ms ตรงกับตอนแปลงสไปรต์ SVG หลายชิ้นในเฟรมเดียว (บอททีม/นักล่าโผล่พร้อมกัน)
+// → แปลงทีละชิ้นต่อเฟรม (SPR_Q / sprPump ใน loop · นอกเกมทำได้ 4 ชิ้น) + เตรียมล่วงหน้าตอนรู้ว่าใครอยู่ในห้อง (sprWarm) ก่อนโผล่บนจอ
+const SPR_Q=[],SPR_W=[];function sprPump(){const n=state==='play'||state==='dead'?1:4;for(let i=0;i<n&&SPR_Q.length;i++)SPR_Q.shift()();
+  for(let i=0;i<n&&SPR_W.length;i++){const a=SPR_W.shift();sprite(...a)}}   // SPR_W = ที่เตรียมล่วงหน้า สร้าง SVG ทีละชิ้นต่อเฟรมเหมือนกัน
+const VS_BOT_SKINS=[['#ff5e5e','#ffd0d0','#b02a2a'],['#4da3ff','#d6ebff','#1f5fb8'],['#ffd60a','#fff3a6','#d9a600']];   // ต้องตรงกับ botsim TEAM_SKIN/HUNTER_SKIN
+function sprWarm(sk,loco,wag){if(!sk||!sk.length||QUAL===0)return;const n=sk.length,add=(...a)=>{if(!SPR[a.join('|')]&&!SPR_W.some(b=>b.join('|')===a.join('|')))SPR_W.push(a)};add('L',LOCO_SVG[loco]?loco:'classic',sk[0],sk[1%n]);const wg=WAG_SPR[wag]?wag:'gem';for(let j=0;j<n;j++)add('W',wg,sk[j],sk[(j+1)%n])}
 // วาดภาพนิ่ง (ไอคอนร้านค้า/เคล็ดลับ) แล้วสไปรต์ยังไม่พร้อม → วาดซ้ำอีกรอบตอนโหลดเสร็จ
 function sprAfter(fn){SPR_MISS=false;fn();if(SPR_MISS)SPR_CB.push(()=>sprAfter(fn))}
 function sprPreload(sk){if(!sk)return;const m=sk[0],s=sk[1%sk.length];for(const id in LOCO_SVG)sprite('L',id,m,s);let wg='gem';try{wg=prof.eq.wagon||'gem'}catch(e){}for(const id of new Set(['gem',wg]))if(WAG_SPR[id]){sprite('W',id,m,s);if(sk.length>1)sprite('W',id,s,m)}}   // โหลดล่วงหน้าเฉพาะตู้ที่ใส่ (ตู้มี 12 แบบแล้ว)
@@ -2330,6 +2338,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
+  {id:28,d:'13 พ.ย. 2026',t:'🌍 โลกออนไลน์ใหญ่ขึ้น',l:['สนามกว้างขึ้นอีก 15% มีพลอย เพชรขาว และไอเทมเพิ่มตามพื้นที่','อยู่ในโลกเดียวกันได้ถึง 40 ขบวน (เดิม 30) สนามยังคึกคักเท่าเดิม','ลื่นขึ้น: ไม่กระตุกตอนมีรถไฟสีใหม่หรือแบบใหม่โผล่เข้าจอ']},
   {id:27,d:'13 พ.ย. 2026',t:'🚇 ลอดอุโมงค์ลื่นขึ้น',l:['ขบวนยาว ๆ ค่อย ๆ เข้ารูทีละตู้ แล้วค่อย ๆ โผล่ออกอีกฝั่ง ไม่โผล่พรวดออกมาทั้งขบวนแล้ว','เลี้ยวทันทีหลังออกจากอุโมงค์ก็ไม่ค้าง']},
   {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
   {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ','เล่น 2v2 คนเดียว: เกมรอให้กด ▶ เริ่มเลย ก่อน ไม่นับถอยหลังเอง']},
@@ -2824,7 +2833,7 @@ function netConnect(room,srv,nmode){presClose();hideInvite();const ffa=nmode==='
   ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
 }
 function netLeave(silent){if(!NET)return;const n=NET;NET=null;try{n.ws.close()}catch(e){}worms=worms.filter(w=>!w.isRemote&&!w.isP&&!w.isBot);bossActive=null;$('coopBar').classList.add('hidden');if(!silent)toMenu()}
-function setFoods(list){foods=list.map(a=>mkFood(a[1],a[2],a[3],a[0],a[4],a[5]))}
+function setFoods(list){foods=list.map(a=>mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));FG_V++}
 // ===== เซิร์ฟเวอร์อัปเดตเวอร์ชันใหม่ (เจ้าของสั่ง 7 พ.ย. 19:13): แจ้งนับถอยหลัง → ครบแล้วออกจากเกม (เก็บเหรียญ/RP ให้ ไม่หักแต้ม) → โหลดเวอร์ชันใหม่ =====
 // สัญญาณ: เซิร์ฟเวอร์ส่ง reset{s} (เครื่องเก่าเห็นว่าเวอร์ชันใหม่ขึ้นแล้ว หรือโดนสั่งปิด) · หรือเครื่องเราถาม /version ทุก 30 วิ แล้วเวอร์ชันไม่ตรง
 const APP_VER='__APP_VER__';   // เซิร์ฟเวอร์ใส่เวอร์ชันให้ตอนส่งหน้าเว็บ
@@ -2849,7 +2858,9 @@ function netMsg(m){
     case'welcome':{
       NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';if(!NET.ffa)stations=[stations[0],stations[2]];   // 2v2 เหลือ 2 สถานี อยู่ตรงข้ามกัน (เจ้าของสั่ง 12 พ.ย. 12:08)
       mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;loadBest();resetPlayBtn();resetItems()}
-      NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;
+      NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));for(const b of NET.bots.values())sprWarm(b.skin,b.loco,b.wag);
+      if(m.mode==='vs')for(const sk of VS_BOT_SKINS)for(const lc of['classic','diesel','bullet'])sprWarm(sk,lc,'gem');   // 2v2: บอททีม/นักล่าใช้สีตายตัว → เตรียมตั้งแต่อยู่ห้องรอ
+      sprWarm(GOLD_SKIN,myLook().loco,myLook().wag);bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;
       setFoods(m.foods);whites=m.whites.map(a=>({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false}));pups=m.pups.map(a=>({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false}));
       setItems(m.items);NET.timeLeft=m.timeLeft;netPlayers(m.players);worms=[];player=null;
       if(m.phase==='play'){netSpawnMe();if(NET.ffa){player.safe=D().safe;$('sheet').classList.add('hidden');$('over').classList.add('hidden');$('coopBar').classList.remove('hidden');
@@ -2861,7 +2872,7 @@ function netMsg(m){
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
     case'inv':showInvite(m);break;
     case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
-    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
+    case'binfo':for(const b of m.b){NET.bots.set(b.id,b);sprWarm(b.skin,b.loco,b.wag);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
     case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;roundRP=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
@@ -2875,7 +2886,7 @@ function netMsg(m){
         netSnap(w,x,y,an,ms,ts);w.boost=!!(fl&1);w.energy=w.boost?1:0;w.gold=!!(fl&2);w.slow=fl&8?1:0;w.safe=fl&16?1:0;w.ghost=fl&32?1:0;w.hasBomb=!!(fl&64);w.hslow=fl&128?1:0;if(hp!==undefined&&w.isBoss){if(w.alive&&hp>0&&hp<(w.hp??hp))bossRageMsg(hp,w.maxHp||BOSS_HEARTS);w.hp=hp}}
       for(const w of worms)if(w.isRemote&&w.alive&&!seen.has(w.netId))w.alive=false;
       break}
-    case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));break;
+    case'fa':for(const a of m.f)foods.push(mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));FG_V++;break;
     case'fr':{const s=new Set(m.f);for(const fd of foods)if(s.has(fd.id))fd.dead=true;break}
     case'wa':for(const a of m.w)whites.push({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false});break;
     case'wr':for(const wd of whites)if(wd.id===m.id)wd.dead=true;break;
@@ -2907,7 +2918,7 @@ function netMsg(m){
   }
 }
 function setItems(it){goldItem=it.gold?{x:it.gold[0],y:it.gold[1]}:null;tgsItem=it.tgs?{x:it.tgs[0],y:it.tgs[1]}:null}
-function netPlayers(list){NET.players=new Map(list.map(p=>[p.id,p]));NET.me=NET.players.get(NET.id);NET.host=!!(NET.me&&NET.me.host);
+function netPlayers(list){NET.players=new Map(list.map(p=>[p.id,p]));for(const p of list)if(p.id!==NET.id)sprWarm(p.skin,p.loco,p.wag);NET.me=NET.players.get(NET.id);NET.host=!!(NET.me&&NET.me.host);
   for(const w of worms)if(w.isRemote){const p=NET.players.get(w.netId);if(p)w.team=p.team}if(player&&NET.me)player.team=NET.me.team;
   if(!NET.host&&worms.some(w=>w.isBot&&!w.isRemote)){worms=worms.filter(w=>!(w.isBot&&!w.isRemote));if(bossActive&&!bossActive.isRemote)bossActive=null}}
 // ----- ห้อง 2v2: นับถอยหลังบนหน้าล็อบบี้ (เฉพาะ ≥2 คน · คนเดียวรอกด ▶ เริ่มเลย) -----
@@ -3092,7 +3103,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 function loop(t){
   requestAnimationFrame(loop);
   fpsWatch(t-last);const dt=Math.min((t-last)/1000,.05);last=t;frame++;
-  if(!PAUSED)step(dt*60,dt);render();
+  if(!PAUSED)step(dt*60,dt);sprPump();render();
   profT+=dt;if(profT>(ACCT.mode==='acct'?20:4)){profT=0;if(profDirty)saveProf()}
 }
 requestAnimationFrame(loop);
