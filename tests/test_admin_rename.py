@@ -20,7 +20,7 @@ def nown(o): return sum(len(set(o.get(c,[]))&set(ALL[c])) for c in ALL)
 bak=os.path.join(D,'users.json.admbak')
 if os.path.exists(os.path.join(D,'users.json')): shutil.copy(os.path.join(D,'users.json'),bak)
 # oldadm = ผู้ดูแลเดิมที่เปลี่ยนชื่อไปแล้ว (บัญชีติดของครบทุกชิ้นจากสิทธิ์ผู้ดูแล) · boss2 = ผู้ดูแลตอนนี้ (ซื้อดีเซลจริง 1 ชิ้น)
-users={'oldadm':{'owned':ALL,'coins':5000},'boss2':{'owned':{'loco':['classic','diesel']},'coins':300000},'normal':{'owned':{'loco':['classic','bullet']},'coins':900}}
+users={'oldadm':{'owned':ALL,'coins':5000},'boss2':{'owned':{'loco':['classic','diesel']},'coins':300000},'normal':{'owned':{'loco':['classic','bullet']},'coins':900},'gemreaper':{'owned':{'loco':['classic'],'kfx':['none']},'coins':31426}}
 js="""const c=require('crypto'),db={},U=JSON.parse(process.argv[2]);for(const [l,v] of Object.entries(U)){const s=c.randomBytes(16).toString('hex'),h=c.scryptSync('pass1234',s,32).toString('hex');
   db[l]={lname:l,name:l.toUpperCase(),salt:s,hash:h,rp:100,updated:1,data:{coins:v.coins,rp:100,onrp:100,onv:2,season:'2026-11',owned:v.owned,eq:{loco:v.owned.loco[v.owned.loco.length-1]},st:{},ach:{}}}}
   require('fs').writeFileSync(process.argv[1],JSON.stringify(db))"""
@@ -47,6 +47,10 @@ try:
     check(r['data']['owned'].get('loco')==['classic','diesel'],'หลังเปลี่ยนชื่อเหลือของที่ซื้อจริง '+str(r['data']['owned'].get('loco')))
     x=login('BOSSX');check(not x.get('admin') and nown(x['data']['owned'])<NALL,'เข้าสู่ระบบชื่อใหม่ = ผู้เล่นธรรมดา')
     n=login('NORMAL');check(n['data']['owned'].get('loco')==['classic','bullet'],'ผู้เล่นทั่วไปของเหมือนเดิม')
+    g=login('GEMREAPER');check(g['data']['owned'].get('loco')==['classic','diesel'] and g['data']['coins']==31426,'GemReaper ได้หัวจักรดีเซลคืน (เหรียญเท่าเดิม) '+str(g['data']['owned'].get('loco')))
+    # ปิดเปิดเซิร์ฟเวอร์ใหม่ → ไม่คืนซ้ำ · ถ้าผู้เล่นมีอยู่แล้วก็ไม่ซ้ำ
+    srv.terminate();srv.wait();srv=subprocess.Popen(['node','server.js'],cwd=ROOT,env={**os.environ,'PORT':'3459','ADMINS':'boss2'},stdout=subprocess.PIPE,stderr=subprocess.STDOUT);time.sleep(1.8)
+    raw=json.load(open(os.path.join(D,'users.json')))['gemreaper']['data'];g2=login('GEMREAPER');time.sleep(.6);raw=json.load(open(os.path.join(D,'users.json')))['gemreaper']['data'];check(g2['data']['owned']['loco'].count('diesel')==1 and raw.get('restored')==['r1'],'คืนครั้งเดียว ไม่ซ้ำ '+str(raw['owned'].get('loco'))+str(raw.get('restored')))
 finally:
     srv.terminate();srv.wait()
     if os.path.exists(bak): shutil.move(bak,os.path.join(D,'users.json'))

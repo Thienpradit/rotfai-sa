@@ -35,7 +35,8 @@ function fileStore(note) {
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null, n: all.length }; },
     async getSeason(k) { return seasons[k] || null; },
     async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
-    async cleanAdminOwned() { const fixed = []; for (const u of Object.values(db)) if (adminPolluted((u.data || {}).owned)) { u.data = cleanOwnedData(u.data); fixed.push(u.name); } if (fixed.length) flush(); return fixed; },
+    async cleanAdminOwned() { const fixed = []; for (const u of Object.values(db)) { if (adminPolluted((u.data || {}).owned)) { u.data = cleanOwnedData(u.data); fixed.push(u.name); }
+        const r = restoreOwned(u.lname, u.data); if (r) { u.data = r; fixed.push('+' + u.name); } } if (fixed.length) flush(); return fixed; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const all = Object.values(db).filter(u => !u.ban && (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
@@ -95,7 +96,10 @@ if (DB_URL) {
     async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
       const r = await pool.query("SELECT lname, data FROM players WHERE COALESCE(data->>'onv','') <> '2'"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND COALESCE(data->>'onv','') <> '2'", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
     async cleanAdminOwned() { await ready; if (store !== dbStore) return store.cleanAdminOwned(); const fixed = [];
-      const r = await pool.query("SELECT lname, name, data FROM players WHERE data ? 'owned'"); for (const u of r.rows) if (adminPolluted((u.data || {}).owned)) { await pool.query('UPDATE players SET data=$2 WHERE lname=$1', [u.lname, cleanOwnedData(u.data)]); fixed.push(u.name); } return fixed; },
+      const r = await pool.query("SELECT lname, name, data FROM players WHERE data ? 'owned' OR lname = ANY($1)", [OWN_RESTORE.map(x => x[0])]);
+      for (const u of r.rows) { let d = u.data, ch = false; if (adminPolluted((d || {}).owned)) { d = cleanOwnedData(d); ch = true; fixed.push(u.name); }
+        const rs = restoreOwned(u.lname, d); if (rs) { d = rs; ch = true; fixed.push('+' + u.name); }
+        if (ch) await pool.query('UPDATE players SET data=$2 WHERE lname=$1', [u.lname, d]); } return fixed; },
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks, top, created AS at FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
@@ -169,7 +173,7 @@ function limited(req) {
 let snapFor = '', snapping = null;
 let migrated = null;   // ข้อมูลเก่า → เติมสถิติออนไลน์ (ครั้งเดียวตอนเปิดเซิร์ฟเวอร์)
 const migrateOnce = () => migrated || (migrated = Promise.resolve().then(() => store.migrateOnline()).then(n => { if (n) console.log(`online stats seeded for ${n} players`); })
-  .then(() => store.cleanAdminOwned()).then(f => { if (f.length) console.log(`admin-granted items removed from: ${f.join(', ')}`); }).catch(e => { console.error('online seed error', e.message); migrated = null; }));
+  .then(() => store.cleanAdminOwned()).then(f => { if (f.length) console.log(`owned fix (admin items removed / +restored): ${f.join(', ')}`); }).catch(e => { console.error('online seed error', e.message); migrated = null; }));
 function ensureSnap() { const cur = AC.seasonKey(); if (snapFor === cur || accountsDown()) return accountsDown() ? Promise.resolve() : migrateOnce();
   if (!snapping) snapping = migrateOnce().then(() => store.snapSeason(AC.prevSeason(cur))).then(s => { snapFor = cur; if (s) console.log(`season ${AC.prevSeason(cur)} final standings saved: ${s.n} players`); })
     .catch(e => console.error('season snapshot error', e.message)).finally(() => { snapping = null; });
@@ -262,6 +266,12 @@ function adminPolluted(owned) { if (!owned || typeof owned !== 'object') return 
 const FREE_OWNED = (() => { const o = {}; for (const c of AC.CATS) o[c] = Object.keys(AC.SHOP[c]).filter(id => AC.SHOP[c][id] === 0); return o; })();
 // ของจริงของบัญชี: ติดมาจากผู้ดูแล → เหลือของฟรี (ไม่รู้ว่าเคยซื้ออะไรเองก่อนเป็นผู้ดูแล)
 const realOwned = d => adminPolluted((d || {}).owned) ? JSON.parse(JSON.stringify(FREE_OWNED)) : ((d || {}).owned || {});
+// คืนของที่เคยซื้อจริงให้บัญชีที่โดนล้างของผู้ดูแล (เจ้าของแจ้ง) · ทำครั้งเดียวต่อรายการ (จำใน data.restored)
+const OWN_RESTORE = [['gemreaper', 'loco', 'diesel', 'r1']];   // 13 พ.ย. 21:33 บัญชีผู้ดูแลเดิม (GemReaper) เคยซื้อหัวจักรดีเซล
+function restoreOwned(l, d) { let ch = false; d = { ...(d || {}) };
+  for (const [ll, c, id, key] of OWN_RESTORE) { if (ll !== l || (d.restored || []).includes(key)) continue;
+    const o = { ...(d.owned || {}) }; o[c] = [...new Set([...(Array.isArray(o[c]) ? o[c] : []), id])]; d.owned = o; d.restored = [...(d.restored || []), key]; ch = true; }
+  return ch ? d : null; }
 const cleanOwnedData = d => (d && adminPolluted(d.owned)) ? { ...d, owned: realOwned(d), ownFix: Date.now() } : d;
 // ข้อมูลที่เครื่องส่งมา: ถ้า owned ติดของผู้ดูแลมา (หน้าเว็บเก่าที่ยังเปิดค้าง) → ใช้ของที่บัญชีมีจริง ไม่นับเป็นการซื้อ (ไม่หักเหรียญ)
 const stripSent = (u, raw) => (!isAdmin(u) && raw && adminPolluted(raw.owned)) ? { ...raw, owned: realOwned(u.data) } : raw;
