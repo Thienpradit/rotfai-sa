@@ -11,7 +11,7 @@ async def main():
             await pg.screenshot(path=OUT+f'/timer_{nm}.png')
             # pixel at top center should be the timer pill (dark/green border), ann pushed down
             r=await pg.evaluate("(()=>{const a=document.getElementById('ann').getBoundingClientRect();return{stageOn:document.body.classList.contains('stageOn'),annTop:Math.round(a.top),annVis:getComputedStyle(document.getElementById('ann')).opacity}})()")
-            await pg.evaluate("stageClock=STAGE_T-8");await pg.wait_for_timeout(300);await pg.screenshot(path=OUT+f'/timer_{nm}_crit.png')
+            await pg.evaluate("stageClock=STAGE.T-8");await pg.wait_for_timeout(300);await pg.screenshot(path=OUT+f'/timer_{nm}_crit.png')
             await pg.evaluate("toMenu()");await pg.wait_for_timeout(200);r['after']=await pg.evaluate("document.body.classList.contains('stageOn')");res.append(r)
         print(res);print('errors',errs[:3]);ok=all(x['stageOn'] and not x['after'] and x['annTop']>=50 for x in res);print('PASS' if ok and not errs else 'FAIL');await b.close()
 asyncio.run(main())
