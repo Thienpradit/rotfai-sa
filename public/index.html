@@ -747,19 +747,24 @@ const GEM_PRIZES={'2026-12':[
   {img:'prizes/gem3.jpg',n:'เพอริดอท 15 เม็ด 2.74 กะรัต',d:'เขียวสด · ทรงไข่ · ปากีสถาน'}]};
 const GEM_CLAIM_DAYS=14;   // = accounts.js CLAIM_DAYS
 const PRIZE_CONTACT={name:'เฟซบุ๊ก Ponpoj Thien',url:'https://www.facebook.com/Ponpoj.Thien/'};   // ช่องทางติดต่อรับรางวัล = เฟซบุ๊กเจ้าของ (ยืนยัน 13 พ.ย. 2026)
+const GEM_START={'2026-12':'2026-11-25'};   // วันที่เริ่มโชว์ของรางวัลในเกม (ก่อนฤดูกาลเริ่ม = ประกาศล่วงหน้า)
+const nextSeason=k=>{let y=+k.slice(0,4),m=+k.slice(5,7)+1;if(m>12){m=1;y++}return y+'-'+String(m).padStart(2,'0')};
+function gemNow(){const c=seasonKey();if(GEM_PRIZES[c])return{k:c,live:true};const n=nextSeason(c);if(GEM_PRIZES[n]&&GEM_START[n]&&bkkDay()>=GEM_START[n])return{k:n,live:false};return null}
+const startName=k=>'1 '+seasonName(k).split(' ')[0];
 let GEM_ME=null,IS_ADMIN=false,gemShown=false;
 const GEM_COL=['#ffd23f','#c9d3e6','#e0a46a'];
 function gemCardsHTML(season){const G=GEM_PRIZES[season];if(!G)return'';const c=(i,one)=>`<div class="gemc${one?' one':''}" style="--b:${GEM_COL[i]}"><span class="pl">${['🥇 อันดับ 1','🥈 อันดับ 2','🥉 อันดับ 3'][i]}</span><img src="${G[i].img}" alt=""><b>${G[i].n}</b>${G[i].d}</div>`;
   return`<div class="gemp">${c(1)}${c(0,1)}${c(2)}</div>`}
-function gemRulesHTML(){return`<div class="gemrules">
+function gemRulesHTML(k){return`<div class="gemrules">
+  ${RANK_ZERO.includes(k)?`<div>🔄 <b>${startName(k)} แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน</b> · รางวัลเหรียญ/ฉายาของเดือนก่อนแจกตามปกติ</div>`:''}
   <div>🏅 นับจาก<b>อันดับ 🏅 แรงก์</b> (โลกออนไลน์ + 2v2) · <b>ตัดผลเที่ยงคืนวันสิ้นเดือน</b> (เวลาไทย) ระบบบันทึกอันดับไว้อัตโนมัติ</div>
   <div>👤 เฉพาะ<b>บัญชีที่ลงทะเบียน</b> และต้องเล่นออนไลน์จริงที่ระบบเห็นไม่น้อยกว่า 10 นาทีในเดือนนั้น</div>
   <div>🛡️ <b>ระบบตรวจโกงอัตโนมัติ</b>: RP เกินกว่าที่เล่นจริงจะทำได้ / แก้ข้อมูลในเกม / ใช้โปรแกรมช่วย → <b style="color:#ff9b9b">ตัดสิทธิ์ หรือแบนบัญชีถาวร</b> รางวัลเลื่อนให้อันดับถัดไป</div>
   <div>📨 <b>วิธีรับ</b>: ผู้ชนะเปิดเกมแล้วจะเห็น<b>รหัสรับรางวัล</b> → ทักแชท ${PRIZE_CONTACT.name} ส่งรหัส + ชื่อในเกม + ที่อยู่จัดส่ง ภายใน ${GEM_CLAIM_DAYS} วัน (ส่งฟรีในไทย)</div>
   <div>⚖️ คำตัดสินของทีมงานถือเป็นที่สิ้นสุด</div></div>`}
-function gemShowcaseHTML(full){const k=seasonKey();if(!GEM_PRIZES[k])return'';
-  return`<div class="gemx"><b>💎 รางวัลพิเศษ! อัญมณีแท้ส่งถึงบ้าน</b><small>ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เหลืออีก ${seasonDaysLeft()} วัน</small>${gemCardsHTML(k)}${full?gemRulesHTML():'<small style="color:#ffd23f;margin-top:4px">แตะดูกติกา + วิธีรับรางวัล ›</small>'}</div>`}
-function gemStripHTML(){const k=seasonKey(),G=GEM_PRIZES[k];if(!G||ACCT.mode==='local')return'';return`<div id="gemStrip"><img src="${G[0].img}" alt=""><span><b>💎 ลุ้นเพชรแท้!</b> Top 3 แรงก์ จบเดือน ${seasonName(k)}</span><i>ดู ›</i></div>`}
+function gemShowcaseHTML(full){const g=gemNow();if(!g)return'';const k=g.k;
+  return`<div class="gemx"><b>${g.live?'💎 รางวัลพิเศษ! อัญมณีแท้ส่งถึงบ้าน':'💎 เริ่ม '+startName(k)+'! ชิงอัญมณีแท้ส่งถึงบ้าน'}</b><small>${g.live?`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เหลืออีก ${seasonDaysLeft()} วัน`:`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เริ่มในอีก ${seasonDaysLeft()} วัน`}</small>${gemCardsHTML(k)}${full?gemRulesHTML(k):'<small style="color:#ffd23f;margin-top:4px">แตะดูกติกา + วิธีรับรางวัล ›</small>'}</div>`}
+function gemStripHTML(){const g=gemNow();if(!g||ACCT.mode==='local')return'';const G=GEM_PRIZES[g.k];return`<div id="gemStrip"><img src="${G[0].img}" alt=""><span><b>💎 ${g.live?'ลุ้นเพชรแท้!':startName(g.k)+' ชิงเพชรแท้!'}</b> Top 3 แรงก์ ${g.live?'จบเดือน '+seasonName(g.k):'· แรงก์เริ่มใหม่จาก 0'}</span><i>ดู ›</i></div>`}
 // ผู้ชนะ: เปิดเกมแล้วเห็นรหัสรับรางวัล + วิธีติดต่อ (เซิร์ฟเวอร์ส่ง gem มากับ /api/me, /api/login)
 function showGemWin(g){g=g||GEM_ME;if(!g)return;const G=GEM_PRIZES[g.season];
   openSheet(g.review?'🔎 กำลังตรวจสอบผล':'🎉 คุณได้รางวัลอัญมณี!',b=>{
@@ -2461,7 +2466,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:29,d:'1 ธ.ค. 2026',t:'💎 ลุ้นอัญมณีแท้ส่งถึงบ้าน!',l:['ฤดูกาล ธ.ค. แรงก์เริ่มใหม่จาก 0 ทุกคน! จบเดือนอันดับ 1–3 ของ 🏅 แรงก์ ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะเห็นรหัสรับรางวัล','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:29,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะเห็นรหัสรับรางวัล · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
   {id:28,d:'13 พ.ย. 2026',t:'🌍 โลกออนไลน์ใหญ่ขึ้น',l:['สนามกว้างขึ้นอีก 15% มีพลอย เพชรขาว และไอเทมเพิ่มตามพื้นที่','อยู่ในโลกเดียวกันได้ถึง 40 ขบวน (เดิม 30) สนามยังคึกคักเท่าเดิม','ลื่นขึ้น: ไม่กระตุกตอนมีรถไฟสีใหม่หรือแบบใหม่โผล่เข้าจอ']},
   {id:27,d:'13 พ.ย. 2026',t:'🚇 ลอดอุโมงค์ลื่นขึ้น',l:['ขบวนยาว ๆ ค่อย ๆ เข้ารูทีละตู้ แล้วค่อย ๆ โผล่ออกอีกฝั่ง ไม่โผล่พรวดออกมาทั้งขบวนแล้ว','เลี้ยวทันทีหลังออกจากอุโมงค์ก็ไม่ค้าง']},
   {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
@@ -2490,7 +2495,7 @@ const NEWS=[
   {id:3,d:'10 พ.ย. 2026',t:'📊 หน้าสถิติ',l:['หน้าบัญชีและโปรไฟล์คนอื่นโชว์หัวจักรกับหวูดที่ใช้อยู่ พร้อมความสามารถ']},
   {id:2,d:'8 พ.ย. 2026',t:'⚔️ ผู้เล่นปะทะผู้เล่น',l:['มีแถบประกาศ "A กำจัด B" เมื่อผู้เล่นกำจัดกัน','หวูดที่ซื้อทำให้ผู้เล่นคนอื่นในรัศมีช้าลง 20–50%','ชนกันตายเฉพาะปลายหัว (เฉียดข้างหัวเขา = เราตาย · หัวชนหัว = ตายทั้งคู่)']},
   {id:1,d:'7 พ.ย. 2026',t:'🏆 แรงก์และรางวัล',l:['รูปแรงก์ใหม่ทุกขั้น','รางวัลจบเดือนแจกตามอันดับ (ที่ 1 ได้สูงสุด 50,000 🪙) ดูได้ที่หน้า 🏆 แรงก์','💡 วิธีเล่นมีแท็บเคล็ดลับพร้อมรูป']},
-];
+].filter(n=>!n.from||bkkDay()>=n.from);   // from = วันที่เริ่มโชว์ (เวลาไทย)
 const NEWS_TOP=NEWS[0].id,NEWS_OLD_SEEN=3;   // ผู้เล่นเก่าที่ยังไม่เคยมีค่า → ถือว่าเห็นถึง id 3 (โชว์ของ 11 พ.ย.)
 const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
 const newsHTML=list=>list.map(n=>`<div class="news"><div class="nh"><b>${n.t}</b><span>${n.d}</span></div><ul>${n.l.map(x=>'<li>'+x+'</li>').join('')}</ul></div>`).join('');
