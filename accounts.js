@@ -193,9 +193,9 @@ const claimCode = (season, l) => { const h = crypto.createHmac('sha256', SECRET)
 // การเล่นออนไลน์ที่เซิร์ฟเวอร์เห็นเอง (server.js ส่งมา) ต่อบัญชีต่อฤดูกาล: sec เวลาที่มีชีวิตในเกม, g เกม (ตาย/ออก), k กำจัดที่เซิร์ฟเวอร์ยืนยัน, ml ยาวสุด,
 // fix = ครั้งที่ส่งข้อมูลเกินจริงแล้วระบบกันโกงปรับคืน, rp0 = RP ตอนเริ่มเก็บข้อมูล, ok = ผู้ดูแลให้สิทธิ์คืน
 const audQ = new Map();
-function bumpAudit(l, fn) {
+function bumpAudit(l, fn, season) {
   const p = (audQ.get(l) || Promise.resolve()).then(async () => { const u = await store.get(l); if (!u || u.ban) return;
-    const k = AC.seasonKey(), all = { ...(u.audit && typeof u.audit === 'object' ? u.audit : {}) }, d = u.data || {};
+    const k = season || AC.seasonKey(), all = { ...(u.audit && typeof u.audit === 'object' ? u.audit : {}) }, d = u.data || {};
     const a = all[k] || (all[k] = { sec: 0, g: 0, k: 0, ml: 0, fix: 0, rp0: d.season === k ? LB_VAL.rp(u) : Math.floor(LB_VAL.rp(u) / 2), t0: Date.now() });
     fn(a); for (const s of Object.keys(all).sort().slice(0, -3)) delete all[s]; await store.setAudit(l, all); }).catch(e => console.error('audit error', e.message));
   audQ.set(l, p); p.then(() => { if (audQ.get(l) === p) audQ.delete(l); }); return p; }
@@ -235,15 +235,21 @@ async function reviewList(season, fresh) {
 async function gemOf(u) { const now = Date.now();
   for (const k of Object.keys(GEM_SEASONS)) { if (k >= AC.seasonKey() || now > seasonEnd(k) + CLAIM_DAYS * 864e5) continue;
     const r = (await reviewList(k)).find(x => x.l === u.lname); if (!r) continue;
-    if (r.place) return { season: k, place: r.place, until: seasonEnd(k) + CLAIM_DAYS * 864e5 };
+    if (r.place) return { season: k, place: r.place, pos: r.pos, rp: r.rp, claimed: (u.audit && u.audit[k] && u.audit[k].claim) || 0, until: seasonEnd(k) + CLAIM_DAYS * 864e5 };
     if (r.status === 'dq' && r.pos <= (GEM_SEASONS[k] || 0) + 2) return { season: k, review: true }; }
   return null; }
 // ผู้ดูแล: เปิดเกมหลังจบฤดูกาลชิงพลอย → ได้รายชื่อผู้ชนะ 1–3 เลย (เจ้าของสั่ง 13 พ.ย.: ไม่ต้องใช้รหัสรับรางวัล ระบบจำผลแล้วแจ้งเจ้าของ)
 async function winnersFor(u) { if (!isAdmin(u)) return undefined; const now = Date.now(), out = [];
   for (const k of Object.keys(GEM_SEASONS).sort()) { if (k >= AC.seasonKey() || now > seasonEnd(k) + 30 * 864e5) continue;
-    const rows = await reviewList(k); out.push({ season: k, at: seasonEnd(k), win: rows.filter(r => r.place).map(r => ({ place: r.place, name: r.name, rp: r.rp, pos: r.pos })),
+    const rows = await reviewList(k); const claimOf = async l => { const x = await store.get(l).catch(() => null); return (x && x.audit && x.audit[k] && x.audit[k].claim) || 0; };
+    const win = []; for (const r of rows.filter(r => r.place)) win.push({ place: r.place, name: r.name, rp: r.rp, pos: r.pos, claimed: await claimOf(r.l) });
+    out.push({ season: k, at: seasonEnd(k), win,
       dq: rows.filter(r => (r.status === 'dq' || r.status === 'ban') && r.pos <= (GEM_SEASONS[k] || 0) + 2).map(r => ({ pos: r.pos, name: r.name, status: r.status })) }); }
   return out.length ? out : undefined; }
+// ผู้ดูแลใช้ของในร้านได้ทุกชิ้นไม่ต้องซื้อ (เจ้าของสั่ง 13 พ.ย.) → ให้ owned ครบทุกชิ้นทั้งตอนส่งข้อมูลให้เครื่องและตอนตรวจ /api/save
+const ALL_OWNED = (() => { const o = {}; for (const c of AC.CATS) o[c] = Object.keys(AC.SHOP[c]); for (const [c, id] of AC.LIMITED) if (o[c] && !o[c].includes(id)) o[c].push(id); return o; })();
+function withAdmin(u, d) { if (!isAdmin(u) || !d || typeof d !== 'object') return d; const owned = { ...(d.owned || {}) };
+  for (const c of AC.CATS) owned[c] = [...new Set([...(Array.isArray(owned[c]) ? owned[c] : []), ...ALL_OWNED[c]])]; return { ...d, owned }; }
 const BAN_MSG = why => 'บัญชีนี้ถูกระงับ' + (why ? ' (' + why + ')' : '') + ' — ถ้าคิดว่าผิดพลาด ติดต่อทีมงาน';
 
 // ---------- API ----------
@@ -274,7 +280,7 @@ async function handleApi(req, res, p) {
     if (req.method === 'GET' && p === '/api/me') {
       const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
       if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
-      return out(200, { name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
+      return out(200, { name: u.name, data: withAdmin(u, AC.seedOnline(u.data)), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
     }
     if (p.startsWith('/api/admin/')) {   // ผู้ดูแล (ADMINS) เท่านั้น
       const u = await authUser(req); if (!isAdmin(u)) return out(403, { err: 'เฉพาะผู้ดูแล' });
@@ -314,7 +320,7 @@ async function handleApi(req, res, p) {
       const u = await store.get(l);
       if (!u || (await hashPass(pass, u.salt)) !== u.hash) return out(401, { err: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
       if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
-      return out(200, { token: makeToken(u), name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
+      return out(200, { token: makeToken(u), name: u.name, data: withAdmin(u, AC.seedOnline(u.data)), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
     }
     if (p === '/api/reset') {   // ลืมรหัสผ่าน: ชื่อ + รหัสกู้คืน → ตั้งรหัสผ่านใหม่ (ได้รหัสกู้คืนชุดใหม่ด้วย)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
@@ -324,13 +330,17 @@ async function handleApi(req, res, p) {
       if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
       const salt = crypto.randomBytes(16).toString('hex'), rc = makeRecovery();
       await store.setAuth(u.lname, salt, await hashPass(pass, salt)); await store.setRecovery(u.lname, rc.rhash);
-      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: AC.seedOnline(u.data), code: rc.code, prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
+      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: withAdmin(u, AC.seedOnline(u.data)), code: rc.code, prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
     }
     const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
     if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
+    if (p === '/api/claim') {   // ผู้ชนะกด 🎁 เคลมรางวัล → จดเวลาไว้ให้ผู้ดูแลเห็น (แล้วเครื่องเปิดเฟซบุ๊กเจ้าของให้ส่งที่อยู่)
+      const g = await gemOf(u).catch(() => null); if (!g || !g.place) return out(400, { err: 'ไม่มีรางวัลให้เคลม' });
+      if (!g.claimed) { await bumpAudit(u.lname, a => { a.claim = a.claim || Date.now(); }, g.season); revCache.delete(g.season); }
+      return out(200, { ok: true }); }
     if (p === '/api/save') {
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
-      const pz = await prizeOf(u), { data, fixed } = AC.validate(u.data || {}, raw, Date.now(), pz ? pz.coins : 0);
+      const pz = await prizeOf(u), { data, fixed } = AC.validate(withAdmin(u, u.data || {}), raw, Date.now(), pz ? pz.coins : 0);
       await store.save(u.lname, data, rpOf(data));
       if (fixed) bumpAudit(u.lname, a => { a.fix++; });
       return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
@@ -350,7 +360,7 @@ async function handleApi(req, res, p) {
       const nl = lower(name); if (nl !== u.lname && (ADMINS.has(nl) || await store.get(nl))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
       if (await prizeOf(u)) return out(409, { err: 'กำลังรับรางวัลจบฤดูกาล ปิดแล้วเปิดเกมใหม่ แล้วลองเปลี่ยนชื่ออีกครั้ง' });
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
-      const { data } = AC.validate(u.data || {}, raw, Date.now(), 0);   // บันทึกความคืบหน้าล่าสุดก่อน (ผ่านกันโกง) แล้วค่อยหักเหรียญ
+      const { data } = AC.validate(withAdmin(u, u.data || {}), raw, Date.now(), 0);   // บันทึกความคืบหน้าล่าสุดก่อน (ผ่านกันโกง) แล้วค่อยหักเหรียญ
       if ((+data.coins || 0) < RENAME_COST) { await store.save(u.lname, data, rpOf(data)); return out(400, { err: 'เหรียญไม่พอ ต้องใช้ ' + RENAME_COST.toLocaleString() + ' 🪙', coins: data.coins }); }
       data.coins -= RENAME_COST; data.renames = (+data.renames || 0) + 1;
       if (!(await store.rename(u.lname, nl, name, data, rpOf(data)))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });

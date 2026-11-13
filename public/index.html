@@ -203,6 +203,8 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 #gemStrip{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#3a2a00,#5c3f00 60%,#3a2a00);border:1.5px solid #ffd23f;border-radius:12px;padding:6px 10px;margin:8px 0 0;cursor:pointer;text-align:left;font-size:13px;color:#fff}
 #gemStrip img{width:34px;height:34px;border-radius:8px;object-fit:cover}#gemStrip b{color:#ffd23f}#gemStrip i{margin-left:auto;font-style:normal;color:#ffd23f}
 .gwin{text-align:center}.gwin img{width:150px;height:150px;border-radius:14px;object-fit:cover;border:3px solid #ffd23f;margin:6px auto;display:block}
+.gwin .gwhy img{display:inline-block;width:22px;height:22px;vertical-align:-5px;margin:0 2px;border:0;border-radius:0;box-shadow:none;background:none}
+.gwhy{background:#1a1f4a;border:1px solid #ffd23f55;border-radius:12px;padding:10px;margin:8px 0;font-size:13.5px;line-height:1.7;text-align:left}
 .gcode{font-size:30px;font-weight:800;letter-spacing:3px;color:#ffd23f;background:#0b0f26;border:2px dashed #ffd23f;border-radius:12px;padding:10px;margin:8px 0;user-select:all}
 .gsteps{text-align:left;font-size:13.5px;line-height:1.7;background:#0f1330;border-radius:12px;padding:8px 12px}
 .adrow{background:#0f1330;border-radius:12px;padding:8px 10px;margin:6px 0;text-align:left;font-size:12.5px;line-height:1.5;border-left:4px solid #556}
@@ -760,7 +762,7 @@ function gemRulesHTML(k){return`<div class="gemrules">
   <div>🏅 นับจาก<b>อันดับ 🏅 แรงก์</b> (โลกออนไลน์ + 2v2) · <b>ตัดผลเที่ยงคืนวันสิ้นเดือน</b> (เวลาไทย) ระบบบันทึกอันดับไว้อัตโนมัติ</div>
   <div>👤 เฉพาะ<b>บัญชีที่ลงทะเบียน</b> และต้องเล่นออนไลน์จริงที่ระบบเห็นไม่น้อยกว่า 10 นาทีในเดือนนั้น</div>
   <div>🛡️ <b>ระบบตรวจโกงอัตโนมัติ</b>: RP เกินกว่าที่เล่นจริงจะทำได้ / แก้ข้อมูลในเกม / ใช้โปรแกรมช่วย → <b style="color:#ff9b9b">ตัดสิทธิ์ หรือแบนบัญชีถาวร</b> รางวัลเลื่อนให้อันดับถัดไป</div>
-  <div>📨 <b>วิธีรับ</b>: ผู้ชนะเปิดเกมแล้วจะมี<b>ใบแจ้งว่าได้รางวัล</b> → ทักแชท ${PRIZE_CONTACT.name} ส่งชื่อในเกม + ชื่อ-ที่อยู่-เบอร์โทร ภายใน ${GEM_CLAIM_DAYS} วัน (ส่งฟรีในไทย)</div>
+  <div>📨 <b>วิธีรับ</b>: ผู้ชนะเปิดเกมแล้วจะมี<b>ใบแจ้งว่าได้รางวัล</b> (บอกอันดับ + RP) → กด <b>🎁 เคลมรางวัล</b> ทักแชท ${PRIZE_CONTACT.name} ส่งชื่อในเกม + ชื่อ-ที่อยู่-เบอร์โทร ภายใน ${GEM_CLAIM_DAYS} วัน (ส่งฟรีในไทย)</div>
   <div>🛡️ ทีมงาน/ผู้ดูแลเกมไม่มีสิทธิ์รับรางวัล · ⚖️ คำตัดสินของทีมงานถือเป็นที่สิ้นสุด</div></div>`}
 function gemShowcaseHTML(full){const g=gemNow();if(!g)return'';const k=g.k;
   return`<div class="gemx"><b>${g.live?'💎 รางวัลพิเศษ! อัญมณีแท้ส่งถึงบ้าน':'💎 เริ่ม '+startName(k)+'! ชิงอัญมณีแท้ส่งถึงบ้าน'}</b><small>${g.live?`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เหลืออีก ${seasonDaysLeft()} วัน`:`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เริ่มในอีก ${seasonDaysLeft()} วัน`}</small>${gemCardsHTML(k)}${full?gemRulesHTML(k):'<small style="color:#ffd23f;margin-top:4px">แตะดูกติกา + วิธีรับรางวัล ›</small>'}</div>`}
@@ -769,12 +771,15 @@ function gemStripHTML(){const g=gemNow();if(!g||ACCT.mode==='local')return'';con
 function showGemWin(g){g=g||GEM_ME;if(!g)return;const G=GEM_PRIZES[g.season];
   openSheet(g.review?'🔎 กำลังตรวจสอบผล':'🎉 คุณได้รางวัลอัญมณี!',b=>{
     if(g.review){b.innerHTML=`<div class="gwin"><div style="font-size:15px;line-height:1.7">ฤดูกาล ${seasonName(g.season)} คุณติดอันดับต้น ๆ<br>แต่ระบบพบข้อมูลที่ต้อง<b>ตรวจสอบเพิ่ม</b> (เช่น เวลาเล่นออนไลน์ที่ระบบเห็นน้อยเกินไป)<br>ทีมงานกำลังตรวจ ถ้าผ่านจะมีใบแจ้งรางวัลขึ้นในหน้านี้</div><div class="help" style="margin-top:8px">สอบถาม: ${PRIZE_CONTACT.name}</div><button class="btn" id="gwOk">ตกลง</button></div>`;b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden');return}
-    const it=G&&G[g.place-1],until=new Date(g.until).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'});
+    const it=G&&G[g.place-1],rk=rankOf(+g.rp||0),until=new Date(g.until).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'});
     b.innerHTML=`<div class="gwin"><div style="font-size:18px;font-weight:700;color:#ffd23f">${['🥇','🥈','🥉'][g.place-1]||'🏆'} อันดับ ${g.place} · ฤดูกาล ${seasonName(g.season)}</div>
       ${it?`<img src="${it.img}" alt=""><div style="font-size:16px;font-weight:700">${it.n}</div><div class="help" style="margin:2px 0 6px">${it.d}</div>`:''}
       <div style="font-size:15px;line-height:1.6;margin:4px 0">ยินดีด้วย <b>${escH(ACCT.name||'')}</b>! 🎉 คุณได้รางวัลนี้</div>
-      <div class="gsteps"><b>📨 วิธีรับรางวัล</b><br>1️⃣ ทักแชท <b>${PRIZE_CONTACT.name}</b> (ปุ่มด้านล่าง)<br>2️⃣ บอกว่าได้อันดับ ${g.place} + <b>ชื่อในเกม (${escH(ACCT.name||'')})</b><br>3️⃣ ส่ง <b>ชื่อ-นามสกุล ที่อยู่ เบอร์โทร</b> สำหรับจัดส่ง<br>⏰ ภายใน <b>${until}</b> (ส่งฟรีในไทย)<br><small>⚠️ ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</small></div>
-      <a class="btn" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;width:100%;text-align:center;text-decoration:none;margin-top:10px">💬 เปิด${PRIZE_CONTACT.name} ทักแชท</a><button class="btn gray" id="gwOk">ปิด</button></div>`;
+      <div class="gwhy"><b>🏅 ทำไมได้รางวัลนี้</b><br>จบฤดูกาล ${seasonName(g.season)} (ตัดผลเที่ยงคืนสิ้นเดือน) คุณอยู่<br><b style="color:#ffd23f">อันดับที่ ${g.pos||g.place}</b> ของตาราง 🏅 แรงก์ · ${rankImgC(rk.code,22)} <b style="color:${rk.col}">${rk.name}</b> · <b>${(+g.rp||0).toLocaleString()} RP</b>${g.pos&&g.pos!==g.place?`<br><small>(อันดับที่สูงกว่าถูกตัดสิทธิ์ รางวัลเลื่อนมาให้คุณ)</small>`:''}<br>→ ได้ <b>รางวัลที่ ${g.place}</b></div>
+      <a class="btn" id="gwClaim" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;width:100%;text-align:center;text-decoration:none;margin-top:8px">🎁 เคลมรางวัล · ส่งที่อยู่ทาง${PRIZE_CONTACT.name}</a>
+      <div id="gwSt" class="help" style="margin:8px 0 0;color:#7cfc9a">${g.claimed?'✅ คุณกดเคลมแล้ว — ถ้ายังไม่ได้ส่งที่อยู่ กดปุ่มอีกครั้งเพื่อเปิดแชท':''}</div>
+      <div class="gsteps"><b>📨 วิธีรับรางวัล</b><br>1️⃣ กดปุ่ม <b>🎁 เคลมรางวัล</b> ด้านบน → เปิดแชท <b>${PRIZE_CONTACT.name}</b><br>2️⃣ บอกว่าได้รางวัลที่ ${g.place} + <b>ชื่อในเกม (${escH(ACCT.name||'')})</b><br>3️⃣ ส่ง <b>ชื่อ-นามสกุล ที่อยู่ เบอร์โทร</b> สำหรับจัดส่ง<br>⏰ ภายใน <b>${until}</b> (ส่งฟรีในไทย)<br><small>⚠️ ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</small></div><button class="btn gray" id="gwOk">ปิด</button></div>`;
+    b.querySelector('#gwClaim').onclick=()=>{api('/api/claim',{}).then(()=>{g.claimed=g.claimed||Date.now();const st=b.querySelector('#gwSt');if(st)st.textContent='✅ เคลมแล้ว! ส่งชื่อ-ที่อยู่-เบอร์โทรในแชทเฟซบุ๊กได้เลย'}).catch(()=>{})};
     b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden')});
   if(!g.review)sfx('gold')}
 function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);ADM_WIN=j&&j.winners||null;if(GEM_ME&&!gemShown){gemShown=true;setTimeout(()=>{if(state==='menu')showGemWin()},900)}
@@ -783,9 +788,9 @@ function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);ADM_WIN=j&&j.
 let ADM_WIN=null;
 function winnersHTML(w){const G=GEM_PRIZES[w.season]||[];
   return`<div class="help" style="margin:0 0 8px">ฤดูกาล ${seasonName(w.season)} · ตัดผล ${new Date(w.at).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'})}</div>`+
-    (w.win.length?w.win.map(r=>`<div class="adrow win"><div class="ah"><span class="chip">${['🥇','🥈','🥉'][r.place-1]||'🏆'} รางวัลที่ ${r.place}</span><b>${escH(r.name)}</b><span class="chip">${(+r.rp).toLocaleString()} RP</span></div><div style="color:#aab">${G[r.place-1]?escH(G[r.place-1].n):''}${r.pos!==r.place?' · อันดับแรงก์ที่ '+r.pos:''}</div></div>`).join(''):'<div class="help">ไม่มีผู้ได้รางวัล</div>')+
+    (w.win.length?w.win.map(r=>`<div class="adrow win"><div class="ah"><span class="chip">${['🥇','🥈','🥉'][r.place-1]||'🏆'} รางวัลที่ ${r.place}</span><b>${escH(r.name)}</b><span class="chip">${(+r.rp).toLocaleString()} RP</span></div><div style="color:#aab">${G[r.place-1]?escH(G[r.place-1].n):''}${r.pos!==r.place?' · อันดับแรงก์ที่ '+r.pos:''}</div><div style="color:${r.claimed?'#7cfc9a':'#ffb35c'}">${r.claimed?'✅ กดเคลมแล้ว '+new Date(r.claimed).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'}):'⏳ ยังไม่กดเคลม'}</div></div>`).join(''):'<div class="help">ไม่มีผู้ได้รางวัล</div>')+
     (w.dq.length?`<div class="help" style="margin-top:6px;color:#ff9b9b">⛔ ข้ามไป (ถูกตัดสิทธิ์/แบน): ${w.dq.map(d=>'#'+d.pos+' '+escH(d.name)).join(' · ')}</div>`:'')+
-    `<div class="help" style="margin-top:8px">ผู้ชนะจะเห็นใบแจ้งในเกม และจะทักแชท ${PRIZE_CONTACT.name} พร้อมชื่อในเกม + ที่อยู่ · เทียบชื่อกับรายชื่อนี้ได้เลย</div>`}
+    `<div class="help" style="margin-top:8px">ผู้ชนะจะเห็นใบแจ้งในเกม (บอกอันดับ + RP) กด 🎁 เคลมรางวัล แล้วทักแชท ${PRIZE_CONTACT.name} ส่งชื่อในเกม + ที่อยู่ · เทียบชื่อกับรายชื่อนี้ได้เลย</div>`}
 function showWinners(w,first){try{localStorage.setItem('admWinSeen',w.season)}catch(e){}
   openSheet('🏆 ผู้ชนะรางวัลอัญมณี',b=>{b.innerHTML=winnersHTML(w)+`<button class="btn" id="wnAdm">🛡️ เปิดหน้าผู้ดูแล</button><button class="btn gray" id="wnOk">ปิด</button>`;
     b.querySelector('#wnAdm').onclick=()=>{admKey=w.season;openAdmin()};b.querySelector('#wnOk').onclick=()=>$('sheet').classList.add('hidden')});if(first)sfx('gold')}

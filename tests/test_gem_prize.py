@@ -38,6 +38,11 @@ async def main():
         b=login('BOSS1');tok=b['token'];check(b.get('admin') is True,'BOSS1 เป็นผู้ดูแล')
         w=(b.get('winners') or [{}])[0];check(w.get('season')=='2026-10' and [(x['place'],x['name']) for x in w.get('win',[])]==[(1,'W1'),(2,'W2'),(3,'W3')],'ผู้ดูแลได้รายชื่อผู้ชนะทันที '+str(w.get('win')))
         check(login('W1').get('winners') is None,'คนทั่วไปไม่ได้รายชื่อผู้ชนะ')
+        d=b['data'];check('comet' in d['owned']['loco'] and 'dragon' in d['owned']['horn'] and 'cosmos' in d['owned']['wagon'] and 'midnight' in d['owned']['skin'],'ผู้ดูแลมีของในร้านครบทุกชิ้น')
+        d['eq']={**d.get('eq',{}),'loco':'comet','horn':'dragon','wagon':'cosmos','title':'unbeaten'};r=api('/api/save',{'data':d},tok=tok)
+        u={'data':api('/api/me',tok=tok)['data']};check(not r.get('fix') and u['data']['eq']['loco']=='comet' and u['data']['eq']['horn']=='dragon' and u['data']['coins']==d['coins'],'ผู้ดูแลใส่ของแพงสุดได้ ไม่โดนหักเหรียญ/ไม่โดนปรับ')
+        w1=login('W1');d=w1['data'];d['eq']={**d.get('eq',{}),'loco':'comet'};api('/api/save',{'data':d},tok=w1['token'])
+        u={'data':api('/api/me',tok=w1['token'])['data']};check(u['data']['eq']['loco']!='comet' and 'comet' not in u['data']['owned'].get('loco',[]),'คนทั่วไปใส่ของที่ไม่ได้ซื้อไม่ได้')
         check(api('/api/admin/review?key=2026-10',tok=w1tok).get('_status')==403,'คนทั่วไปเข้าหน้าผู้ดูแลไม่ได้')
         r=api('/api/admin/review?key=2026-10',tok=tok);print('  review:',[(x['name'],x['status'],x['place']) for x in r['rows']])
         check([x['place'] for x in r['rows']][:5]==[1,0,2,3,0],'ลำดับผู้ชนะ W1/W2/W3 (ข้าม CHEAT)')
@@ -53,6 +58,10 @@ async def main():
         api('/api/admin/ban',{'name':'W2','unban':True},tok=tok);check('token' in login('W2'),'ปลดแบน W2 ล็อกอินได้')
         r=api('/api/admin/review?key=2026-11',tok=tok);check(all(x['status']=='admin' and not x['place'] for x in r['rows'] if x['name']=='BOSS1') and any(x['name']=='BOSS1' for x in r['rows']),'ผู้ดูแล (BOSS1) ไม่ร่วมชิงพลอย')
         api('/api/admin/allow',{'name':'CHEAT','key':'2026-10','v':False},tok=tok)
+        check(api('/api/claim',{},tok=login('W4')['token']).get('_status')==400,'คนไม่ได้รางวัลกดเคลมไม่ได้')
+        check(api('/api/claim',{},tok=w1tok).get('ok') is True,'W1 กดเคลมรางวัล')
+        w=login('BOSS1')['winners'][0]['win'];check(w[0]['name']=='W1' and w[0]['claimed']>0 and not w[1]['claimed'],'ผู้ดูแลเห็นว่า W1 กดเคลมแล้ว ' +str([(x['name'],bool(x['claimed'])) for x in w]))
+        g=login('W1')['gem'];check(g['pos']==1 and g['rp']==900 and g['claimed']>0,'ใบแจ้งของ W1 มีอันดับ/RP/เคลมแล้ว')
         async with async_playwright() as p:
             br=await p.chromium.launch()
             async def page(tk,name,w=390,h=844):
@@ -61,7 +70,8 @@ async def main():
                 await pg.goto('http://127.0.0.1:3457/');await pg.evaluate("GEM_PRIZES['2026-10']=GEM_PRIZES['2026-12'];GEM_PRIZES[seasonKey()]=GEM_PRIZES['2026-12']");return pg,errs
             pg,errs=await page(login('W1')['token'],'W1');await pg.wait_for_timeout(2200)
             t=await pg.evaluate("document.getElementById('sheet').classList.contains('hidden')?'':document.getElementById('sheetBody').innerText")
-            check('อันดับ 1' in t and 'ที่อยู่' in t and 'Ponpoj' in t and 'รหัสรับ' not in t,'W1 เปิดเกม → ใบแจ้งได้รางวัล + วิธีส่งที่อยู่')
+            check('อันดับที่ 1' in t and '900 RP' in t and 'เคลมรางวัล' in t and 'ที่อยู่' in t and 'Ponpoj' in t and 'รหัสรับ' not in t,'W1 เปิดเกม → ใบแจ้งบอกอันดับ+RP + ปุ่มเคลม + ส่งที่อยู่')
+            href=await pg.evaluate("document.getElementById('gwClaim').href");check('facebook.com/Ponpoj.Thien' in href,'ปุ่มเคลมเปิดเฟซบุ๊กเจ้าของ')
             await pg.screenshot(path=SP+'/gem_win.png')
             await pg.evaluate("$('sheet').classList.add('hidden');showBest()");await pg.wait_for_timeout(300)
             check(await pg.evaluate("!!document.getElementById('gemStrip')"),'หน้าแรกมีแถบ 💎 ลุ้นเพชรแท้');await pg.screenshot(path=SP+'/gem_home.png')
