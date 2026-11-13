@@ -41,7 +41,7 @@ async def main():
         await a.wait_for_timeout(4000)
         for i, pg in enumerate(pages):
             print(f'online P{i+1}', await pg.evaluate(f"[NET.room,NET.host,NET.players.size,{BOTS},D().label,diff,mode]"))
-        print('RP multiplier online (score 600, 0 kills) =', await a.evaluate("gameRP(600,0,0)"), '(want 20)')
+        print('RP multiplier online (score 600, 0 kills) =', await a.evaluate("gameRP(600,0,0)"), '(want 12)')
         print('errors', errs)
 
 asyncio.run(main())
