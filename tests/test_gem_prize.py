@@ -70,7 +70,7 @@ async def main():
                 await pg.goto('http://127.0.0.1:3457/');await pg.evaluate("GEM_PRIZES['2026-10']=GEM_PRIZES['2026-12'];GEM_PRIZES[seasonKey()]=GEM_PRIZES['2026-12']");return pg,errs
             pg,errs=await page(login('W1')['token'],'W1');await pg.wait_for_timeout(2200)
             t=await pg.evaluate("document.getElementById('sheet').classList.contains('hidden')?'':document.getElementById('sheetBody').innerText")
-            check('อันดับที่ 1' in t and '900 RP' in t and 'เคลมรางวัล' in t and 'ที่อยู่' in t and 'Ponpoj' in t and 'รหัสรับ' not in t,'W1 เปิดเกม → ใบแจ้งบอกอันดับ+RP + ปุ่มเคลม + ส่งที่อยู่')
+            check('#1' in t and '900 RP' in t and 'รับรางวัลอัญมณี' in t and 'ที่อยู่' in t and 'Ponpoj' in t and 'รหัสรับ' not in t,'W1 เปิดเกม → ใบแจ้งบอกอันดับ+RP + ปุ่มเคลม + ส่งที่อยู่')
             href=await pg.evaluate("document.getElementById('gwClaim').href");check('facebook.com/Ponpoj.Thien' in href,'ปุ่มเคลมเปิดเฟซบุ๊กเจ้าของ')
             await pg.screenshot(path=SP+'/gem_win.png')
             await pg.evaluate("$('sheet').classList.add('hidden');showBest()");await pg.wait_for_timeout(300)

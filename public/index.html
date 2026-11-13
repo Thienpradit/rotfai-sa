@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-title" content="รถไฟซ่า">
 <meta name="theme-color" content="#0d1020">
 <title>รถไฟซ่า</title>
-<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;600&family=Chonburi&display=swap" rel="stylesheet">
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#0d1020;font-family:'Mitr',system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
@@ -202,7 +202,37 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .gemrules{text-align:left;font-size:12.5px;line-height:1.55;color:#cfd3f2;background:#0b0f26;border-radius:10px;padding:8px 10px;margin-top:6px}.gemrules div{margin:2px 0}.gemrules b{color:#fff}
 #gemStrip{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#3a2a00,#5c3f00 60%,#3a2a00);border:1.5px solid #ffd23f;border-radius:12px;padding:6px 10px;margin:8px 0 0;cursor:pointer;text-align:left;font-size:13px;color:#fff}
 #gemStrip img{width:34px;height:34px;border-radius:8px;object-fit:cover}#gemStrip b{color:#ffd23f}#gemStrip i{margin-left:auto;font-style:normal;color:#ffd23f}
-.gwin{text-align:center}.gwin img{width:150px;height:150px;border-radius:14px;object-fit:cover;border:3px solid #ffd23f;margin:6px auto;display:block}
+.gwin{text-align:center}
+/* 💎 ใบแจ้งผู้ชนะอัญมณี แบบหรู (เจ้าของสั่ง 13 พ.ย. 16:55: ดูหรูหรา มีสไตล์) */
+#sheet.lux .panel{background:radial-gradient(120% 70% at 50% 0%,#3b2a12 0%,#1b1530 45%,#0d0b1a 100%);border:1.5px solid #c9a24a;box-shadow:0 0 0 1px #00000080,0 0 40px #ffcf5a33,inset 0 0 0 1px #ffe9a822}
+#sheet.lux #sheetClose{background:#2a1f10;border-color:#c9a24a;color:#f3d98b}
+#sheet.lux .sheetHead{background:#1d1628f2;border-bottom:1px solid #c9a24a55}#sheet.lux .sheetHead h3,#sheet.lux #sheetTitle{font-family:Chonburi,Mitr,serif;font-weight:400;color:#f3d98b;letter-spacing:.5px}
+.lux1{text-align:center;color:#f4ecd8;padding:2px 2px 6px}
+.lux1 .orn{color:#c9a24a;letter-spacing:6px;font-size:12px;opacity:.9}.lux1 .orn:before,.lux1 .orn:after{content:'';display:inline-block;width:60px;height:1px;vertical-align:middle;margin:0 10px;background:linear-gradient(90deg,transparent,#c9a24a)}.lux1 .orn:after{background:linear-gradient(90deg,#c9a24a,transparent)}
+.lux1 .kick{font-size:12px;letter-spacing:1px;color:#d9c08a;margin-top:6px}
+.lux1 .ttl{font-family:Chonburi,Mitr,serif;font-size:32px;line-height:1.25;margin:4px 0 2px;background:linear-gradient(100deg,#b8862b 0%,#ffe9a8 30%,#fff7da 45%,#d6a640 60%,#ffe08a 80%,#a8741e 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:luxShine 4.5s linear infinite}
+@keyframes luxShine{0%{background-position:100% 0}100%{background-position:-150% 0}}
+.lux1 .who{font-size:19px;font-weight:600;color:#fff}.lux1 .who b{color:#ffe08a}
+.lux1 .medal{display:inline-block;margin:8px 0 2px;padding:4px 14px;border-radius:99px;border:1px solid #c9a24a;background:linear-gradient(#3a2c12,#231a0c);color:#f3d98b;font-size:13px;letter-spacing:.5px}
+.lux1 .gem{position:relative;width:176px;height:176px;margin:14px auto 8px}
+.lux1 .gem:before{content:'';position:absolute;inset:-26px;border-radius:50%;background:conic-gradient(from 0deg,#ffe9a800,#ffe9a855,#ffe9a800 12%,#ffe9a800 25%,#ffe9a844,#ffe9a800 37%,#ffe9a800 50%,#ffe9a855,#ffe9a800 62%,#ffe9a800 75%,#ffe9a844,#ffe9a800 87%);animation:luxRay 14s linear infinite;filter:blur(1px)}
+.lux1 .gem:after{content:'';position:absolute;inset:-6px;border-radius:50%;background:linear-gradient(135deg,#fff3c4,#c9a24a 35%,#7a5516 55%,#ffe08a 75%,#b8862b);z-index:0}
+@keyframes luxRay{to{transform:rotate(360deg)}}
+.lux1 .gem img{position:relative;z-index:1;width:176px;height:176px;border-radius:50%;object-fit:cover;border:3px solid #1b1530;margin:0;display:block;box-shadow:0 10px 30px #000a}
+.lux1 .gem i{position:absolute;z-index:2;color:#fff8dc;font-style:normal;text-shadow:0 0 8px #ffe08a;animation:luxTw 2.4s ease-in-out infinite}
+@keyframes luxTw{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}
+.lux1 .gname{font-family:Chonburi,Mitr,serif;font-size:20px;color:#ffe9a8;margin-top:4px}.lux1 .gspec{font-size:12px;color:#bfae86;letter-spacing:.3px}
+.lux1 .stats{display:flex;margin:14px 0 10px;border-top:1px solid #c9a24a55;border-bottom:1px solid #c9a24a55}
+.lux1 .stats>div{flex:1;padding:8px 2px;font-size:11px;color:#bfae86;letter-spacing:.5px}.lux1 .stats>div+div{border-left:1px solid #c9a24a33}
+.lux1 .stats b{display:block;font-size:17px;color:#fff3c4;font-weight:600;letter-spacing:0;margin-top:2px;white-space:nowrap}.lux1 .stats img{width:20px;height:20px;vertical-align:-4px;margin:0 2px 0 0;border:0;border-radius:0;box-shadow:none;display:inline-block}
+.lux1 .msg{font-size:13.5px;line-height:1.75;color:#e8dcc0;margin:4px 6px 10px}
+.lux1 .steps{text-align:left;font-size:13px;line-height:1.6;margin:0 2px 12px;padding:10px 12px;border-radius:14px;background:#0000004d;border:1px solid #c9a24a33}
+.lux1 .steps div{display:flex;gap:10px;margin:5px 0}.lux1 .steps em{flex:0 0 22px;height:22px;border-radius:50%;border:1px solid #c9a24a;color:#ffe08a;font-style:normal;font-family:Chonburi,serif;font-size:13px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.lux1 .cta{display:block;box-sizing:border-box;width:100%;padding:14px;border-radius:14px;text-decoration:none;font-weight:600;font-size:16px;letter-spacing:.5px;color:#2a1c04;background:linear-gradient(180deg,#fff0b8 0%,#ffd76a 40%,#d9a63c 100%);box-shadow:0 4px 0 #8a6416,0 8px 24px #ffcf5a44;position:relative;overflow:hidden}
+.lux1 .cta:after{content:'';position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#ffffffaa,transparent);animation:luxSweep 3s ease-in-out infinite}
+@keyframes luxSweep{0%,55%{left:-60%}100%{left:130%}}
+.lux1 .st{font-size:12.5px;color:#9be8b0;margin:8px 0 0;min-height:1em}
+.lux1 .foot{font-size:11px;color:#8f8468;margin-top:10px}.lux1 .close{background:none;border:0;color:#bfae86;font:inherit;font-size:13px;text-decoration:underline;margin-top:6px;cursor:pointer;padding:6px 14px}.gwin img{width:150px;height:150px;border-radius:14px;object-fit:cover;border:3px solid #ffd23f;margin:6px auto;display:block}
 .gwin .gwhy img{display:inline-block;width:22px;height:22px;vertical-align:-5px;margin:0 2px;border:0;border-radius:0;box-shadow:none;background:none}
 .gwhy{background:#1a1f4a;border:1px solid #ffd23f55;border-radius:12px;padding:10px;margin:8px 0;font-size:13.5px;line-height:1.7;text-align:left}
 .gcode{font-size:30px;font-weight:800;letter-spacing:3px;color:#ffd23f;background:#0b0f26;border:2px dashed #ffd23f;border-radius:12px;padding:10px;margin:8px 0;user-select:all}
@@ -769,17 +799,28 @@ function gemShowcaseHTML(full){const g=gemNow();if(!g)return'';const k=g.k;
 function gemStripHTML(){const g=gemNow();if(!g||ACCT.mode==='local')return'';const G=GEM_PRIZES[g.k];return`<div id="gemStrip"><img src="${G[0].img}" alt=""><span><b>💎 ${g.live?'ลุ้นเพชรแท้!':startName(g.k)+' ชิงเพชรแท้!'}</b> Top 3 แรงก์ ${g.live?'จบเดือน '+seasonName(g.k):'· แรงก์เริ่มใหม่จาก 0'}</span><i>ดู ›</i></div>`}
 // ผู้ชนะ: เปิดเกมแล้วเห็นใบแจ้งได้รางวัล + วิธีติดต่อ (ไม่ใช้รหัสรับรางวัลแล้ว — เจ้าของสั่ง 13 พ.ย.) (เซิร์ฟเวอร์ส่ง gem มากับ /api/me, /api/login)
 function showGemWin(g){g=g||GEM_ME;if(!g)return;const G=GEM_PRIZES[g.season];
-  openSheet(g.review?'🔎 กำลังตรวจสอบผล':'🎉 คุณได้รางวัลอัญมณี!',b=>{
+  openSheet(g.review?'🔎 กำลังตรวจสอบผล':'💎 รางวัลแห่งแชมป์',b=>{
     if(g.review){b.innerHTML=`<div class="gwin"><div style="font-size:15px;line-height:1.7">ฤดูกาล ${seasonName(g.season)} คุณติดอันดับต้น ๆ<br>แต่ระบบพบข้อมูลที่ต้อง<b>ตรวจสอบเพิ่ม</b> (เช่น เวลาเล่นออนไลน์ที่ระบบเห็นน้อยเกินไป)<br>ทีมงานกำลังตรวจ ถ้าผ่านจะมีใบแจ้งรางวัลขึ้นในหน้านี้</div><div class="help" style="margin-top:8px">สอบถาม: ${PRIZE_CONTACT.name}</div><button class="btn" id="gwOk">ตกลง</button></div>`;b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden');return}
-    const it=G&&G[g.place-1],rk=rankOf(+g.rp||0),until=new Date(g.until).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'});
-    b.innerHTML=`<div class="gwin"><div style="font-size:18px;font-weight:700;color:#ffd23f">${['🥇','🥈','🥉'][g.place-1]||'🏆'} อันดับ ${g.place} · ฤดูกาล ${seasonName(g.season)}</div>
-      ${it?`<img src="${it.img}" alt=""><div style="font-size:16px;font-weight:700">${it.n}</div><div class="help" style="margin:2px 0 6px">${it.d}</div>`:''}
-      <div style="font-size:15px;line-height:1.6;margin:4px 0">ยินดีด้วย <b>${escH(ACCT.name||'')}</b>! 🎉 คุณได้รางวัลนี้</div>
-      <div class="gwhy"><b>🏅 ทำไมได้รางวัลนี้</b><br>จบฤดูกาล ${seasonName(g.season)} (ตัดผลเที่ยงคืนสิ้นเดือน) คุณอยู่<br><b style="color:#ffd23f">อันดับที่ ${g.pos||g.place}</b> ของตาราง 🏅 แรงก์ · ${rankImgC(rk.code,22)} <b style="color:${rk.col}">${rk.name}</b> · <b>${(+g.rp||0).toLocaleString()} RP</b>${g.pos&&g.pos!==g.place?`<br><small>(อันดับที่สูงกว่าถูกตัดสิทธิ์ รางวัลเลื่อนมาให้คุณ)</small>`:''}<br>→ ได้ <b>รางวัลที่ ${g.place}</b></div>
-      <a class="btn" id="gwClaim" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;width:100%;text-align:center;text-decoration:none;margin-top:8px">🎁 เคลมรางวัล · ส่งที่อยู่ทาง${PRIZE_CONTACT.name}</a>
-      <div id="gwSt" class="help" style="margin:8px 0 0;color:#7cfc9a">${g.claimed?'✅ คุณกดเคลมแล้ว — ถ้ายังไม่ได้ส่งที่อยู่ กดปุ่มอีกครั้งเพื่อเปิดแชท':''}</div>
-      <div class="gsteps"><b>📨 วิธีรับรางวัล</b><br>1️⃣ กดปุ่ม <b>🎁 เคลมรางวัล</b> ด้านบน → เปิดแชท <b>${PRIZE_CONTACT.name}</b><br>2️⃣ บอกว่าได้รางวัลที่ ${g.place} + <b>ชื่อในเกม (${escH(ACCT.name||'')})</b><br>3️⃣ ส่ง <b>ชื่อ-นามสกุล ที่อยู่ เบอร์โทร</b> สำหรับจัดส่ง<br>⏰ ภายใน <b>${until}</b> (ส่งฟรีในไทย)<br><small>⚠️ ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</small></div><button class="btn gray" id="gwOk">ปิด</button></div>`;
-    b.querySelector('#gwClaim').onclick=()=>{api('/api/claim',{}).then(()=>{g.claimed=g.claimed||Date.now();const st=b.querySelector('#gwSt');if(st)st.textContent='✅ เคลมแล้ว! ส่งชื่อ-ที่อยู่-เบอร์โทรในแชทเฟซบุ๊กได้เลย'}).catch(()=>{})};
+    const it=G&&G[g.place-1],rk=rankOf(+g.rp||0),nm=escH(ACCT.name||''),pl=g.place,until=new Date(g.until).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'});
+    const MSG=['ตลอดทั้งฤดูกาล คุณพิสูจน์ฝีมือจนขึ้นครอง<b>ตำแหน่งสูงสุด</b>ของตารางแรงก์ อัญมณีชิ้นนี้จึงเป็นของคุณ — ด้วยความภาคภูมิใจจากทีมงานรถไฟซ่า',
+      'ฝีมืออันโดดเด่นตลอดทั้งฤดูกาลพาคุณขึ้นสู่<b>อันดับ 2</b> ของตารางแรงก์ อัญมณีชิ้นนี้คัดสรรมาเพื่อมอบแด่ผู้เล่นระดับแนวหน้าอย่างคุณ',
+      'คุณยืนหยัดอยู่ใน<b>สามผู้นำ</b>ของตารางแรงก์จนจบฤดูกาล อัญมณีชิ้นนี้คือเครื่องหมายแห่งความสำเร็จที่คุณสมควรได้รับ'][pl-1]||'';
+    b.innerHTML=`<div class="lux1">
+      <div class="orn">✦</div><div class="kick">รถไฟซ่า · แชมป์ประจำฤดูกาล ${seasonName(g.season)}</div>
+      <div class="ttl">ขอแสดงความยินดี</div><div class="who">คุณ <b>${nm}</b></div>
+      <div class="medal">${['🥇','🥈','🥉'][pl-1]||'🏆'} รางวัลอันดับ ${pl}</div>
+      ${it?`<div class="gem"><img src="${it.img}" alt=""><i style="left:6%;top:12%">✦</i><i style="right:4%;top:30%;animation-delay:.8s">✧</i><i style="left:14%;bottom:6%;animation-delay:1.5s;font-size:12px">✦</i></div>
+      <div class="gname">${it.n}</div><div class="gspec">${it.d}</div>`:''}
+      <div class="stats"><div>อันดับแรงก์<b>#${g.pos||pl}</b></div><div>ขั้นแรงก์<b style="color:${rk.col}">${rankImgC(rk.code,20)}${rk.name}</b></div><div>คะแนน<b>${(+g.rp||0).toLocaleString()} RP</b></div></div>
+      <div class="msg">${MSG}${g.pos&&g.pos!==pl?'<br><small style="color:#bfae86">(ผู้เล่นอันดับสูงกว่าถูกตัดสิทธิ์ รางวัลจึงเลื่อนมาถึงคุณ)</small>':''}<br><span style="color:#f3d98b">ทีมงานจะจัดส่งถึงมือคุณ โดยไม่มีค่าใช้จ่าย</span></div>
+      <div class="steps"><div><em>1</em><span>แตะ <b>รับรางวัลอัญมณี</b> ด้านล่าง เพื่อเปิดแชท ${PRIZE_CONTACT.name}</span></div>
+        <div><em>2</em><span>แจ้งชื่อในเกม <b>${nm}</b> และ<b style="white-space:nowrap">รางวัลอันดับ ${pl}</b></span></div>
+        <div><em>3</em><span>ส่ง <b>ชื่อ–นามสกุล ที่อยู่ และเบอร์โทร</b> สำหรับจัดส่ง ภายใน <b>${until}</b></span></div></div>
+      <a class="cta" id="gwClaim" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener">✦ รับรางวัลอัญมณี ✦</a>
+      <div class="st" id="gwSt">${g.claimed?'✓ คุณแจ้งรับรางวัลแล้ว — แตะปุ่มอีกครั้งเพื่อเปิดแชทได้เสมอ':''}</div>
+      <div class="foot">ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</div><button class="close" id="gwOk">ปิด</button></div>`;
+    $('sheet').classList.add('lux');
+    b.querySelector('#gwClaim').onclick=()=>{api('/api/claim',{}).then(()=>{g.claimed=g.claimed||Date.now();const st=b.querySelector('#gwSt');if(st)st.textContent='✓ แจ้งรับรางวัลแล้ว — ส่งชื่อ ที่อยู่ และเบอร์โทรในแชทได้เลย'}).catch(()=>{})};
     b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden')});
   if(!g.review)sfx('gold')}
 function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);ADM_WIN=j&&j.winners||null;if(GEM_ME&&!gemShown){gemShown=true;setTimeout(()=>{if(state==='menu')showGemWin()},900)}
@@ -2657,7 +2698,7 @@ $('guestReg').onclick=$('guestReg2').onclick=()=>{acctTab='register';openAccount
 //  sheets: shop, missions, achievements, compare, online
 // =====================================================================
 let sheetRender=null;
-function openSheet(title,fn){sheetRender=fn;$('sheetTitle').textContent=title;fn($('sheetBody'));$('sheet').classList.remove('hidden');const pn=$('sheet').querySelector('.panel');if(pn)pn.scrollTop=0}
+function openSheet(title,fn){sheetRender=fn;$('sheet').classList.remove('lux');$('sheetTitle').textContent=title;fn($('sheetBody'));$('sheet').classList.remove('hidden');const pn=$('sheet').querySelector('.panel');if(pn)pn.scrollTop=0}
 function refreshSheet(){if(sheetRender&&!$('sheet').classList.contains('hidden'))sheetRender($('sheetBody'))}
 $('sheetClose').onclick=()=>{$('sheet').classList.add('hidden');if(NET&&state==='lobby')netLeave();showBest();renderSkins()};
 let shopTab='deal';
