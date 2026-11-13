@@ -1886,6 +1886,25 @@ function step(f,dt){
 function carPose(p,f,b){const A=p[f],B=p[b];return{x:(A.x+B.x)/2,y:(A.y+B.y)/2,a:Math.atan2(A.y-B.y,A.x-B.x)}}
 function star4(x,y,s){ctx.beginPath();ctx.moveTo(x,y-s);ctx.lineTo(x+s*.3,y);ctx.lineTo(x,y+s);ctx.lineTo(x-s*.3,y);ctx.fill();ctx.beginPath();ctx.moveTo(x-s,y);ctx.lineTo(x,y-s*.3);ctx.lineTo(x+s,y);ctx.lineTo(x,y+s*.3);ctx.fill()}
 function glowAlong(w,col,mul,vx0,vy0,vx1,vy1,M){const p=w.pts,r=w.r();ctx.fillStyle=col;ctx.beginPath();for(let i=0;i<p.length;i+=3){const q=p[i];if(q.x<vx0-M||q.x>vx1+M||q.y<vy0-M||q.y>vy1+M)continue;ctx.moveTo(q.x+r*mul,q.y);ctx.arc(q.x,q.y,r*mul,0,TAU)}ctx.fill()}
+// ===== รางรถไฟใต้ขบวน (เจ้าของสั่ง 13 พ.ย. 19:32 "ให้ตัวรถไฟมีรางอยู่ใต้ เหมือนกำลังเดินทางบนราง") =====
+// วาดตามจุดลำตัว (ห่างกัน r×.42) ทุก 2 จุด: หินโรยทาง → หมอนไม้ → รางเหล็ก 2 เส้น · ต่อรางยื่นหน้าหัว/หลังท้ายขบวนแล้วจางหาย
+// วาดก่อนขบวนทุกคัน (ไม่ทับรถคันอื่น) · ข้ามช่วงที่คร่อมอุโมงค์ · นอกจอไม่วาด
+function drawTrack(w,vx0,vy0,vx1,vy1){const p=w.pts,n=p.length;if(n<4)return;const r=w.r(),W=r*1.75,G=W*.44,M=W*2,TK=w.tun?w.tun.k:1e9;
+  const out=q=>q.x<vx0-M||q.x>vx1+M||q.y<vy0-M||q.y>vy1+M;
+  const h=p[0],ha=w.angle,ext=r*2.6,ta=Math.atan2(p[n-1].y-p[n-3].y,p[n-1].x-p[n-3].x),tl=p[n-1];
+  const pts=[{x:h.x+Math.cos(ha)*ext,y:h.y+Math.sin(ha)*ext,i:-1}];for(let i=0;i<n;i+=2)pts.push({x:p[i].x,y:p[i].y,i});pts.push({x:tl.x+Math.cos(ta)*ext,y:tl.y+Math.sin(ta)*ext,i:n});
+  const N=pts.length;for(let k=0;k<N;k++){const a=pts[Math.max(0,k-1)],b=pts[Math.min(N-1,k+1)],d=Math.hypot(a.x-b.x,a.y-b.y)||1;pts[k].nx=-(a.y-b.y)/d;pts[k].ny=(a.x-b.x)/d}
+  const brk=k=>k>0&&((pts[k-1].i<TK)!==(pts[k].i<TK)||out(pts[k])&&out(pts[k-1]));
+  const line=(off)=>{ctx.beginPath();for(let k=0;k<N;k++){const q=pts[k],x=q.x+q.nx*off,y=q.y+q.ny*off;if(k===0||brk(k))ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()};
+  const ga=ctx.globalAlpha;ctx.lineCap='butt';ctx.lineJoin='round';
+  ctx.strokeStyle='rgba(120,112,104,.28)';ctx.lineWidth=W*1.45;line(0);   // หินโรยทาง
+  ctx.strokeStyle='#5b4330';ctx.lineWidth=r*.36;ctx.beginPath();   // หมอนไม้
+  for(let k=1;k<N-1;k++){const q=pts[k];if(out(q))continue;ctx.moveTo(q.x-q.nx*G*1.45,q.y-q.ny*G*1.45);ctx.lineTo(q.x+q.nx*G*1.45,q.y+q.ny*G*1.45)}ctx.stroke();
+  // ปลายรางยื่นหน้า/หลัง: หมอนจาง ๆ
+  ctx.globalAlpha=ga*.5;ctx.beginPath();for(const q of[pts[0],pts[N-1]]){if(out(q))continue;ctx.moveTo(q.x-q.nx*G*1.45,q.y-q.ny*G*1.45);ctx.lineTo(q.x+q.nx*G*1.45,q.y+q.ny*G*1.45)}ctx.stroke();ctx.globalAlpha=ga;
+  ctx.strokeStyle='#2b2f3f';ctx.lineWidth=r*.2;line(-G);line(G);   // รางเหล็ก
+  if(QUAL>0){ctx.strokeStyle='rgba(205,215,235,.75)';ctx.lineWidth=r*.07;line(-G);line(G)}   // เงาวาวบนราง
+  ctx.lineCap='round'}
 // ===== สไปรต์หัวจักร/ตู้/หวูด แบบใหม่ (เจ้าของสั่ง 11 พ.ย. 21:55 "ใส่ในเกม") =====
 // งานออกแบบ (SVG) แปลงเป็นภาพครั้งเดียวต่อ (แบบ, สี) แล้วเก็บไว้ → ทุกเฟรมแค่ drawImage (เบากว่าวาดเส้นทีละชิ้นแบบเดิม)
 // ยังโหลดไม่เสร็จ / กราฟิก 🔋 ประหยัด (QUAL 0) → วาดแบบเดิม · เซิร์ฟเวอร์/เน็ตไม่เกี่ยว (วาดในเครื่องล้วน)
@@ -2040,7 +2059,8 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   // ควันถี่ขึ้น 3 เท่า + ฟุ้งลอยออกข้าง (เจ้าของสั่ง 12 พ.ย. 01:35 "ควันในเกมให้มีตอนเล่นมากกว่านี้"): ปกติทุก 3 เฟรม (เดิม 9) · เร่ง/ดาวหางทุก 2 (เดิม 3)
   if(sk2==='rainbow')rbEmit(w,c.x+Math.cos(c.a)*smX,c.y+Math.sin(c.a)*smX,c.a,boosting,r);   // ควันสีรุ้ง = ริบบิ้นรุ้ง 7 สีจริง (เจ้าของสั่ง 12 พ.ย. 11:50)
   else if(vis(c)&&!elec&&(frame+(w.seed|0))%((boosting||sk2==='comet'?2:3)*QSMOKE[QUAL])===0&&smoke.length<QSMOKE_MAX[QUAL]){const sa=c.a+Math.PI+rnd(-.7,.7),sv=rnd(.25,.6)*(boosting?1.6:1);
-    smoke.push({x:c.x+Math.cos(c.a)*smX+rnd(-2,2),y:c.y+Math.sin(c.a)*smX+rnd(-2,2),r:smR*rnd(.85,1.2),t:1,k:sk2,h:frame*4%360,vx:Math.cos(sa)*sv,vy:Math.sin(sa)*sv-.12})}
+    smoke.push({x:c.x+Math.cos(c.a)*smX+rnd(-2,2),y:c.y+Math.sin(c.a)*smX+rnd(-2,2),r:smR*rnd(.85,1.2),t:1,k:sk2,h:sk2==='leaves'?rnd(0,360):frame*4%360,vx:Math.cos(sa)*sv,vy:Math.sin(sa)*sv-.12});
+    if(sk2==='flame'&&QUAL>0&&Math.random()<.55)smoke.push({x:c.x+Math.cos(c.a)*smX+rnd(-4,4),y:c.y+Math.sin(c.a)*smX+rnd(-4,4),r:0,t:rnd(.5,.9),k:'ember',h:rnd(0,360),vx:Math.cos(sa)*sv*1.6+rnd(-.5,.5),vy:Math.sin(sa)*sv*1.6-.6})}
   if(w.slow>0){glowAlong(w,'rgba(155,231,255,.35)',1.2,vx0,vy0,vx1,vy1,M)}
   if(w.hslow>0&&!(w.slow>0)){glowAlong(w,'rgba(255,170,90,.32)',1.15,vx0,vy0,vx1,vy1,M)}   // โดนหวูด = เรืองส้ม
   const h=p[0];
@@ -2082,14 +2102,38 @@ function drawEnBar(w,cx,y,fs){
 function drawSmoke(){for(const s of smoke){if(s.k==='rbtrail'){drawRainbow(s);continue}s.t-=.018;s.r+=.35;if(s.vx){s.x+=s.vx;s.y+=s.vy;s.vx*=.985;s.vy*=.985}const a=Math.max(0,s.t);
   if(s.k==='rainbow'){ctx.fillStyle=`hsla(${(s.h+(1-s.t)*200)%360},90%,65%,${.55*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}
   else if(s.k==='hearts'){ctx.fillStyle=`rgba(255,${100+((s.h|0)%60)},170,${.85*a})`;heart(s.x,s.y,5+s.r*.25)}
-  else if(s.k==='leaves'){ctx.fillStyle=`hsla(${95+(s.h|0)%50},70%,50%,${.85*a})`;ctx.beginPath();ctx.ellipse(s.x,s.y,4+s.r*.2,2+s.r*.1,s.h/57+(1-s.t)*3,0,TAU);ctx.fill()}
+  else if(s.k==='leaves')drawLeaf(s,a);
   else if(s.k==='comet'){ctx.fillStyle=`rgba(255,${170+((s.h|0)%80)},80,${.8*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r*.45,0,TAU);ctx.fill()}
   else if(s.k==='sparkle'){ctx.fillStyle=`rgba(255,${230+((s.h|0)%25)},150,${.9*a})`;star4(s.x,s.y,4+s.r*.25)}
   else if(s.k==='bubbles'){s.y-=.6;s.x+=Math.sin(s.h+s.t*9)*.5;const r=3+s.r*.35;ctx.strokeStyle=`hsla(${(s.h|0)%360},90%,85%,${.8*a})`;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(s.x,s.y,r,0,TAU);ctx.stroke();ctx.fillStyle=`rgba(200,240,255,${.18*a})`;ctx.fill();ctx.fillStyle=`rgba(255,255,255,${.85*a})`;ctx.beginPath();ctx.arc(s.x-r*.35,s.y-r*.35,r*.22,0,TAU);ctx.fill()}
   else if(s.k==='snow'){s.x+=Math.cos(s.h*.7)*.6;s.y+=Math.sin(s.h*.7)*.6-.15;const r=4+s.r*.33,ro=s.h/40+(1-s.t)*1.5;ctx.strokeStyle=`rgba(225,245,255,${.95*a})`;ctx.lineWidth=1.8;ctx.beginPath();for(let i=0;i<6;i++){const q=ro+i*Math.PI/3,cx=Math.cos(q),cy=Math.sin(q);ctx.moveTo(s.x,s.y);ctx.lineTo(s.x+cx*r,s.y+cy*r);ctx.moveTo(s.x+cx*r*.55-cy*r*.22,s.y+cy*r*.55+cx*r*.22);ctx.lineTo(s.x+cx*r*.55+cy*r*.22,s.y+cy*r*.55-cx*r*.22)}ctx.stroke()}
-  else if(s.k==='flame'){s.y-=.8;s.x+=Math.sin(s.h+s.t*12)*.35;const r=Math.max(1,s.r*.55*(.4+s.t*.8));ctx.fillStyle=`hsla(${Math.max(0,45-(1-s.t)*45)},100%,${55+s.t*15}%,${.85*a})`;ctx.beginPath();ctx.arc(s.x,s.y,r,0,TAU);ctx.fill();if(s.t>.55){ctx.fillStyle=`rgba(255,240,170,${.8*a})`;ctx.beginPath();ctx.arc(s.x,s.y,r*.45,0,TAU);ctx.fill()}}
+  else if(s.k==='flame')drawFlame(s,a);
+  else if(s.k==='ember'){s.y-=.9;s.x+=Math.sin(s.h+s.t*20)*.6;const g=ctx.globalCompositeOperation;ctx.globalCompositeOperation='lighter';ctx.fillStyle=`rgba(255,${150+((s.h|0)%90)},60,${a})`;ctx.beginPath();ctx.arc(s.x,s.y,1.6+s.t*1.8,0,TAU);ctx.fill();ctx.globalCompositeOperation=g}
   else{ctx.fillStyle=s.k==='gold'?`rgba(255,215,80,${.8*a})`:`rgba(225,230,245,${.5*a})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,TAU);ctx.fill()}}
   smoke=smoke.filter(s=>s.t>0)}
+// ===== ควันเปลวไฟ (ออกแบบใหม่ 13 พ.ย. 19:32 "ให้ดูเหมือนไฟออกมา"): ลิ้นไฟรูปหยดน้ำ 3 ชั้น (แดง→ส้ม→แกนเหลืองขาว) สะบัดไหว
+// ลุกขึ้นจากปล่อง แสงเรือง (โหมด lighter) · ช่วงท้ายดับเป็นควันดำเทาลอยต่อ + สะเก็ดไฟ (ember) ปลิวขึ้น
+function flameTongue(x,y,w,h,lean){ctx.beginPath();ctx.moveTo(x+lean,y-h);ctx.bezierCurveTo(x+w*.55+lean*.4,y-h*.55,x+w,y-h*.05,x,y+w*.55);ctx.bezierCurveTo(x-w,y-h*.05,x-w*.55+lean*.4,y-h*.55,x+lean,y-h);ctx.fill()}
+function drawFlame(s,a){s.y-=.95;s.x+=Math.sin(s.h+s.t*14)*.4;
+  if(s.t>.38){const k=(s.t-.38)/.62,fl=1+.18*Math.sin(frame*.55+s.h),w=Math.max(3,s.r*.85*(.55+.45*k)),h=w*2.5*fl*(.6+.4*k),lean=Math.sin(frame*.3+s.h)*w*.45,g=ctx.globalCompositeOperation;
+    ctx.globalCompositeOperation='lighter';
+    if(QUAL>0){const rg=ctx.createRadialGradient(s.x,s.y-h*.3,0,s.x,s.y-h*.3,h*1.1);rg.addColorStop(0,`rgba(255,140,40,${.35*k})`);rg.addColorStop(1,'rgba(255,60,0,0)');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(s.x,s.y-h*.3,h*1.1,0,TAU);ctx.fill()}
+    ctx.fillStyle=`hsla(${8+20*k},100%,${45+8*k}%,${.75*Math.min(1,k*1.6)})`;flameTongue(s.x,s.y,w,h,lean);
+    ctx.fillStyle=`hsla(${30+15*k},100%,58%,${.8*Math.min(1,k*1.4)})`;flameTongue(s.x,s.y+w*.12,w*.66,h*.72,lean*.7);
+    ctx.fillStyle=`rgba(255,248,${190+50*k|0},${.9*k})`;flameTongue(s.x,s.y+w*.22,w*.34,h*.42,lean*.4);
+    ctx.globalCompositeOperation=g}
+  else{const q=s.t/.38;ctx.fillStyle=`rgba(${70+40*q|0},${60+30*q|0},${58+24*q|0},${.42*q})`;ctx.beginPath();ctx.arc(s.x,s.y,s.r*.62,0,TAU);ctx.fill()}}
+// ===== ควันใบไม้ (ออกแบบใหม่ 13 พ.ย. 19:32 "ให้เป็นรูปใบไม้"): ใบไม้รูปหอกปลายแหลม มีก้าน เส้นกลางใบ เส้นใบ ไล่สีเขียว (บางใบเหลือง/ส้ม)
+// หมุนคว้างพลิกไปมา (ย่อแกนตาม cos = พลิกด้าน) ลอยส่ายตามลม
+const LEAF_COL=[[118,62,42],[100,70,38],[135,55,45],[85,75,45],[48,85,52],[28,85,50]];
+function drawLeaf(s,a){s.x+=Math.sin(s.h+s.t*7)*.55;s.y+=Math.cos(s.h*.7+s.t*5)*.25;const age=1-s.t,L=7+s.r*.42,c=LEAF_COL[(s.h|0)%LEAF_COL.length],flip=Math.cos(frame*.09+s.h)*.75;
+  ctx.save();ctx.translate(s.x,s.y);ctx.rotate(s.h/40+age*4.5+Math.sin(frame*.07+s.h)*.5);ctx.scale(1,Math.abs(flip)<.18?(flip<0?-.18:.18):flip);ctx.globalAlpha*=Math.min(1,a*1.3);
+  ctx.beginPath();ctx.moveTo(-L,0);ctx.bezierCurveTo(-L*.45,-L*.62,L*.45,-L*.55,L,0);ctx.bezierCurveTo(L*.45,L*.55,-L*.45,L*.62,-L,0);
+  ctx.fillStyle=`hsl(${c[0]},${c[1]}%,${c[2]}%)`;ctx.fill();
+  if(QUAL>0){ctx.fillStyle=`hsla(${c[0]+8},${c[1]}%,${c[2]+14}%,.55)`;ctx.beginPath();ctx.moveTo(-L*.85,0);ctx.bezierCurveTo(-L*.4,-L*.5,L*.4,-L*.45,L*.9,0);ctx.closePath();ctx.fill()}
+  ctx.strokeStyle=`hsl(${c[0]},${c[1]-15}%,${c[2]-18}%)`;ctx.lineWidth=Math.max(.8,L*.09);ctx.beginPath();ctx.moveTo(-L*1.35,0);ctx.lineTo(L*.85,0);   // ก้าน + เส้นกลางใบ
+  if(QUAL>0)for(const t of[-.45,0,.42]){ctx.moveTo(L*t,0);ctx.lineTo(L*(t+.28),-L*.3);ctx.moveTo(L*t,0);ctx.lineTo(L*(t+.28),L*.3)}
+  ctx.stroke();ctx.restore()}
 // ===== ควันสีรุ้ง: ริบบิ้นรุ้ง 7 แถบ ออกจากปล่อง ลอยตามทางที่รถไฟวิ่ง ค่อย ๆ กว้างและจางลง =====
 const RB_COL=['#ff3b3b','#ff962e','#ffe23b','#43d85a','#35b4ff','#4b62ff','#a24bff'];
 function rbEmit(w,x,y,a,bst,r){let e=w._rb;
@@ -2241,9 +2285,10 @@ function render(){
   ctx.textBaseline='alphabetic';
   const list=worms.filter(w=>w.alive).sort((a,b)=>(a.isP-b.isP)||(a.mass-b.mass));
   drawStationBanners();
-  drawSmoke();
+  for(const w of list){if(w.ghost>0)ctx.globalAlpha=.4;drawTrack(w,vx0,vy0,vx1,vy1);ctx.globalAlpha=1}   // รางใต้ขบวน (13 พ.ย.)
   for(const w of list)drawWorm(w,vx0,vy0,vx1,vy1);
   drawPortalMouths(vx0,vy0,vx1,vy1);
+  drawSmoke();   // ควันอยู่บนสุด ทับตัวรถไฟ (เจ้าของสั่ง 13 พ.ย. 19:32 — เดิมควันอยู่ใต้ขบวน)
   for(const e of booms){if(e.horn){drawHornWave(e);continue}
     const R=e.ice?FREEZE_R:bombR(),p=Math.min(1,e.t/.45),a=Math.max(0,1-e.t/1.1);
     ctx.fillStyle=e.ice?`rgba(155,231,255,${.25*a})`:`rgba(255,220,120,${.35*a})`;ctx.beginPath();ctx.arc(e.x,e.y,R*p,0,TAU);ctx.fill();
@@ -2541,7 +2586,8 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:32,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:33,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:32,d:'13 พ.ย. 2026',t:'🛤️ รถไฟวิ่งบนราง + ควันโฉมใหม่',l:['ทุกขบวนมีรางรถไฟอยู่ใต้ตัว เหมือนกำลังเดินทางอยู่บนราง','🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
   {id:31,d:'13 พ.ย. 2026',t:'🧲 หัวจักรในร้านดูดพลอยไกลขึ้น 30%',l:['หัวจักรทุกหัวที่ซื้อจากร้าน เก็บพลอยและเพชรขาวได้ไกลขึ้นอีก <b>30%</b>','ดีเซล +20 · กระสุน +39 · รถราง +59 · ใต้ดิน +78 · ดาวหาง +104','ใครมีหัวจักรอยู่แล้วได้ทันที ไม่ต้องซื้อใหม่']},
   {id:30,d:'13 พ.ย. 2026',t:'🏅 ขบวนยาวได้แรงก์มากขึ้น',l:['ความยาวตอนจบเกมให้ RP มากขึ้น: ทุก <b>50</b> = +1 RP (เดิมทุก 60)','เช่น ยาว 3,000 + กำจัด 8 ตัว = +76 RP (เดิม +66)','ใช้กับเกมที่เล่นตั้งแต่วันนี้เป็นต้นไป แต้มเดิมของทุกคนอยู่ครบ']},
   {id:29,adv:1,d:'13 พ.ย. 2026',t:'🗺️ ผจญภัยเล่นง่ายขึ้น เห็นเป้าหมายชัด',l:['ไม่จำกัดเวลาแล้ว — ทำเป้าหมายให้ครบก็ผ่านด่าน ด่านแรกเป้าหมายง่ายขึ้น ด่านหลัง ๆ บอทเก่งขึ้น','แถบเป้าหมายตรงกลางบนจอ บอกว่าทำได้เท่าไรแล้ว เหลืออีกเท่าไรถึงผ่านด่าน','นาฬิกาจับเวลา ยิ่งผ่านเร็วยิ่งได้ดาวเยอะ แถบบอกว่าต้องผ่านภายในเท่าไรถึงได้ ⭐⭐⭐']},
@@ -2760,6 +2806,7 @@ function pvDraw(me){const cv=me.cv,c2=cv.getContext('2d'),W=cv.width,H=cv.height
     c2.fillStyle='rgba(255,255,255,.05)';for(let x=10;x<PV_W;x+=26)for(let y=10;y<PV_H;y+=26){c2.beginPath();c2.arc(x,y,1.3,0,TAU);c2.fill()}
     c2.strokeStyle='rgba(255,255,255,.06)';c2.lineWidth=26;c2.beginPath();c2.ellipse(PV_CX,PV_CY,PV_RX,PV_RY,0,0,TAU);c2.stroke();
     if(me.o.ring){const h=me.w.pts[0],rr=me.w.r()+12,pk=LOCO_PICK[me.o.loco]||0;c2.setLineDash([7,6]);c2.lineWidth=2;c2.strokeStyle='rgba(255,255,255,.3)';c2.beginPath();c2.arc(h.x,h.y,rr,0,TAU);c2.stroke();if(pk){c2.strokeStyle='#7cfc9a';c2.beginPath();c2.arc(h.x,h.y,rr+pk,0,TAU);c2.stroke()}c2.setLineDash([])}
+    if(me.en)drawTrack(me.en,-1e4,-1e4,1e4,1e4);drawTrack(me.w,-1e4,-1e4,1e4,1e4);
     if(me.en)drawWorm(me.en,-1e4,-1e4,1e4,1e4);
     drawWorm(me.w,-1e4,-1e4,1e4,1e4);
     drawSmoke();   // ควันวาดทับขบวนเหมือนในเกม
