@@ -2681,7 +2681,7 @@ function renderAccount(b,first){
         if(nm===ACCT.name){st.textContent='❌ ชื่อนี้เป็นชื่อปัจจุบันอยู่แล้ว';return}
         if(go.dataset.ok!==nm){go.dataset.ok=nm;go.textContent='ยืนยัน: เปลี่ยนเป็น "'+nm+'" จ่าย '+RENAME_COST.toLocaleString()+' 🪙';st.textContent='แตะอีกครั้งเพื่อยืนยัน';return}
         go.disabled=true;st.textContent='กำลังเปลี่ยนชื่อ...';clearTimeout(saveT);saveT=null;
-        try{const j=await api('/api/rename',{name:nm,data:prof});const old=ACCT.name;saveAuth(j.name,j.token);setProfile('acct',j.data,j.name,j.token);try{$('name').value=j.name}catch(e){}
+        try{const j=await api('/api/rename',{name:nm,data:prof});const old=ACCT.name;saveAuth(j.name,j.token);IS_ADMIN=!!j.admin;setProfile('acct',j.data,j.name,j.token);try{$('name').value=j.name}catch(e){}
           sfx('coin');renderAccount(b);b.querySelector('#acMore').innerHTML='<div class="status" style="color:#7cfc9a">✅ เปลี่ยนชื่อจาก '+escH(old)+' เป็น <b>'+escH(j.name)+'</b> แล้ว (−'+RENAME_COST.toLocaleString()+' 🪙)</div>'}
         catch(e){st.textContent='❌ '+e.message;go.disabled=false;delete go.dataset.ok;go.textContent='จ่าย '+RENAME_COST.toLocaleString()+' 🪙 เปลี่ยนชื่อ'}};
       inp.oninput=()=>{if(go.dataset.ok){delete go.dataset.ok;go.textContent='จ่าย '+RENAME_COST.toLocaleString()+' 🪙 เปลี่ยนชื่อ';st.textContent=''}}};

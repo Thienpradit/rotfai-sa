@@ -35,6 +35,7 @@ function fileStore(note) {
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null, n: all.length }; },
     async getSeason(k) { return seasons[k] || null; },
     async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
+    async cleanAdminOwned() { const fixed = []; for (const u of Object.values(db)) if (adminPolluted((u.data || {}).owned)) { u.data = cleanOwnedData(u.data); fixed.push(u.name); } if (fixed.length) flush(); return fixed; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const all = Object.values(db).filter(u => !u.ban && (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
@@ -93,6 +94,8 @@ if (DB_URL) {
       return { top: r.rows.map(x => ({ name: x.name, val: +x.val, rp: +x.rp || 0, tid: x.tid })), me: mine, n: cn.rows[0].n }; },
     async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
       const r = await pool.query("SELECT lname, data FROM players WHERE COALESCE(data->>'onv','') <> '2'"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND COALESCE(data->>'onv','') <> '2'", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
+    async cleanAdminOwned() { await ready; if (store !== dbStore) return store.cleanAdminOwned(); const fixed = [];
+      const r = await pool.query("SELECT lname, name, data FROM players WHERE data ? 'owned'"); for (const u of r.rows) if (adminPolluted((u.data || {}).owned)) { await pool.query('UPDATE players SET data=$2 WHERE lname=$1', [u.lname, cleanOwnedData(u.data)]); fixed.push(u.name); } return fixed; },
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks, top, created AS at FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
@@ -165,7 +168,8 @@ function limited(req) {
 // ขึ้นเดือนใหม่ (เวลาไทย) → ถ่ายภาพนิ่งอันดับของเดือนที่แล้วก่อนรับคำขอใด ๆ (ผู้เล่นที่ล็อกอินจะย้ายไปฤดูกาลใหม่ แล้วหายจากตารางเดิม)
 let snapFor = '', snapping = null;
 let migrated = null;   // ข้อมูลเก่า → เติมสถิติออนไลน์ (ครั้งเดียวตอนเปิดเซิร์ฟเวอร์)
-const migrateOnce = () => migrated || (migrated = Promise.resolve().then(() => store.migrateOnline()).then(n => { if (n) console.log(`online stats seeded for ${n} players`); }).catch(e => { console.error('online seed error', e.message); migrated = null; }));
+const migrateOnce = () => migrated || (migrated = Promise.resolve().then(() => store.migrateOnline()).then(n => { if (n) console.log(`online stats seeded for ${n} players`); })
+  .then(() => store.cleanAdminOwned()).then(f => { if (f.length) console.log(`admin-granted items removed from: ${f.join(', ')}`); }).catch(e => { console.error('online seed error', e.message); migrated = null; }));
 function ensureSnap() { const cur = AC.seasonKey(); if (snapFor === cur || accountsDown()) return accountsDown() ? Promise.resolve() : migrateOnce();
   if (!snapping) snapping = migrateOnce().then(() => store.snapSeason(AC.prevSeason(cur))).then(s => { snapFor = cur; if (s) console.log(`season ${AC.prevSeason(cur)} final standings saved: ${s.n} players`); })
     .catch(e => console.error('season snapshot error', e.message)).finally(() => { snapping = null; });
@@ -250,6 +254,19 @@ async function winnersFor(u) { if (!isAdmin(u)) return undefined; const now = Da
 const ALL_OWNED = (() => { const o = {}; for (const c of AC.CATS) o[c] = Object.keys(AC.SHOP[c]); for (const [c, id] of AC.LIMITED) if (o[c] && !o[c].includes(id)) o[c].push(id); return o; })();
 function withAdmin(u, d) { if (!isAdmin(u) || !d || typeof d !== 'object') return d; const owned = { ...(d.owned || {}) };
   for (const c of AC.CATS) owned[c] = [...new Set([...(Array.isArray(owned[c]) ? owned[c] : []), ...ALL_OWNED[c]])]; return { ...d, owned }; }
+// ของที่ผู้ดูแลได้ใช้ฟรี (withAdmin) ห้ามบันทึกลงบัญชี — เดิมบันทึกไปด้วย → เปลี่ยนชื่อ/ถอดผู้ดูแลแล้วยังมีของครบ (เจ้าของแจ้ง 13 พ.ย. 21:24)
+// "ของครบเกือบทุกชิ้น" (≥ 90% ของร้าน รวมของหายาก) = ของที่ติดมาจากสิทธิ์ผู้ดูแล — ซื้อจริงไม่มีทางได้ (รวมหลายล้านเหรียญ + ของหายากวนวันละชิ้น)
+const ALL_N = AC.CATS.reduce((n, c) => n + ALL_OWNED[c].length, 0);
+function adminPolluted(owned) { if (!owned || typeof owned !== 'object') return false; let n = 0;
+  for (const c of AC.CATS) { const have = new Set(Array.isArray(owned[c]) ? owned[c] : []); for (const id of ALL_OWNED[c]) if (have.has(id)) n++; } return n >= ALL_N * 0.9; }
+const FREE_OWNED = (() => { const o = {}; for (const c of AC.CATS) o[c] = Object.keys(AC.SHOP[c]).filter(id => AC.SHOP[c][id] === 0); return o; })();
+// ของจริงของบัญชี: ติดมาจากผู้ดูแล → เหลือของฟรี (ไม่รู้ว่าเคยซื้ออะไรเองก่อนเป็นผู้ดูแล)
+const realOwned = d => adminPolluted((d || {}).owned) ? JSON.parse(JSON.stringify(FREE_OWNED)) : ((d || {}).owned || {});
+const cleanOwnedData = d => (d && adminPolluted(d.owned)) ? { ...d, owned: realOwned(d), ownFix: Date.now() } : d;
+// ข้อมูลที่เครื่องส่งมา: ถ้า owned ติดของผู้ดูแลมา (หน้าเว็บเก่าที่ยังเปิดค้าง) → ใช้ของที่บัญชีมีจริง ไม่นับเป็นการซื้อ (ไม่หักเหรียญ)
+const stripSent = (u, raw) => (!isAdmin(u) && raw && adminPolluted(raw.owned)) ? { ...raw, owned: realOwned(u.data) } : raw;
+// บันทึก: ผู้ดูแลไม่ซื้อของ → owned ที่บันทึก = ของจริงเดิมเสมอ
+const keepReal = (u, data) => isAdmin(u) ? { ...data, owned: realOwned(u.data) } : data;
 const BAN_MSG = why => 'บัญชีนี้ถูกระงับ' + (why ? ' (' + why + ')' : '') + ' — ถ้าคิดว่าผิดพลาด ติดต่อทีมงาน';
 
 // ---------- API ----------
@@ -340,10 +357,11 @@ async function handleApi(req, res, p) {
       return out(200, { ok: true }); }
     if (p === '/api/save') {
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
-      const pz = await prizeOf(u), { data, fixed } = AC.validate(withAdmin(u, u.data || {}), raw, Date.now(), pz ? pz.coins : 0);
-      await store.save(u.lname, data, rpOf(data));
+      const pz = await prizeOf(u), { data, fixed } = AC.validate(withAdmin(u, u.data || {}), stripSent(u, raw), Date.now(), pz ? pz.coins : 0);
+      await store.save(u.lname, keepReal(u, data), rpOf(data));
       if (fixed) bumpAudit(u.lname, a => { a.fix++; });
-      return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
+      const resync = !isAdmin(u) && adminPolluted(raw.owned);   // หน้าเว็บเก่าส่งของผู้ดูแลมา → ส่งของจริงกลับไปให้เครื่องปรับ
+      return out(200, fixed || resync ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
     }
     if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
@@ -360,12 +378,13 @@ async function handleApi(req, res, p) {
       const nl = lower(name); if (nl !== u.lname && (ADMINS.has(nl) || await store.get(nl))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
       if (await prizeOf(u)) return out(409, { err: 'กำลังรับรางวัลจบฤดูกาล ปิดแล้วเปิดเกมใหม่ แล้วลองเปลี่ยนชื่ออีกครั้ง' });
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
-      const { data } = AC.validate(withAdmin(u, u.data || {}), raw, Date.now(), 0);   // บันทึกความคืบหน้าล่าสุดก่อน (ผ่านกันโกง) แล้วค่อยหักเหรียญ
+      let { data } = AC.validate(withAdmin(u, u.data || {}), stripSent(u, raw), Date.now(), 0); data = keepReal(u, data);   // บันทึกความคืบหน้าล่าสุดก่อน (ผ่านกันโกง) แล้วค่อยหักเหรียญ
       if ((+data.coins || 0) < RENAME_COST) { await store.save(u.lname, data, rpOf(data)); return out(400, { err: 'เหรียญไม่พอ ต้องใช้ ' + RENAME_COST.toLocaleString() + ' 🪙', coins: data.coins }); }
       data.coins -= RENAME_COST; data.renames = (+data.renames || 0) + 1;
       if (!(await store.rename(u.lname, nl, name, data, rpOf(data)))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
       console.log(`rename: ${u.name} → ${name}`);
-      return out(200, { token: makeToken({ lname: nl, salt: u.salt }), name, data: AC.seedOnline(data), cost: RENAME_COST });
+      const nu = { ...u, lname: nl, name, data };   // สิทธิ์ผู้ดูแลผูกกับชื่อ → เปลี่ยนชื่อแล้วหมดสิทธิ์ (ถ้าชื่อใหม่ไม่อยู่ใน ADMINS)
+      return out(200, { token: makeToken({ lname: nl, salt: u.salt }), name, data: withAdmin(nu, AC.seedOnline(data)), admin: isAdmin(nu) || undefined, cost: RENAME_COST });
     }
     if (p === '/api/recovery') { const rc = makeRecovery(); await store.setRecovery(u.lname, rc.rhash); return out(200, { code: rc.code }); }
     return out(404, { err: 'not found' });
