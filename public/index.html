@@ -1824,7 +1824,7 @@ function drawWorm(w,vx0,vy0,vx1,vy1){
   {const bg=ctx.createLinearGradient(L*.48,0,L*.48+r*3.2,0);bg.addColorStop(0,'rgba(255,243,160,.32)');bg.addColorStop(1,'rgba(255,243,160,0)');ctx.fillStyle=bg;ctx.beginPath();ctx.moveTo(L*.48,0);ctx.lineTo(L*.48+r*3.2,-W*.95);ctx.lineTo(L*.48+r*3.2,W*.95);ctx.fill()}   // ไฟหน้าจางลงตามระยะ
   const lspr=QUAL>0?sprite('L',LOCO_SVG[w.loco]?w.loco:'classic',main,sec):null;
   if(!lspr){ctx.fillStyle='rgba(0,0,0,.35)';roundRect(-L/2+3,-W/2+4,L,W,r*.35);ctx.fill();wheels([-L*.3,0,L*.28])}
-  if(boosting){const q=lspr?W/156:0,bx=lspr?-140*q:-L/2,bw=lspr?280*q:L;ctx.fillStyle='rgba(255,255,255,.85)';roundRect(bx-3,-W/2-3,bw+6,W+6,r*.45);ctx.fill()}
+  // (เอากรอบขาวหลังหัวจักรตอนเร่งออกแล้ว 13 พ.ย. — เจ้าของ: ให้เห็นแต่รูปหัวจักร · ตอนเร่งมีลม drawWind แทน)
   let smX=L*.33,smR=W*.22;
   if(lspr){const q=W/156;ctx.drawImage(lspr,LOCO_VB[0]*q,LOCO_VB[1]*q,LOCO_VB[2]*q,LOCO_VB[3]*q);
     const SMX={classic:106,diesel:-10,bullet:-130,tram:-100,metro:-100,comet:-150};smX=(SMX[w.loco]??106)*q;smR=W*(w.loco==='classic'||!w.loco?.22:.14)}
