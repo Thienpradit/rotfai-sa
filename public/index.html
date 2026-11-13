@@ -931,8 +931,8 @@ function openProfile(name){openSheet('👤 '+name,b=>{b.innerHTML='<div class="h
       <button class="btn alt" id="pfBack" style="margin-top:10px">‹ กลับไปตารางอันดับ</button>`;gearDraw(b);
     b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)}).catch(e=>{b.innerHTML=`<div class="help">❌ ${e.message||'โหลดไม่ได้'}</div><button class="btn alt" id="pfBack">‹ กลับ</button>`;b.querySelector('#pfBack').onclick=()=>openSheet('🏆 แรงก์ของคุณ',renderRanks)})})}
 // อธิบายการได้/เสียแรงก์ (เจ้าของขอ 6 พ.ย. 22:30) — ใช้ในหน้า 🏆 แรงก์ และ ❓ วิธีเล่น · ตัวเลขดึงจากค่าจริง (rpNeed/rpLoss/DIFF_RP/RANKS)
-function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-align:right;white-space:nowrap">${b2}</td></tr>`,tb=r=>`<table class="rkt">${r}</table>`;
-  return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2')+row('⚔️ 2v2 (ไม่คิดความยาว)','ชนะ: กำจัด×2 +15 · เสมอ: กำจัด×2 · แพ้: ไม่ได้ RP'))}
+function rankRulesHTML(){const row=(a,b2)=>`<tr><td style="width:48%;min-width:7.5em">${a}</td><td style="text-align:right">${b2}</td></tr>`,tb=r=>`<table class="rkt">${r}</table>`;
+  return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2')+row('⚔️ 2v2 (ไม่คิดความยาว)','ชนะ: กำจัด×2 +15<br>เสมอ: กำจัด×2<br>แพ้: ไม่ได้ RP'))}
     <div class="help" style="text-align:left;margin:4px 0 0">🌍 ได้ RP เฉพาะ<b>โหมดออนไลน์</b> และ <b>⚔️ 2v2</b> เท่านั้น · ตารางอันดับนับเฉพาะคะแนนจากโหมดออนไลน์<br>ตัวอย่าง: ยาว 600 + กำจัด 3 ตัว (ออนไลน์) = 10 + 6 = <b>+16 RP</b></div></div>
   <div class="rkbox"><b style="color:#ff7b7b">📉 แรงก์ลดเมื่อ</b>
     <div class="help" style="text-align:left;margin:4px 0">1) <b>ตายตอนขบวนยังสั้น</b> ใน 🌍 ออนไลน์ (⚔️ 2v2 ไม่หัก) · ตั้งแต่แรงก์เงินขึ้นไป ทองแดงไม่โดนหัก</div>
