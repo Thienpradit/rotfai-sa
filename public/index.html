@@ -119,6 +119,11 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 #invTip .bar{height:3px;background:#4da3ff;border-radius:2px;margin-top:8px;transform-origin:left;animation:invBar 15s linear forwards}@keyframes invBar{to{transform:scaleX(0)}}
 .lobrd{color:#7cfc9a}.lobcd{font-size:14px!important;color:#ffd23f!important}
 @media (max-height:500px){#invTip{bottom:calc(10px + env(safe-area-inset-bottom))}}
+/* ระหว่างเล่น (ออนไลน์/ผจญภัย): การ์ดเล็กโปร่ง ชิดขอบขวากลางจอ ไม่บังรถไฟ/ปุ่ม/จอยสติ๊ก (เจ้าของสั่ง 13 พ.ย. 07:02) */
+#invTip.mini{left:auto;right:calc(8px + env(safe-area-inset-right));top:50%;bottom:auto;transform:translateY(-50%);width:176px;padding:6px 8px 5px;border-width:1.5px;border-radius:12px;background:rgba(16,22,52,.68);box-shadow:none;animation:invMiniIn .25s ease}
+@keyframes invMiniIn{from{opacity:0}to{opacity:1}}
+@media (max-aspect-ratio:1/1){#invTip.mini{top:auto;bottom:calc(142px + env(safe-area-inset-bottom));transform:none;width:160px}}   /* แนวตั้ง: รถไฟอยู่กลางจอ → การ์ดไปอยู่ขวาล่าง เหนือปุ่มเร่ง */
+#invTip.mini .it1{font-size:12px;line-height:1.3}#invTip.mini .it2{font-size:10px;margin:1px 0 5px;line-height:1.3}#invTip.mini .ib{gap:5px}#invTip.mini button{font-size:12px;padding:4px 7px;border-radius:8px}#invTip.mini .bar{margin-top:5px;height:2px}
 #kby{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);z-index:20;pointer-events:none;min-width:260px;max-width:88vw;text-align:center;background:rgba(18,12,30,.9);border:2px solid #ff5e5e;border-radius:18px;padding:12px 18px 14px;box-shadow:0 0 30px rgba(255,60,60,.35);animation:kbyIn .35s ease}
 #kby.hidden{display:none}#kby .h{font:600 14px Mitr,sans-serif;color:#ffb3b3}#kby .n{font:700 24px Mitr,sans-serif;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;margin:4px 0}
 #kby .tt{display:inline-block;font:700 17px Mitr,sans-serif;color:#ffe9a8;background:rgba(255,210,63,.12);border:1px solid rgba(255,210,63,.45);border-radius:20px;padding:2px 12px;margin:2px 0 8px}
@@ -2322,7 +2327,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ผลรอบที่แล้วโชว์บนสุด ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอท 2v2 โหดขึ้นอีก: ไล่คนจริงก่อนเสมอ คิดเร็วขึ้น เลี้ยวไวขึ้น เร่งบ่อยขึ้น ขบวนเกิดมายาวขึ้น และ 2 ตัวช่วยกันประกบสองข้าง · ตายแล้วกลับมาเร็วขึ้น','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
+  {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ผลรอบที่แล้วโชว์บนสุด ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
   {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ','เล่น 2v2 คนเดียว: เกมรอให้กด ▶ เริ่มเลย ก่อน ไม่นับถอยหลังเอง']},
   {id:24,d:'12 พ.ย. 2026',t:'📨 ชวนเพื่อนเข้า 2v2 + กดพร้อม',l:['เปิดห้อง ⚔️ 2v2 แล้วถ้ามีคนเล่นออนไลน์หรือผจญภัยอยู่ กด 📨 ชวนได้เลย · คนที่ได้รับคำชวนกด ⚔️ เข้าร่วม ก็เข้าห้องทันที','มีหลายคนในห้อง: กด ✋ พร้อม · ทุกคนพร้อมแล้วกด ▶ เล่นเลย ได้ · ไม่งั้นเกมเริ่มเองใน 30 วิ','เล่นคนเดียวและไม่มีใครออนไลน์ → เริ่มเล่นกับบอทให้เองเลย','แก้เซิร์ฟเวอร์หลุด (502) ตอนวงสนาม 2v2 หด']},
   {id:23,d:'12 พ.ย. 2026',t:'💀 รู้ว่าใครเก็บเรา',l:['โดนผู้เล่นจริงกำจัด จะมีการ์ดขึ้นก่อนเล่นต่อ: ชื่อ แรงก์ ฉายาของคนที่เก็บเรา พร้อมคำพูดกวน ๆ จากเขา','หน้าสรุปผลก็บอกว่าโดนใครกำจัด · ไปซื้อฉายาเท่ ๆ ในร้าน ให้คนที่โดนเราเก็บได้เห็นกัน!']},
@@ -2919,8 +2924,9 @@ try{const ws=new WebSocket(netURL(''));PRES=ws;
   ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='inv')showInvite(m)};ws.onclose=()=>{if(PRES===ws)PRES=null}}catch(e){}}
 function presClose(){if(PRES){const w=PRES;PRES=null;try{w.close()}catch(e){}}}
 function showInvite(m){if(NET&&!NET.ffa)return;const el=$('invTip'),esc=t=>String(t||'').replace(/[<>&]/g,'');INV_CODE=String(m.code||'');
-  el.querySelector('.it1 b').textContent=m.from||'ผู้เล่น';
-  el.querySelector('.it2').textContent='ห้อง '+esc(m.code)+' · มีคนอยู่ '+(m.n|0)+'/4'+(mode==='stage'?' · กดเข้าร่วม = ออกจากด่านนี้':NET&&NET.ffa&&state==='play'?' · กดเข้าร่วม = จบรอบนี้ (ไม่หักแต้ม)':'');
+  const mini=state==='play'||state==='dead';el.classList.toggle('mini',mini);   // กำลังเล่น = การ์ดเล็กชิดขวา
+  el.querySelector('.it1').innerHTML=mini?'📨 <b></b> ชวน ⚔️ 2v2':'📨 <b></b> ชวนคุณเล่น ⚔️ 2v2';el.querySelector('.it1 b').textContent=m.from||'ผู้เล่น';
+  el.querySelector('.it2').textContent=(mini?'ห้อง '+esc(m.code)+' · '+(m.n|0)+'/4 คน':'ห้อง '+esc(m.code)+' · มีคนอยู่ '+(m.n|0)+'/4')+(mode==='stage'?(mini?' · เข้าร่วม = ออกจากด่าน':' · กดเข้าร่วม = ออกจากด่านนี้'):NET&&NET.ffa&&state==='play'?(mini?' · เข้าร่วม = จบรอบนี้':' · กดเข้าร่วม = จบรอบนี้ (ไม่หักแต้ม)'):'');
   el.classList.remove('hidden');const bar=el.querySelector('.bar');bar.style.animation='none';void bar.offsetWidth;bar.style.animation='';
   clearTimeout(invTimer);invTimer=setTimeout(hideInvite,15000);sfx('item')}
 function hideInvite(){$('invTip').classList.add('hidden');clearTimeout(invTimer)}
