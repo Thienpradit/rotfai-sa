@@ -19,6 +19,9 @@ async def main():
     try:
         st=api('/api/status');snap=json.load(open(os.path.join(D,'seasons.json')))
         print('snapshot 2026-10: n =',snap['2026-10']['n'],'p1 =',snap['2026-10']['ranks'].get('p1'),'p12 (rp 0) =',snap['2026-10']['ranks'].get('p12'))
+        se=api('/api/season?key=2026-10');print('/api/season:',se['n'],[(t['pos'],t['name'],t['rp']) for t in se['top'][:3]],'at',bool(se.get('at')))
+        assert se['top'][0]['name']=='P1' and se['top'][1]['name']=='P2' and len(se['top'])==10 and 'top' in snap['2026-10']
+        assert api('/api/season').get('key')=='2026-10' and api('/api/season?key=2026-11').get('live')
         for who in ['p1','p2','p5','p12']:
             j=api('/api/login',{'name':who.upper(),'pass':'pass1234'});print(who,'prize',j['prize'])
         j=api('/api/login',{'name':'P2','pass':'pass1234'});tok=j['token']

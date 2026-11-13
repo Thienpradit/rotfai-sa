@@ -35,7 +35,7 @@ function fileStore(note) {
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const all = Object.values(db).filter(u => (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
-      seasons[k] = { n: all.length, ranks }; fs.mkdirSync(path.dirname(SFILE), { recursive: true }); fs.writeFileSync(SFILE, JSON.stringify(seasons)); return seasons[k]; },
+      seasons[k] = { n: all.length, ranks, top: all.slice(0, SNAP_TOP).map((u, i) => topRow(u, i + 1)), at: new Date().toISOString() }; fs.mkdirSync(path.dirname(SFILE), { recursive: true }); fs.writeFileSync(SFILE, JSON.stringify(seasons)); return seasons[k]; },
   };
 }
 // บอกลักษณะของ DATABASE_URL แบบไม่เปิดเผยรหัสผ่าน (ไว้เช็คว่าค่าที่ใส่ใน Render ตรงกับของ Neon ไหม)
@@ -57,6 +57,7 @@ if (DB_URL) {
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS players_rp ON players (rp DESC)'))
     .then(() => pool.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS rhash TEXT'))
     .then(() => pool.query(`CREATE TABLE IF NOT EXISTS seasons (key TEXT PRIMARY KEY, n INTEGER NOT NULL, ranks JSONB NOT NULL, created TIMESTAMPTZ NOT NULL DEFAULT now())`))
+    .then(() => pool.query('ALTER TABLE seasons ADD COLUMN IF NOT EXISTS top JSONB'))
     .then(() => { console.log('accounts: using Postgres (' + describeUrl(url) + ')'); })
     .catch(e => {   // ต่อฐานข้อมูลไม่ได้ → ไม่ให้เซิร์ฟเวอร์ล่ม ใช้ไฟล์ชั่วคราวแทน
       console.error('accounts: database error ' + e.message + ' | ' + describeUrl(url));
@@ -82,12 +83,13 @@ if (DB_URL) {
       return { top: r.rows.map(x => ({ name: x.name, val: +x.val, rp: +x.rp || 0, tid: x.tid })), me: mine, n: cn.rows[0].n }; },
     async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
       const r = await pool.query("SELECT lname, data FROM players WHERE COALESCE(data->>'onv','') <> '2'"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND COALESCE(data->>'onv','') <> '2'", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
-    async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
+    async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks, top, created AS at FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
       const r = await pool.query(`SELECT lname, ${LB_SQL.rp} AS v FROM players WHERE data->>'season'=$1 AND ${LB_SQL.rp} > 0 ORDER BY v DESC, updated ASC`, [k]), ranks = {};
       r.rows.forEach((u, i) => { ranks[u.lname] = [i + 1, +u.v || 0]; });
-      await pool.query('INSERT INTO seasons (key, n, ranks) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [k, r.rows.length, ranks]);
+      const top = []; for (const [i, row] of r.rows.slice(0, SNAP_TOP).entries()) { const u = await this.get(row.lname); if (u) top.push(topRow(u, i + 1)); }
+      await pool.query('INSERT INTO seasons (key, n, ranks, top) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [k, r.rows.length, ranks, JSON.stringify(top)]);
       return this.getSeason(k); },
   };
   store = dbStore;
@@ -110,6 +112,9 @@ function pubProfile(u) { const d = u.data || {}, st = d.st || {}, o = {}; for (c
 function advOf(a) { a = Array.isArray(a) ? a.slice(0, 30).map(v => Math.max(0, Math.min(3, Math.floor(+v || 0)))) : []; let top = 0; a.forEach((v, i) => { if (v > 0) top = i + 1; }); return { top, stars: a.reduce((x, v) => x + v, 0) }; }
 const LB_SQL = { rp: "floor(COALESCE((data->>'onrp')::float,0))", len: "floor(COALESCE((data->'st'->>'omaxLen')::float,0))", coins: "floor(COALESCE((data->>'coins')::float,0))", kills: "floor(COALESCE((data->'st'->>'okills')::float,0))" };
 
+// ผลจบฤดูกาล (เจ้าของสั่ง 13 พ.ย. 2026 · รางวัลอัญมณีอันดับ 1–3): เก็บชื่อ + สถิติ 10 อันดับแรกไว้ตอนตัดผล
+const SNAP_TOP = 10;
+function topRow(u, pos) { const d = u.data || {}, st = d.st || {}; return { pos, name: u.name, rp: LB_VAL.rp(u), kills: Math.floor(+st.okills || 0), len: Math.floor(+st.omaxLen || 0), games: Math.floor(+st.games || 0), title: (d.eq || {}).title || '' }; }
 // ---------- helpers ----------
 const b64u = s => Buffer.from(s, 'utf8').toString('base64url');
 const unb64u = s => { try { return Buffer.from(s, 'base64url').toString('utf8'); } catch (e) { return ''; } };
@@ -156,6 +161,9 @@ function ensureSnap() { const cur = AC.seasonKey(); if (snapFor === cur || accou
     .catch(e => console.error('season snapshot error', e.message)).finally(() => { snapping = null; });
   return snapping; }
 setInterval(ensureSnap, 5 * 60 * 1000).unref(); setTimeout(ensureSnap, 3000).unref();
+// ตัดผลตรงเที่ยงคืนเวลาไทย (00:00:01) ไม่ต้องรอรอบ 5 นาที — ตั้งเวลาใหม่ทุกวัน
+(function atBkkMidnight() { const DAY = 864e5, BKK = 7 * 36e5, now = Date.now(); const ms = DAY - ((now + BKK) % DAY) + 1000;
+  setTimeout(() => { ensureSnap(); atBkkMidnight(); }, ms).unref(); })();
 // รางวัลของผู้เล่นคนนี้ (ถ้าข้อมูลยังอยู่ฤดูกาลเก่า) → {season,pos,n,coins} · ไม่ติดอันดับ/ไม่มีภาพนิ่ง → coins 0
 async function prizeOf(u) { const d = (u && u.data) || {}; if (!d.season || d.season >= AC.seasonKey()) return null;
   const sn = await store.getSeason(d.season).catch(() => null); if (!sn) return { season: d.season, pos: 0, n: 0, coins: 0 };
@@ -171,6 +179,14 @@ async function handleApi(req, res, p) {
       const by = LB_VAL[new URL(req.url, 'http://x').searchParams.get('by')] ? new URL(req.url, 'http://x').searchParams.get('by') : 'rp';
       const u = req.headers.authorization ? await authUser(req).catch(() => null) : null;
       return out(200, { season: AC.seasonKey(), by, ...(await store.top(50, AC.seasonKey(), by, u && u.lname)) });
+    }
+    if (p === '/api/season' && req.method === 'GET') {   // ผลจบฤดูกาล: ?key=YYYY-MM (ไม่ใส่ = เดือนที่แล้ว)
+      const q = String(new URL(req.url, 'http://x').searchParams.get('key') || ''), key = /^\d{4}-\d{2}$/.test(q) ? q : AC.prevSeason(AC.seasonKey());
+      if (key >= AC.seasonKey()) return out(200, { key, live: true });
+      const sn = await store.getSeason(key); if (!sn) return out(200, { key, n: 0, top: [] });
+      let top = Array.isArray(sn.top) ? sn.top : null;
+      if (!top) { top = []; for (const [l, e] of Object.entries(sn.ranks || {}).sort((a, b) => a[1][0] - b[1][0]).slice(0, SNAP_TOP)) { const u = await store.get(l); top.push({ pos: e[0], name: u ? u.name : l, rp: e[1] }); } }
+      return out(200, { key, n: sn.n, at: sn.at || null, top });
     }
     if (p === '/api/profile' && req.method === 'GET') {
       const nm = lower(String(new URL(req.url, 'http://x').searchParams.get('name') || '').trim().slice(0, 40));
