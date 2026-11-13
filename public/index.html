@@ -790,7 +790,7 @@ function rankRulesHTML(){const row=(a,b2)=>`<tr><td>${a}</td><td style="text-ali
   return `<div class="rkbox"><b style="color:#7cfc9a">📈 ได้แต้มแรงก์ (RP) จาก</b>${tb(row('ความยาวขบวนตอนจบเกม','ทุก 60 = +1')+row('กำจัดศัตรู (ให้มาชนเรา)','ตัวละ +2')+row('⚔️ 2v2 (ไม่คิดความยาว)','กำจัด×2 · ชนะ +15 / แพ้ −5'))}
     <div class="help" style="text-align:left;margin:4px 0 0">🌍 ได้ RP เฉพาะ<b>โหมดออนไลน์</b> และ <b>⚔️ 2v2</b> เท่านั้น · ตารางอันดับนับเฉพาะคะแนนจากโหมดออนไลน์<br>ตัวอย่าง: ยาว 600 + กำจัด 3 ตัว (ออนไลน์) = 10 + 6 = <b>+16 RP</b></div></div>
   <div class="rkbox"><b style="color:#ff7b7b">📉 แรงก์ลดเมื่อ</b>
-    <div class="help" style="text-align:left;margin:4px 0">1) <b>ตายตอนขบวนยังสั้น</b> ทั้ง 🌍 ออนไลน์ และ ⚔️ 2v2 (2v2 หักทุกครั้งที่ตาย) · ตั้งแต่แรงก์เงินขึ้นไป ทองแดงไม่โดนหัก</div>
+    <div class="help" style="text-align:left;margin:4px 0">1) <b>ตายตอนขบวนยังสั้น</b> ใน 🌍 ออนไลน์ (⚔️ 2v2 ไม่หัก) · ตั้งแต่แรงก์เงินขึ้นไป ทองแดงไม่โดนหัก</div>
     ${tb('<tr><th style="text-align:left">แรงก์</th><th style="text-align:right">ต้องยาวอย่างน้อย</th><th style="text-align:right">ไม่ถึงโดนหัก</th></tr>'+RANKS.slice(1).map((K,i)=>`<tr><td>${rankImg(i+1,null,18)} ${K.n}</td><td style="text-align:right">${rpNeed(i+1)}</td><td style="text-align:right;color:#ff7b7b">−${rpLoss(i+1)} RP</td></tr>`).join(''))}
     <div class="help" style="text-align:left;margin:6px 0 0">2) <b>แพ้ 2v2</b> −5 RP (ถ้าเล่นได้น้อยอาจติดลบ)<br>3) <b>ขึ้นเดือนใหม่</b> RP เหลือครึ่งหนึ่ง แต่ได้เหรียญ + ฉายาตามขั้นที่ทำได้<br>ถ้า RP ต่ำกว่าเกณฑ์ของขั้นนั้น แรงก์จะตกลงทันที</div></div>
   <div class="help" style="text-align:left">💡 เคล็ดลับ: แรงก์สูงแล้วอย่ารีบตาย — เก็บพลอยให้ยาวเกินเกณฑ์ก่อนค่อยไปไล่ล่า</div>`}
@@ -1228,8 +1228,6 @@ class Worm{
     if(this.isP){sfx('die');bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
       if(mode==='stage'&&STAGE&&!STAGE_RES)STAGE_LIFE--;
       const byP=NET&&killer&&killer.netId>0&&NET.players.has(killer.netId)&&killedBy(killer.netId);   // โดนผู้เล่นจริง → รอดูการ์ดคนฆ่าก่อน
-      if(NET&&!NET.ffa&&NET.phase==='play'){const sc=Math.floor(this.maxMass),pen=deathPenalty(sc);   // 2v2 ตายตอนยาวไม่ถึงเกณฑ์แรงก์ = หัก RP เหมือนออนไลน์ ทุกครั้งที่ตาย (เจ้าของสั่ง 13 พ.ย. 09:24)
-        if(pen){addRP(-pen);NET.vsPen=(NET.vsPen||0)+pen;NET.vsPenN=(NET.vsPenN||0)+1;setTimeout(()=>announce(`📉 ตายตอนยาว ${sc} (ต้อง ${rpNeed(rankOf(prof.rp).t)}) · −${pen} RP`),byP?KBY_T*1000:300)}}
       if(NET&&!NET.ffa){NET.respawnT=byP?KBY_T:3}else{state='dead';deadT=byP?KBY_T:1.3}}
   }
 }
@@ -1273,7 +1271,7 @@ function bodyNear(x,y,rad,self){
 // =====================================================================
 const isHum=o=>o.isP||(o.isRemote&&!o.isBot);
 // ⚔️ 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด maxLen/omaxLen, ตารางอันดับ 🚂 ยาวสุด) — เจ้าของสั่ง 11 พ.ย. 2026 · กำจัด/RP/เกม ยังนับ
-const vsGame=()=>!!(NET&&!NET.ffa),noLenStat=()=>vsGame()||mode==='stage',VS_LEN_NOTE='⚠️ โหมด 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์คิดจากกำจัด×2 + ชนะ 15 / แพ้ −5 · ตายตอนยาวไม่ถึงเกณฑ์แรงก์โดนหัก RP เหมือนออนไลน์';
+const vsGame=()=>!!(NET&&!NET.ffa),noLenStat=()=>vsGame()||mode==='stage',VS_LEN_NOTE='⚠️ โหมด 2v2 ไม่นับความยาวเข้าสถิติ (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์คิดจากกำจัด×2 + ชนะ 15 / แพ้ −5';
 // ผู้เล่นยาวเกินทุก ๆ 1,000 → บอทเข้ามาไล่มากขึ้น (เจ้าของสั่ง 11 พ.ย. 2026) · ต้องตรงกับ botsim.js
 // ระดับละ: รัศมีมองหา +200 · โอกาสเลือกไล่ +10% ของที่เหลือ · เลือกคนยาวก่อนคนใกล้ (ระยะหาร 1+0.4×ระดับ) · ไล่ไกลขึ้นก่อนเลิก +200 · สูงสุด 5 ระดับ
 // 11 พ.ย. 17:42 เจ้าของปรับ: เริ่มไล่ตั้งแต่ยาว 2,000 (ระดับ 1) แล้วเพิ่มทุก 1,000 → 6,000 = ระดับ 5
@@ -2323,7 +2321,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · 2v2 คิดแค่กำจัด×2 + ชนะ 15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (🗺️ ผจญภัยไม่ได้ RP) (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · แพ้ 2v2 −5 · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
   ['🗺️ ผจญภัย (เล่นคนเดียว)','30 ด่าน 3 โลก · ❤️ ด่านละ 3 ชีวิต (ตายเกิดใหม่ในด่านเดิม หมด 3 ชีวิตเริ่มด่านใหม่) · สนามเล็กกว่าออนไลน์ บอทเยอะและไล่คุณ + 🎯 <b>นักล่า</b>บุกมาเป็นระลอก (สีส้มบนมินิแมป) · <b>ไม่นับสถิติ ภารกิจ เหรียญตรา ไม่ได้ RP</b> · แต่ละด่านมีเป้าหมาย (ยาวให้ถึง / กำจัด / รอด / ล้มบอส) ทำให้ได้ภายใน <b>10 นาที</b> · บอทเก่งขึ้นและสิ่งกีดขวางเยอะขึ้นทุกด่าน · 🪨 หิน 🏚️ โกดัง 🚧 ไม้กั้นทางข้าม (ตอนปิดไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลนทำให้ช้าลง · ผ่านเร็วได้ ⭐ มาก · ได้เหรียญเมื่อได้ดาวใหม่ · ไม่ได้ RP'],
-  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์ = กำจัด×2 + ชนะ 15 / แพ้ −5 · ตายตอนยาวไม่ถึงเกณฑ์แรงก์ โดนหัก RP ทุกครั้งที่ตาย'],
+  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์ = กำจัด×2 + ชนะ 15 / แพ้ −5'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบเดือนแจกตามอันดับแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
 let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
 // ===== 📰 มีอะไรใหม่ (เจ้าของสั่ง 11 พ.ย. 22:24) =====
@@ -2865,7 +2863,7 @@ function netMsg(m){
     case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;roundRP=0;NET.vsPen=0;NET.vsPenN=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
+    case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;roundRP=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
@@ -3039,7 +3037,7 @@ function netTick(dt){
 }
 function netEnd(m){
   NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
-  const rw={len:0,kill:0,kills:0,win:win?50:0,draw:m.winner==='draw',ok:!!player,pen:NET.vsPen|0,penN:NET.vsPenN|0};   // roundRP ล้างตอน start → รวมที่โดนหักตอนตายระหว่างแมตช์
+  const rw={len:0,kill:0,kills:0,win:win?50:0,draw:m.winner==='draw',ok:!!player};
   if(player){rw.len=Math.floor(player.maxMass/10);rw.kills=player.kills;rw.kill=player.kills*5;addCoins(rw.len+rw.kill+rw.win);addRP(gameRP(0,player.kills,win?15:-5,1));   /* 2v2: RP = กำจัด×2 + ชนะ 15 / แพ้ −5 ไม่คิดความยาว (11 พ.ย.) */track('games');track('vsGames');if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
   // จบแมตช์ → หน้าผลงาน (ทีมไหนชนะ + อันดับ 1–4 ของรอบ) → กด "ต่อไป" ไปห้องรอ 2v2 (เจ้าของสั่ง 13 พ.ย.) · ห้องรอไม่มีผลรอบที่แล้ว
@@ -3065,7 +3063,6 @@ function vsRewardPop(rw,win){const old=$('rwPop');if(old)old.remove();
   el.innerHTML=`<div class="rwc"><div class="rwh">${rw.draw?'🤝 เสมอ':win?'🏆 ชนะ!':'😢 แพ้'} · รางวัลรอบนี้</div>
     <div class="rwbig">+<span id="rwN">0</span> 🪙</div>
     ${row('🚂','ความยาว ÷ 10','+'+rw.len)}${row('💀',`กำจัด ${rw.kills} × 5`,'+'+rw.kill)}${rw.win?row('🎉','โบนัสทีมชนะ','+50','#7cfc9a'):''}${other?row('✨','ระหว่างเล่น (สถานี/บอส ฯลฯ)','+'+other):''}
-    ${rw.pen?row('📉',`ตายตอนยาวไม่ถึงเกณฑ์ ${rw.penN} ครั้ง`,'−'+rw.pen+' RP','#ff7b7b'):''}
     <div class="rwr rwrp"><span>🏅 แรงก์</span><b style="color:${rp>=0?'#7cfc9a':'#ff7b7b'}">${rp>=0?'+':''}${rp} RP</b></div>
     ${mis.length?`<div class="rwm">📅 ภารกิจรายวัน</div>${mis.map(o=>`<div class="rwr"><span>${o.x.p>=o.x.n?'✅':'▶️'} ${esc(misTxt(o.x))}</span><b>${o.x.p}/${o.x.n}</b></div>`).join('')}${mis.some(o=>o.x.p>=o.x.n)?'<div class="rwt">ภารกิจสำเร็จแล้ว กดรับรางวัลที่ 📅 ภารกิจ หน้าแรก</div>':''}`:''}
     <div class="rwt">รวมตอนนี้ ${prof.coins.toLocaleString()} 🪙</div>
