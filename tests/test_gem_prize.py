@@ -20,7 +20,7 @@ async def main():
     for f,b in bak.items():
         if os.path.exists(os.path.join(D,f)): shutil.copy(os.path.join(D,f),b)
     AUD=lambda sec,g,k: {'2026-10':{'sec':sec,'g':g,'k':k,'ml':900,'fix':0,'rp0':100}}
-    users=[('w1',900,AUD(3000,20,40)),('cheat',800,AUD(120,1,0)),('w2',700,AUD(2400,15,20)),('w3',600,AUD(2000,12,10)),('w4',500,AUD(1800,10,8)),('boss1',0,None)]
+    users=[('w1',900,AUD(3000,20,40)),('cheat',800,AUD(120,1,0)),('w2',700,AUD(2400,15,20)),('w3',600,AUD(2000,12,10)),('w4',500,AUD(1800,10,8)),('boss1',50,None)]
     js="""const c=require('crypto'),db={},U=JSON.parse(process.argv[2]);for(const [l,rp,aud] of U){const s=c.randomBytes(16).toString('hex'),h=c.scryptSync('pass1234',s,32).toString('hex');
       db[l]={lname:l,name:l.toUpperCase(),salt:s,hash:h,rp,updated:rp,audit:aud||undefined,data:{coins:100,rp,onrp:rp,onv:2,season:l==='boss1'?'2026-11':'2026-10',owned:{title:[]},eq:{},st:{okills:5,omaxLen:900,games:9},ach:{}}}}
       require('fs').writeFileSync(process.argv[1],JSON.stringify(db))"""
@@ -51,6 +51,7 @@ async def main():
         r=api('/api/admin/review?key=2026-10',tok=tok);print('  after allow CHEAT:',[(x['name'],x['status'],x['place']) for x in r['rows']])
         check([x['place'] for x in r['rows']][:5]==[1,2,0,3,0],'ผู้ดูแลให้สิทธิ์ CHEAT คืน → ที่ 2')
         api('/api/admin/ban',{'name':'W2','unban':True},tok=tok);check('token' in login('W2'),'ปลดแบน W2 ล็อกอินได้')
+        r=api('/api/admin/review?key=2026-11',tok=tok);check(all(x['status']=='admin' and not x['place'] for x in r['rows'] if x['name']=='BOSS1') and any(x['name']=='BOSS1' for x in r['rows']),'ผู้ดูแล (BOSS1) ไม่ร่วมชิงพลอย')
         api('/api/admin/allow',{'name':'CHEAT','key':'2026-10','v':False},tok=tok)
         async with async_playwright() as p:
             br=await p.chromium.launch()

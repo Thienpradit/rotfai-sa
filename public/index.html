@@ -761,7 +761,7 @@ function gemRulesHTML(k){return`<div class="gemrules">
   <div>👤 เฉพาะ<b>บัญชีที่ลงทะเบียน</b> และต้องเล่นออนไลน์จริงที่ระบบเห็นไม่น้อยกว่า 10 นาทีในเดือนนั้น</div>
   <div>🛡️ <b>ระบบตรวจโกงอัตโนมัติ</b>: RP เกินกว่าที่เล่นจริงจะทำได้ / แก้ข้อมูลในเกม / ใช้โปรแกรมช่วย → <b style="color:#ff9b9b">ตัดสิทธิ์ หรือแบนบัญชีถาวร</b> รางวัลเลื่อนให้อันดับถัดไป</div>
   <div>📨 <b>วิธีรับ</b>: ผู้ชนะเปิดเกมแล้วจะเห็น<b>รหัสรับรางวัล</b> → ทักแชท ${PRIZE_CONTACT.name} ส่งรหัส + ชื่อในเกม + ที่อยู่จัดส่ง ภายใน ${GEM_CLAIM_DAYS} วัน (ส่งฟรีในไทย)</div>
-  <div>⚖️ คำตัดสินของทีมงานถือเป็นที่สิ้นสุด</div></div>`}
+  <div>🛡️ ทีมงาน/ผู้ดูแลเกมไม่มีสิทธิ์รับรางวัล · ⚖️ คำตัดสินของทีมงานถือเป็นที่สิ้นสุด</div></div>`}
 function gemShowcaseHTML(full){const g=gemNow();if(!g)return'';const k=g.k;
   return`<div class="gemx"><b>${g.live?'💎 รางวัลพิเศษ! อัญมณีแท้ส่งถึงบ้าน':'💎 เริ่ม '+startName(k)+'! ชิงอัญมณีแท้ส่งถึงบ้าน'}</b><small>${g.live?`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เหลืออีก ${seasonDaysLeft()} วัน`:`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เริ่มในอีก ${seasonDaysLeft()} วัน`}</small>${gemCardsHTML(k)}${full?gemRulesHTML(k):'<small style="color:#ffd23f;margin-top:4px">แตะดูกติกา + วิธีรับรางวัล ›</small>'}</div>`}
 function gemStripHTML(){const g=gemNow();if(!g||ACCT.mode==='local')return'';const G=GEM_PRIZES[g.k];return`<div id="gemStrip"><img src="${G[0].img}" alt=""><span><b>💎 ${g.live?'ลุ้นเพชรแท้!':startName(g.k)+' ชิงเพชรแท้!'}</b> Top 3 แรงก์ ${g.live?'จบเดือน '+seasonName(g.k):'· แรงก์เริ่มใหม่จาก 0'}</span><i>ดู ›</i></div>`}
@@ -793,7 +793,7 @@ function renderAdmin(b){const keys=[...new Set([seasonKey(),...Object.keys(GEM_P
     try{const j=await api('/api/admin/claim?code='+encodeURIComponent(b.querySelector('#admCode').value));r.innerHTML=j.ok?`✅ ถูกต้อง: <b>${escH(j.name)}</b> อันดับรางวัล ${j.place} · ฤดูกาล ${seasonName(j.season)} · ${(+j.rp).toLocaleString()} RP`:'❌ ไม่พบรหัสนี้ (หรือผู้ชนะถูกตัดสิทธิ์/แบนไปแล้ว)'}catch(e){r.textContent='❌ '+e.message}};
   loadAdmin(b)}
 async function loadAdmin(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/review?key='+admKey)}catch(e){el.textContent='❌ '+e.message;return}
-  const S={ok:['✅ ปกติ','ok'],dq:['⛔ ตัดสิทธิ์อัตโนมัติ','dq'],ban:['🚫 แบนแล้ว','ban'],gone:['— ไม่พบบัญชี','ban']};
+  const S={ok:['✅ ปกติ','ok'],dq:['⛔ ตัดสิทธิ์อัตโนมัติ','dq'],ban:['🚫 แบนแล้ว','ban'],gone:['— ไม่พบบัญชี','ban'],admin:['🛡️ ผู้ดูแล — ไม่ร่วมชิงพลอย','ban']};
   el.innerHTML=`<div class="help" style="margin:2px 0 6px">${j.live?'🔴 ฤดูกาลนี้ยังไม่จบ (อันดับตอนนี้)':'📸 ผลที่บันทึกตอนเที่ยงคืนสิ้นเดือน'}${j.gems?' · 💎 แจกอัญมณี '+j.gems+' อันดับ':''}</div>`+
     (j.rows.length?j.rows.map(r=>{const s=r.place?['🏆 ได้รางวัลที่ '+r.place,'win']:S[r.status]||S.ok,a=r.aud;
       return`<div class="adrow ${s[1]}"><div class="ah"><span class="chip">#${r.pos}</span><b>${escH(r.name)}</b><span class="chip">${(+r.rp).toLocaleString()} RP</span></div>

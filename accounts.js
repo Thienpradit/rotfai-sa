@@ -221,7 +221,7 @@ const revCache = new Map();
 async function reviewList(season, fresh) {
   const c = revCache.get(season); if (!fresh && c && Date.now() - c.t < 30000) return c.rows;
   const N = GEM_SEASONS[season] || 0, rows = []; let place = 0;
-  for (const r of await standings(season)) { const u = await store.get(r.l), rv = reviewOf(u, season, r.rp), status = !u ? 'gone' : u.ban ? 'ban' : rv.dq ? 'dq' : 'ok';
+  for (const r of await standings(season)) { const u = await store.get(r.l), rv = reviewOf(u, season, r.rp), status = !u ? 'gone' : u.ban ? 'ban' : isAdmin(u) ? 'admin' : rv.dq ? 'dq' : 'ok';   // ผู้ดูแลไม่ร่วมชิงพลอย (เจ้าของสั่ง 13 พ.ย.)
     const pl = status === 'ok' && place < N ? ++place : 0, a = rv.a;
     rows.push({ pos: r.pos, l: r.l, name: u ? u.name : (r.name || r.l), rp: r.rp, status, why: u && u.ban || '', place: pl, code: pl ? claimCode(season, r.l) : '', flags: rv.flags, ok: !!(a && a.ok),
       aud: a ? { min: Math.round(a.sec / 60), g: a.g, k: a.k, ml: a.ml, fix: a.fix, rp0: a.rp0 } : null }); }
