@@ -181,7 +181,7 @@ async function prizeOf(u) { const d = (u && u.data) || {}; if (!d.season || d.se
 
 // ---------- รางวัลอัญมณีจริง + ตรวจโกง + แบน (เจ้าของสั่ง 13 พ.ย. 2026) ----------
 // GEM_SEASONS: ฤดูกาลที่มีรางวัลอัญมณี → จำนวนผู้ชนะ (อันดับ 1–N ของ 🏅 แรงก์ ที่ไม่ถูกแบน/ตัดสิทธิ์) · ของรางวัลแสดงใน index.html (GEM_PRIZES)
-const GEM_SEASONS = { '2026-11': 3 }, CLAIM_DAYS = 14;
+const GEM_SEASONS = { '2026-12': 3 }, CLAIM_DAYS = 14;
 for (const x of String(process.env.GEM_EXTRA || '').split(',')) { const m = /^(\d{4}-\d{2}):(\d)$/.exec(x.trim()); if (m) GEM_SEASONS[m[1]] = +m[2]; }   // ทดสอบ: GEM_EXTRA=2026-10:3
 // ผู้ดูแล = ชื่อบัญชีใน env ADMINS (คั่นด้วย ,) — เห็นปุ่ม 🛡️ ผู้ดูแล ในหน้าบัญชี: ดูผลตรวจ แบน/ปลดแบน ให้สิทธิ์คืน ตรวจรหัสรับรางวัล
 const ADMINS = new Set(String(process.env.ADMINS || '').split(',').map(x => lower(x.trim())).filter(Boolean));
