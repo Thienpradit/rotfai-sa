@@ -8,7 +8,7 @@ async def main():
         errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
         await pg.goto('http://127.0.0.1:3456/');await pg.wait_for_timeout(700)
         await pg.evaluate("document.getElementById('sheet').classList.add('hidden')");await pg.screenshot(path=SP+'/adv_menu.png')
-        await pg.click('#playAdv');await pg.wait_for_timeout(400)
+        await pg.evaluate("$('playAdv').classList.remove('hidden')");await pg.click('#playAdv');await pg.wait_for_timeout(400)
         cards=await pg.evaluate("[...document.querySelectorAll('.stc')].map(e=>e.className)")
         await pg.screenshot(path=SP+'/adv_select.png')
         await pg.evaluate("document.querySelector('.stc[data-i=\"1\"]').click()");await pg.wait_for_timeout(200)
