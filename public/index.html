@@ -746,7 +746,7 @@ const GEM_PRIZES={'2026-12':[
   {img:'prizes/gem2.jpg',n:'โกเมนอุมบาไลต์ 1.00 กะรัต',d:'ชมพูกุหลาบออร์คิด · ทรงคุชชั่น · แทนซาเนีย'},
   {img:'prizes/gem3.jpg',n:'เพอริดอท 15 เม็ด 2.74 กะรัต',d:'เขียวสด · ทรงไข่ · ปากีสถาน'}]};
 const GEM_CLAIM_DAYS=14;   // = accounts.js CLAIM_DAYS
-const PRIZE_CONTACT={name:'LINE @842ksbaj',url:'https://line.me/R/ti/p/@842ksbaj'};   // ช่องทางติดต่อรับรางวัล (ยืนยันกับเจ้าของก่อนขึ้นเว็บจริง)
+const PRIZE_CONTACT={name:'เฟซบุ๊ก Ponpoj Thien',url:'https://www.facebook.com/Ponpoj.Thien/'};   // ช่องทางติดต่อรับรางวัล = เฟซบุ๊กเจ้าของ (ยืนยัน 13 พ.ย. 2026)
 let GEM_ME=null,IS_ADMIN=false,gemShown=false;
 const GEM_COL=['#ffd23f','#c9d3e6','#e0a46a'];
 function gemCardsHTML(season){const G=GEM_PRIZES[season];if(!G)return'';const c=(i,one)=>`<div class="gemc${one?' one':''}" style="--b:${GEM_COL[i]}"><span class="pl">${['🥇 อันดับ 1','🥈 อันดับ 2','🥉 อันดับ 3'][i]}</span><img src="${G[i].img}" alt=""><b>${G[i].n}</b>${G[i].d}</div>`;
@@ -769,7 +769,7 @@ function showGemWin(g){g=g||GEM_ME;if(!g)return;const G=GEM_PRIZES[g.season];
       ${it?`<img src="${it.img}" alt=""><div style="font-size:16px;font-weight:700">${it.n}</div><div class="help" style="margin:2px 0 6px">${it.d}</div>`:''}
       <div class="help" style="margin:0">รหัสรับรางวัลของคุณ</div><div class="gcode">${g.code}</div>
       <div class="gsteps"><b>📨 วิธีรับรางวัล</b><br>1️⃣ แคปหน้าจอนี้ไว้<br>2️⃣ ทักแชท <b>${PRIZE_CONTACT.name}</b><br>3️⃣ ส่ง: <b>รหัสรับรางวัล</b> + <b>ชื่อในเกม (${escH(ACCT.name||'')})</b> + ชื่อ-ที่อยู่-เบอร์โทร สำหรับจัดส่ง<br>⏰ ภายใน <b>${until}</b> (ส่งฟรีในไทย)<br><small>⚠️ ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</small></div>
-      <a class="btn" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;text-decoration:none;margin-top:10px">💬 เปิด ${PRIZE_CONTACT.name}</a><button class="btn alt" id="gwCp">📋 คัดลอกรหัส</button><button class="btn gray" id="gwOk">ปิด</button></div>`;
+      <a class="btn" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;width:100%;text-align:center;text-decoration:none;margin-top:10px">💬 เปิด${PRIZE_CONTACT.name} ทักแชท</a><button class="btn alt" id="gwCp">📋 คัดลอกรหัส</button><button class="btn gray" id="gwOk">ปิด</button></div>`;
     b.querySelector('#gwCp').onclick=()=>{try{navigator.clipboard.writeText(g.code).then(()=>announce('📋 คัดลอกรหัสรับรางวัลแล้ว'),()=>{})}catch(e){}};
     b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden')});
   if(!g.review)sfx('gold')}

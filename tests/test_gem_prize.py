@@ -60,7 +60,7 @@ async def main():
                 await pg.goto('http://127.0.0.1:3457/');await pg.evaluate("GEM_PRIZES['2026-10']=GEM_PRIZES['2026-12'];GEM_PRIZES[seasonKey()]=GEM_PRIZES['2026-12']");return pg,errs
             pg,errs=await page(login('W1')['token'],'W1');await pg.wait_for_timeout(2200)
             t=await pg.evaluate("document.getElementById('sheet').classList.contains('hidden')?'':document.getElementById('sheetBody').innerText")
-            check(c1 in t and 'LINE' in t,'W1 เปิดเกม → ป๊อปอัปรหัสรับรางวัล')
+            check(c1 in t and 'Ponpoj' in t,'W1 เปิดเกม → ป๊อปอัปรหัสรับรางวัล')
             await pg.screenshot(path=SP+'/gem_win.png')
             await pg.evaluate("$('sheet').classList.add('hidden');showBest()");await pg.wait_for_timeout(300)
             check(await pg.evaluate("!!document.getElementById('gemStrip')"),'หน้าแรกมีแถบ 💎 ลุ้นเพชรแท้');await pg.screenshot(path=SP+'/gem_home.png')
