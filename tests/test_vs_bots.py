@@ -39,7 +39,7 @@ async def main():
         n1 = await a.evaluate("worms.filter(w=>w.isBot&&w.alive).length"); await a.wait_for_timeout(3500)
         print('bot died ->', n1, 'after 3.5s ->', await a.evaluate("worms.filter(w=>w.isBot&&w.alive).length"))
         await a.wait_for_timeout(36000)
-        print('end title', await a.evaluate("document.getElementById('sheetTitle').textContent"), 'rows', await a.evaluate("[...document.querySelectorAll('#sheetBody .item .tx')].map(e=>e.textContent)"))
+        print('end title', await a.evaluate("document.getElementById('sheetTitle').textContent"), 'rows', await a.evaluate("[...document.querySelectorAll('#sheetBody .vsrp')].map(e=>e.textContent)"))
         await a.screenshot(path='/tmp/vs_end.png')
         print('errors', errs)
 asyncio.run(main())

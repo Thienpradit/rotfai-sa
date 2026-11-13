@@ -35,12 +35,14 @@ function follow(t) {
   const s = rOf(t.mass) * .42, T = t.tun;
   for (let i = 1; i < p.length; i++) { let ax = p[i - 1].x, ay = p[i - 1].y; if (T && i === T.k) { ax -= T.dx; ay -= T.dy; }
     const b = p[i], dx = ax - b.x, dy = ay - b.y, dd = Math.hypot(dx, dy); if (dd > s) { const k = (dd - s) / dd; b.x += dx * k; b.y += dy * k; } }
-  if (T) { while (T.k < p.length) { const b = p[T.k]; if (T.t > 1.5 || (b.x - T.ex) ** 2 + (b.y - T.ey) ** 2 < MOUTH * MOUTH) { b.x += T.dx; b.y += T.dy; T.k++; if (T.t <= 1.5) T.t = 0; } else break; } if (T.k >= p.length) t.tun = null; }
+  // ตู้ลอดตามระยะที่หัววิ่งออกมาแล้ว (เหมือน index.html tunFeed) — ไม่ค้าง ไม่โผล่ทีเดียวทั้งขบวน · หยุดนิ่งเกิน 6 วิค่อยย้ายที่เหลือ
+  if (T) { const h = p[0]; if (T.hx !== undefined) T.d += Math.hypot(h.x - T.hx, h.y - T.hy); T.hx = h.x; T.hy = h.y;
+    while (T.k < p.length) { const b = p[T.k]; if (T.t > 6 || T.d >= T.k * s - 1 || (b.x - T.ex) ** 2 + (b.y - T.ey) ** 2 < MOUTH * MOUTH) { b.x += T.dx; b.y += T.dy; T.k++; T.t = 0; } else break; } if (T.k >= p.length) t.tun = null; }
 }
 // ลอดอุโมงค์แบบค่อย ๆ โผล่ (เหมือน index.html: tunStart/tunFeed) — หัววาร์ปก่อน ตู้ที่เหลือวิ่งตามเข้าปากอุโมงค์ทีละจุด
 const MOUTH = 44;
 function tunStart(world, t, p) { if (t.tun) { const T = t.tun; for (let i = T.k; i < t.pts.length; i++) { t.pts[i].x += T.dx; t.pts[i].y += T.dy; } }
-  const q = world.portals[p.pair], dx = q.x - p.x, dy = q.y - p.y; t.pts[0].x += dx; t.pts[0].y += dy; t.tun = { dx, dy, ex: p.x, ey: p.y, k: 1, t: 0 }; }
+  const q = world.portals[p.pair], dx = q.x - p.x, dy = q.y - p.y; t.pts[0].x += dx; t.pts[0].y += dy; t.tun = { dx, dy, ex: p.x, ey: p.y, k: 1, t: 0, d: 0, hx: t.pts[0].x, hy: t.pts[0].y }; }
 function inMouth(room, q) { for (const p of room.sim.world.portals) if ((q.x - p.x) ** 2 + (q.y - p.y) ** 2 < MOUTH * MOUTH && portalOpen(room, p)) return true; return false; }
 function mkPts(x, y, a, mass) { const n = nOf(mass), s = rOf(mass) * .42, pts = []; for (let i = 0; i < n; i++) pts.push({ x: x - Math.cos(a) * i * s, y: y - Math.sin(a) * i * s }); return pts; }
 
@@ -87,7 +89,8 @@ function syncPlayers(room) {
       if (ent) { tunStart(W, b, ent); h.x = st.x; h.y = st.y; } else { b.tun = null; for (const q of b.pts) { q.x += dx; q.y += dy; } } }
     else { h.x = st.x; h.y = st.y; }
     if (b.tun) b.tun.t += 1 / 20;
-    b.mass = Math.max(10, st.m); b.angle = st.a; b.team = p.team; b.ghost = st.f & 32 ? 1 : 0; b.safe = st.f & 16 ? 1 : 0; b.alive = true; follow(b);
+    { let da = st.a - (b.angle ?? st.a); da = Math.atan2(Math.sin(da), Math.cos(da)); b.av = (b.av || 0) * .75 + da * 20 * .25; }   // ความเร็วเลี้ยว (เรเดียน/วิ) ไว้ให้บอท 2v2 เดาทางโค้ง
+    b.mass = Math.max(10, st.m); b.angle = st.a; b.boost = !!(st.f & 1); b.team = p.team; b.ghost = st.f & 32 ? 1 : 0; b.safe = st.f & 16 ? 1 : 0; b.alive = true; follow(b);
   }
 }
 const allTrains = room => { const t = []; for (const p of room.players.values()) if (p.body) t.push(p.body); for (const b of room.bots.values()) if (b.alive) t.push(b); return t; };
@@ -107,8 +110,9 @@ function bodyNear(S, room, x, y, rad, self) {
 const BIG_START = 2000, BIG_STEP = 1000, BIG_MAX = 5, bigTier = o => o.human && (o.mass || 0) >= BIG_START ? Math.min(BIG_MAX, 1 + Math.floor(((o.mass || 0) - BIG_START) / BIG_STEP)) : 0;   // เริ่ม 2,000 (เจ้าของปรับ 11 พ.ย. 17:42)
 // ⚔️ 2v2: บอทโหดขึ้น (เจ้าของสั่ง 12 พ.ย. 00:45 — ไล่ล่า โจมตี หลบเก่ง) · ใช้เฉพาะห้อง 2v2 (!room.ffa) · โลกออนไลน์ใช้ D เดิม
 const VS_HUNTERS = 2;   // จำนวนนักล่ากลางในห้อง 2v2
+// huntR 4800 = ทั้งสนาม 2v2 (กว้าง 4400): ทีมเกิดคนละฝั่ง ห่างกัน 1800–3000 เดิมระยะ 1900 เลยแทบไม่เคยไล่ (เจ้าของแจ้ง 13 พ.ย. 08:27)
 // โหดขึ้นอีกรอบ (เจ้าของสั่ง 13 พ.ย. 06:54): คิดถี่ขึ้น ไล่ไกลขึ้น เร่งบ่อยขึ้น เลี้ยวไวขึ้น (VS_TURN) ขบวนเกิดยาวขึ้น · 2 ตัวไล่เป้าเดียวกัน = ประกบสองข้าง (คีม)
-const DV = { huntP: .99, huntR: 1900, others: .9, othersR: 1800, look: 1.5, think: [3, 8], leadK: .7, boostR: 950, regen: .9, enMax: 8, dodge: 1 };
+const DV = { huntP: .99, huntR: 4800, others: .9, othersR: 1800, look: 1.5, think: [3, 8], leadK: .7, boostR: 950, regen: .9, enMax: 8, dodge: 1 };
 const VS_TURN = 1.15, VS_RESPAWN = 2, VS_HUNT_RESPAWN = 4;
 const enemyHeadNear = (room, w, x, y, rr, trains) => { for (const o of trains) { if (o === w || !o.alive || ally(o, w) || o.ghost > 0) continue;   // หลบหัวศัตรูที่กำลังพุ่งมา (คาดตำแหน่งล่วงหน้า ~0.3 วิ)
     const oh = o.pts[0], oa = o.angle || 0, sp = (o.boost ? 5.4 : 2.7) * 18, px = oh.x + Math.cos(oa) * sp, py = oh.y + Math.sin(oa) * sp, R = rr + rOf(o.mass) + 14;
@@ -124,7 +128,11 @@ function aiThink(S, room, w, f, trains) {
     if (bh) ai.hunt = bh;
     else if (w.mass > (vs ? 12 : 22)) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt) / (vs && hu ? 1.8 : 1);   // 2v2: เล็งคนจริงก่อนบอท
       if (!(hu ? (o.safe || o.ghost) : vs && (o.safe > 0 || o.ghost > 0)) && d < (hu ? P.huntR + 200 * bt : vs ? DV.othersR : 380) && de < bd && Math.random() < (hu ? P.huntP + (1 - P.huntP) * Math.min(1, .1 * bt) : P.others)) { bd = de; ai.hunt = o; } }
-      if (vs && ai.hunt && !ai.hunt.human) { let hb = null, hd = 1e9; for (const o of trains) if (o.human && o.alive && !ally(o, w) && !(o.safe || o.ghost)) { const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < DV.huntR && d < hd) { hd = d; hb = o; } } if (hb) ai.hunt = hb; } }   // 2v2: มีคนจริงในระยะ = ไล่คนก่อนเสมอ
+      if (vs && ai.hunt && (!ai.hunt.human || w.hunter)) { let hb = null, hd = 1e9;   // นักล่ากลาง: เลือกคนใหม่ทุกครั้งที่คิด (กระจายไล่ทั้งสองทีม)
+      for (const o of trains) if (o.human && o.alive && !ally(o, w) && !(o.safe || o.ghost)) { let d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d >= DV.huntR) continue;
+        // นักล่า: คนที่นักล่าอีกตัวไล่อยู่แล้ว นับว่าไกลขึ้น 3 เท่า → นักล่า 2 ตัวแยกไล่คนละคน (บอททีมยังรุมประกบคนเดียวกันได้)
+        if (w.hunter) for (const q of trains) if (q !== w && q.hunter && q.alive && q.ai && q.ai.hunt === o) { d *= 3; break; }
+        if (d < hd) { hd = d; hb = o; } } if (hb) ai.hunt = hb; } }   // 2v2: มีคนจริงในระยะ = ไล่คนก่อนเสมอ
     if (!ai.hunt) {
       let best = null, bs = 0; const cx = Math.floor(h.x / CS), cy = Math.floor(h.y / CS);
       for (let gx = cx - 4; gx <= cx + 4; gx++) for (let gy = cy - 4; gy <= cy + 4; gy++) { const a = S.fgrid.get(key(gx, gy)); if (!a) continue;
@@ -135,13 +143,16 @@ function aiThink(S, room, w, f, trains) {
   }
   let tx = ai.tx, ty = ai.ty, boost = false;
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
-    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : vs ? 1700 : 850 + 200 * bigTier(o)) || (vs && (o.ghost > 0))) ai.hunt = null;
+    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : vs ? (o.human ? DV.huntR : 1700) : 850 + 200 * bigTier(o)) || (vs && (o.ghost > 0))) ai.hunt = null;
     else if (vs) {   // 2v2: วิ่งขนาน แล้วพุ่งตัดหน้าให้ศัตรูชนลำตัวเรา
-      const oa = o.angle || 0, osp = o.boost ? 5.4 : 2.7; let lead = 90 + rOf(o.mass) * 4 + d * DV.leadK, side = Math.sign(Math.cos(oa) * (h.y - oh.y) - Math.sin(oa) * (h.x - oh.x)) || 1;
+      const oa = o.angle || 0, osp = o.boost ? 5.4 : 2.7; let cut = 90 + rOf(o.mass) * 4, side = Math.sign(Math.cos(oa) * (h.y - oh.y) - Math.sin(oa) * (h.x - oh.x)) || 1;
+      // เดาว่าเป้าจะอยู่ไหนตอนเราไปถึง: วิ่งโค้งด้วยความเร็วเลี้ยวปัจจุบัน (o.av) · τ = เวลาที่เราใช้ไปถึง (เพดาน 2.2 วิ)
+      const tau = Math.min(2.2, d / (2.7 * 60 * 1.3)), v = osp * 60, om = Math.max(-3, Math.min(3, o.av || 0)), pa = oa + om * tau;
+      const px = Math.abs(om) < .05 ? oh.x + Math.cos(oa) * v * tau : oh.x + v / om * (Math.sin(pa) - Math.sin(oa)), py = Math.abs(om) < .05 ? oh.y + Math.sin(oa) * v * tau : oh.y + v / om * (Math.cos(oa) - Math.cos(pa));
       // คีม: มีพวกเดียวกัน (หรือนักล่าตัวอื่น) ไล่เป้าเดียวกันอยู่ → ตัวที่ id น้อยกว่าอ้อมไปอีกข้าง + ตัดไกลกว่า ปิดทางหนีสองฝั่ง
-      for (const q of trains) if (q !== w && q.bot && q.alive && q.ai && q.ai.hunt === o && (ally(q, w) || (q.hunter && w.hunter)) && q.id < w.id) { side = -(Math.sign(Math.cos(oa) * (q.pts[0].y - oh.y) - Math.sin(oa) * (q.pts[0].x - oh.x)) || 1); lead *= 1.35; break; }
-      const off = d > 380 ? 140 * side : 0; tx = oh.x + Math.cos(oa) * lead - Math.sin(oa) * off; ty = oh.y + Math.sin(oa) * lead + Math.cos(oa) * off;
-      boost = w.mass > 14 && (d < DV.boostR || osp > 3) && w.energy > .4; }
+      for (const q of trains) if (q !== w && q.bot && q.alive && q.ai && q.ai.hunt === o && (ally(q, w) || (q.hunter && w.hunter)) && q.id < w.id) { side = -(Math.sign(Math.cos(oa) * (q.pts[0].y - oh.y) - Math.sin(oa) * (q.pts[0].x - oh.x)) || 1); cut *= 1.8; break; }
+      const off = d > 380 ? 140 * side : 0; tx = px + Math.cos(pa) * cut - Math.sin(pa) * off; ty = py + Math.sin(pa) * cut + Math.cos(pa) * off;
+      boost = w.mass > 14 && ((d < DV.boostR || osp > 3) && w.energy > .4 || o.human && d > 1100 && w.energy > 4.5); }   // ไกลคนจริง + พลังเหลือ = เร่งตามไปก่อน (เก็บไว้ ≥4.5 วิสำหรับพุ่งตัดหน้า)
     else { const lead = 60 + rOf(o.mass) * 3 + d * .45, oa = o.angle || 0; tx = oh.x + Math.cos(oa) * lead; ty = oh.y + Math.sin(oa) * lead; boost = d < 450 + 150 * bossRage(w) && w.mass > 18; } }
   else if (ai.boostT > 0) { ai.boostT -= f; boost = true; }
   if (w.flee && w.flee.t > 0) { w.flee.t -= f / 60; tx = h.x + Math.cos(w.flee.a) * 400; ty = h.y + Math.sin(w.flee.a) * 400; boost = false; }   // โดนหวูดไล่

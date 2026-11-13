@@ -1057,10 +1057,13 @@ const portalOpen=p=>{const q=portals[p.pair];return Math.hypot(q.x,q.y)<AR-PORTA
 const MOUTH=44;
 function chainFollow(P,s,T){for(let i=1;i<P.length;i++){let ax=P[i-1].x,ay=P[i-1].y;if(T&&i===T.k){ax-=T.dx;ay-=T.dy}
   const b=P[i],dx=ax-b.x,dy=ay-b.y,dd=Math.hypot(dx,dy);if(dd>s){const k=(dd-s)/dd;b.x+=dx*k;b.y+=dy*k}}}
-// T.t = เวลาตั้งแต่จุดล่าสุดลอดผ่าน · ถ้าค้างเกิน 1.5 วิ (เลี้ยวกลับกะทันหัน) ย้ายที่เหลือทั้งหมด กันท้ายขบวนค้างฝั่งทางเข้า
-function tunFeed(P,T){while(T.k<P.length){const b=P[T.k];if(T.t>1.5||(b.x-T.ex)**2+(b.y-T.ey)**2<MOUTH*MOUTH){b.x+=T.dx;b.y+=T.dy;T.k++;if(T.t<=1.5)T.t=0}else break}return T.k>=P.length}
+// ตู้ลอดทีละจุดตาม "ระยะที่หัววิ่งออกมาแล้ว" (T.d ≥ k × ระยะตู้) หรือแตะปากอุโมงค์ — เลี้ยวแค่ไหนก็ไม่ค้าง ไม่โผล่ทีเดียวทั้งขบวน (เจ้าของแจ้ง 13 พ.ย. 08:27)
+// T.t = เวลาตั้งแต่จุดล่าสุดลอด · ค้างเกิน TUN_STUCK วิ (หัวหยุดนิ่ง เช่นตาย) ค่อยย้ายที่เหลือ
+const TUN_STUCK=6;
+function tunFeed(P,T,s){const h=P[0];if(T.hx!==undefined)T.d+=Math.hypot(h.x-T.hx,h.y-T.hy);T.hx=h.x;T.hy=h.y;
+  while(T.k<P.length){const b=P[T.k];if(T.t>TUN_STUCK||T.d>=T.k*s-1||(b.x-T.ex)**2+(b.y-T.ey)**2<MOUTH*MOUTH){b.x+=T.dx;b.y+=T.dy;T.k++;T.t=0}else break}return T.k>=P.length}
 function tunFlush(w){const T=w.tun;if(!T)return;for(let i=T.k;i<w.pts.length;i++){w.pts[i].x+=T.dx;w.pts[i].y+=T.dy}w.tun=null}
-function tunStart(w,p){if(w.tun)tunFlush(w);const q=portals[p.pair],dx=q.x-p.x,dy=q.y-p.y;w.pts[0].x+=dx;w.pts[0].y+=dy;w.tun={dx,dy,ex:p.x,ey:p.y,k:1,t:0,e:p.pair}}
+function tunStart(w,p){if(w.tun)tunFlush(w);const q=portals[p.pair],dx=q.x-p.x,dy=q.y-p.y;w.pts[0].x+=dx;w.pts[0].y+=dy;w.tun={dx,dy,ex:p.x,ey:p.y,k:1,t:0,d:0,hx:w.pts[0].x,hy:w.pts[0].y,e:p.pair}}
 const inMouth=q=>{for(const p of portals)if((q.x-p.x)**2+(q.y-p.y)**2<MOUTH*MOUTH&&portalOpen(p))return true;return false};
 function checkTunnel(w){
   const h=w.pts[0];
@@ -1190,7 +1193,7 @@ class Worm{
     while(this.pts.length<n){const t=this.pts[this.pts.length-1];this.pts.push({x:t.x,y:t.y})}
     if(this.pts.length>n)this.pts.length=n;
     chainFollow(this.pts,this.r()*.42,this.tun);
-    if(this.tun&&tunFeed(this.pts,this.tun))this.tun=null;
+    if(this.tun&&tunFeed(this.pts,this.tun,this.r()*.42))this.tun=null;
   }
   update(f,dt){
     const r=this.r();
@@ -2327,6 +2330,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
+  {id:27,d:'13 พ.ย. 2026',t:'🚇 ลอดอุโมงค์ลื่นขึ้น',l:['ขบวนยาว ๆ ค่อย ๆ เข้ารูทีละตู้ แล้วค่อย ๆ โผล่ออกอีกฝั่ง ไม่โผล่พรวดออกมาทั้งขบวนแล้ว','เลี้ยวทันทีหลังออกจากอุโมงค์ก็ไม่ค้าง']},
   {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ผลรอบที่แล้วโชว์บนสุด ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
   {id:25,d:'12 พ.ย. 2026',t:'🛠️ 2v2 ไม่เด้งออกแล้ว',l:['แก้ 2v2 จบแล้วเด้งกลับหน้าแรก ไม่ได้สรุปผลและรางวัล','ถ้ามีอัปเดตเกมระหว่างเล่น 2v2 แมตช์จะจบให้ทันที ทุกคนได้สรุปผล เหรียญ และแรงก์ก่อน','ดูหน้าสรุปผลได้เต็มที่ ไม่โดนดึงเข้าแมตช์ใหม่จนกว่าจะกลับห้องรอ','เล่น 2v2 คนเดียว: เกมรอให้กด ▶ เริ่มเลย ก่อน ไม่นับถอยหลังเอง']},
   {id:24,d:'12 พ.ย. 2026',t:'📨 ชวนเพื่อนเข้า 2v2 + กดพร้อม',l:['เปิดห้อง ⚔️ 2v2 แล้วถ้ามีคนเล่นออนไลน์หรือผจญภัยอยู่ กด 📨 ชวนได้เลย · คนที่ได้รับคำชวนกด ⚔️ เข้าร่วม ก็เข้าห้องทันที','มีหลายคนในห้อง: กด ✋ พร้อม · ทุกคนพร้อมแล้วกด ▶ เล่นเลย ได้ · ไม่งั้นเกมเริ่มเองใน 30 วิ','เล่นคนเดียวและไม่มีใครออนไลน์ → เริ่มเล่นกับบอทให้เองเลย','แก้เซิร์ฟเวอร์หลุด (502) ตอนวงสนาม 2v2 หด']},
