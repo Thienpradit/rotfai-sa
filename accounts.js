@@ -184,7 +184,8 @@ async function prizeOf(u) { const d = (u && u.data) || {}; if (!d.season || d.se
 const GEM_SEASONS = { '2026-12': 3 }, CLAIM_DAYS = 14;
 for (const x of String(process.env.GEM_EXTRA || '').split(',')) { const m = /^(\d{4}-\d{2}):(\d)$/.exec(x.trim()); if (m) GEM_SEASONS[m[1]] = +m[2]; }   // ทดสอบ: GEM_EXTRA=2026-10:3
 // ผู้ดูแล = ชื่อบัญชีใน env ADMINS (คั่นด้วย ,) — เห็นปุ่ม 🛡️ ผู้ดูแล ในหน้าบัญชี: ดูผลตรวจ แบน/ปลดแบน ให้สิทธิ์คืน ตรวจรหัสรับรางวัล
-const ADMINS = new Set(String(process.env.ADMINS || '').split(',').map(x => lower(x.trim())).filter(Boolean));
+// ค่าเริ่มต้น = บัญชีเจ้าของ "พล" (เจ้าของยืนยัน 13 พ.ย.) — ตั้ง env ADMINS ทับได้ · ชื่อผู้ดูแลสงวนไว้: คนอื่นสมัคร/เปลี่ยนชื่อเป็นชื่อนี้ไม่ได้
+const ADMINS = new Set(String(process.env.ADMINS || 'พล').split(',').map(x => lower(x.trim())).filter(Boolean));
 const isAdmin = u => !!u && ADMINS.has(u.lname);
 const seasonEnd = k => Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 1) - 7 * 36e5;   // 00:00 วันที่ 1 เดือนถัดไป เวลาไทย
 const claimCode = (season, l) => { const h = crypto.createHmac('sha256', SECRET).update('gem:' + season + ':' + l).digest(); let c = '';
@@ -296,6 +297,7 @@ async function handleApi(req, res, p) {
         const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
         const data = AC.validate(null, raw).data, rc = makeRecovery();
         const salt = crypto.randomBytes(16).toString('hex'), u = { lname: l, name, salt, hash: await hashPass(pass, salt), data, rp: rpOf(data) };
+        if (ADMINS.has(l)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });   // ชื่อผู้ดูแลสงวนไว้
         if (!(await store.create(u))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
         await store.setRecovery(l, rc.rhash);
         return out(200, { token: makeToken(u), name, data, code: rc.code });
@@ -336,7 +338,7 @@ async function handleApi(req, res, p) {
       const name = cleanName(body.name); if ([...name].length < 2 || [...name].length > 14) return out(400, { err: 'ชื่อต้องยาว 2–14 ตัวอักษร' });
       if (name === u.name) return out(400, { err: 'ชื่อนี้เป็นชื่อปัจจุบันของคุณอยู่แล้ว' });
       { const g = await gemOf(u).catch(() => null); if (g && g.place) return out(409, { err: 'คุณมีรางวัลอัญมณีรอรับอยู่ เปลี่ยนชื่อได้หลังรับรางวัลแล้ว (' + CLAIM_DAYS + ' วันหลังจบฤดูกาล)' }); }
-      const nl = lower(name); if (nl !== u.lname && await store.get(nl)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
+      const nl = lower(name); if (nl !== u.lname && (ADMINS.has(nl) || await store.get(nl))) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
       if (await prizeOf(u)) return out(409, { err: 'กำลังรับรางวัลจบฤดูกาล ปิดแล้วเปิดเกมใหม่ แล้วลองเปลี่ยนชื่ออีกครั้ง' });
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
       const { data } = AC.validate(u.data || {}, raw, Date.now(), 0);   // บันทึกความคืบหน้าล่าสุดก่อน (ผ่านกันโกง) แล้วค่อยหักเหรียญ
