@@ -1,4 +1,4 @@
-# ทดสอบโหมดไม่จำกัดแบบ free-for-all 3 คน: รันเซิร์ฟเวอร์ก่อนด้วย  PORT=3456 npm start  แล้ว python tests/test_ffa.py
+# ทดสอบโหมดไม่จำกัดแบบ free-for-all 3 คน: รันเซิร์ฟเวอร์ก่อนด้วย  PORT=3456 TEST_FREE_ITEMS=1 npm start  แล้ว python tests/test_ffa.py
 import asyncio
 from playwright.async_api import async_playwright
 URL = 'http://127.0.0.1:3456/'

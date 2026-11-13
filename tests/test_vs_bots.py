@@ -1,5 +1,5 @@
 # ทดสอบ 2v2 เติมบอท: คน 2 คนอยู่ทีมแดง → เซิร์ฟเวอร์เติมบอท 2 ตัวให้ทีมน้ำเงิน, บอทชนคนตายได้แต้ม, จบแมตช์มีบอทในสรุป
-# รันเซิร์ฟเวอร์ก่อน: PORT=3456 MATCH_SECS=40 npm start  แล้ว python tests/test_vs_bots.py
+# รันเซิร์ฟเวอร์ก่อน: PORT=3456 TEST_FREE_ITEMS=1 MATCH_SECS=40 npm start  แล้ว python tests/test_vs_bots.py
 import asyncio
 _PAGES=[]
 async def __readyall():

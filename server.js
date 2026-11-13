@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
-const { handleApi } = require('./accounts');
+const { handleApi, tokenUser, addPlay } = require('./accounts');
 const botsim = require('./botsim');
 // กันเซิร์ฟเวอร์ล่มทั้งตัวเพราะ error จุดเดียว (12 พ.ย. 13:10 ล่มเพราะ farSpot) — log ไว้แล้วเล่นต่อ
 process.on('uncaughtException', e => console.error('uncaught', e && e.stack || e));   // บอทรันบนเซิร์ฟเวอร์
@@ -47,7 +47,7 @@ if (process.env.RENDER || process.env.GRACEFUL) process.on('SIGTERM', () => { if
 
 // ---------- static files ----------
 const PUBLIC = path.join(__dirname, 'public');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ })); }
@@ -143,7 +143,7 @@ function startMatch(room) {
   room.phase = 'play'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.timers = { tgs: 30, gold: 50 };
   const spawns = {}; const per = { A: 0, B: 0 };
   for (const p of room.players.values()) {
-    p.kills = 0; p.maxLen = 20; p.st = null;
+    flushAud(p); p.kills = 0; p.maxLen = 20; p.st = null; if (p.aud) p.aud.k0 = 0;
     const side = p.team === 'A' ? Math.PI : 0, a = side + (per[p.team]++ ? .5 : -.5);
     spawns[p.id] = [Math.round(Math.cos(a) * room.cfg.R * .55), Math.round(Math.sin(a) * room.cfg.R * .55), +(side + Math.PI).toFixed(2)];
   }
@@ -156,6 +156,7 @@ function endMatch(room) {
   const A = sc.A.k, B = sc.B.k, lA = Math.floor(sc.A.l), lB = Math.floor(sc.B.l);
   const winner = A > B ? 'A' : B > A ? 'B' : lA > lB ? 'A' : lB > lA ? 'B' : 'draw';
   const ps = [...room.players.values()];
+  for (const p of ps) if (p.aud) { p.aud.g++; flushAud(p); }   // 1 แมตช์ 2v2 = 1 เกม
   let mvp = null, mv = -1; for (const p of ps) { const v = p.kills * 100 + p.maxLen; if (v > mv) { mv = v; mvp = p.id; } }
   const bots = [...room.bots.values()].filter(b => b.info.team && (!b.dead || b.kills)).map(b => ({ id: b.info.id, name: b.info.name, team: b.info.team, kills: b.kills || 0, maxLen: b.maxLen || 20, bot: true }));
   for (const b of bots) { const v = b.kills * 100 + b.maxLen; if (v > mv) { mv = v; mvp = b.id; } }
@@ -167,6 +168,7 @@ function endMatch(room) {
 }
 
 // ---------- connections ----------
+const FREE_ITEMS = process.env.TEST_FREE_ITEMS === '1';   // เทสต์เท่านั้น: ใช้ระเบิด/แช่แข็ง/ร่างทองได้โดยไม่ต้องเก็บของจริง
 // บีบอัดข้อมูล (permessage-deflate): ข้อมูลต่อผู้เล่นลด ~65% (60 → 21 KB/วิ ที่ 30 คน) · ช้าลงไม่ถึง 3ms · เบราว์เซอร์ไม่รองรับ = ส่งแบบเดิมอัตโนมัติ
 // ปิดได้ด้วย env WS_DEFLATE=0
 const DEFLATE = process.env.WS_DEFLATE === '0' ? false : { threshold: 256, serverMaxWindowBits: 13, clientMaxWindowBits: 13, zlibDeflateOptions: { level: 3, memLevel: 7 } };
@@ -199,6 +201,8 @@ wss.on('connection', (ws, req) => {
         loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
       room.players.set(me.id, me);
       me.inLobby = true;
+      // บัญชีที่ล็อกอิน: เซิร์ฟเวอร์จดเวลาเล่น/เกม/กำจัดที่เห็นเอง ไว้ตรวจโกงตอนแจกรางวัล (accounts.js reviewOf)
+      me.aud = { sec: 0, g: 0, k0: 0, ml: 0 }; if (m.tok) tokenUser(m.tok).then(l => { if (l && me) me.acct = l; }).catch(() => {});
       if (!ffa && room.phase === 'lobby') room.cdAt = null;   // มีคนเข้ามาใหม่ → นับ 30 วิใหม่ให้เขา
       send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room) });
@@ -231,9 +235,9 @@ wss.on('connection', (ws, req) => {
         for (const w of inviteTargets()) if (w !== ws && w.readyState === 1) { w.send(msg); n++; }
         send(ws, { t: 'invd', n }); break; }
       case 'st':
-        me.lastT = Date.now();
+        { const now = Date.now(); if (me.st && (me.st.f & 4) && (room.ffa || room.phase === 'play')) me.aud.sec += Math.min(1000, now - me.lastT) / 1000; me.lastT = now; }
         me.st = { x: +m.x || 0, y: +m.y || 0, a: +m.a || 0, m: Math.min(5000, +m.m || 0), f: m.f | 0, ts: +m.ts || Date.now() };   // ts = เวลาของเครื่องผู้ส่ง ใช้ทำการเคลื่อนไหวให้ลื่น
-        if (me.st.m > me.maxLen) me.maxLen = me.st.m;
+        if (me.st.m > me.maxLen) me.maxLen = me.st.m; if (me.st.m > me.aud.ml) me.aud.ml = me.st.m;
         if (Array.isArray(m.eat) && m.eat.length) {
           const gone = [];
           for (const id of m.eat.slice(0, 200)) if (room.foods.delete(id)) { gone.push(id); room.exp.delete(id); }
@@ -241,14 +245,16 @@ wss.on('connection', (ws, req) => {
         }
         break;
       case 'white': if (room.whites.delete(m.id)) bcast(room, { t: 'wr', id: m.id }, ws); break;
-      case 'pu': if (room.pups.delete(m.id)) bcast(room, { t: 'pr', id: m.id }, ws); break;
+      case 'pu': { const pu = room.pups.get(m.id); if (room.pups.delete(m.id)) { bcast(room, { t: 'pr', id: m.id }, ws); if (pu && pu[3] === 'freeze') me.frz = (me.frz || 0) + 1; } break; }
       case 'item':
         if ((m.k === 'tgs' || m.k === 'gold') && room.items[m.k]) {
           room.items[m.k] = null; room.timers[m.k] = m.k === 'tgs' ? rnd(45, 75) : rnd(60, 90);
+          if (m.k === 'tgs') me.bombs = Math.min(5, (me.bombs || 0) + 1); else me.goldUntil = Date.now() + 70000;   // กันโกง: ใช้ระเบิด/ร่างทองได้เฉพาะคนที่เก็บของจริง
           bcast(room, { t: 'it', items: room.items });
         }
         break;
       case 'die': {
+        if (room.ffa && me.st && (me.st.f & 4)) me.aud.g++;
         if (me.st) me.st.f &= ~4;
         const killer = room.players.get(m.k), kb = !killer && room.bots.get(m.k);
         if (killer && (room.ffa || killer.team !== me.team)) killer.kills++;
@@ -258,9 +264,9 @@ wss.on('connection', (ws, req) => {
         break;
       }
       case 'drop': dropFoods(room, m.drop, m.v); break;
-      case 'bomb': { const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'bomb', by: me.id, x, y }, ws); botsim.onBomb(room, me, x, y); break; }
-      case 'cut': { const x = +m.x || 0, y = +m.y || 0; if (m.v < 0) botsim.onCut(room, me, m.v, x, y); else bcast(room, { t: 'cut', by: me.id, v: m.v, x, y }, ws); break; }
-      case 'frz': { const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'frz', by: me.id, x, y }, ws); botsim.onFreeze(room, me, x, y); break; }
+      case 'bomb': { if (!(me.bombs > 0) && !FREE_ITEMS) break; me.bombs--; const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'bomb', by: me.id, x, y }, ws); botsim.onBomb(room, me, x, y); break; }
+      case 'cut': { const x = +m.x || 0, y = +m.y || 0; if (m.v < 0 && !(me.goldUntil > Date.now()) && !FREE_ITEMS) break; if (m.v < 0) botsim.onCut(room, me, m.v, x, y); else bcast(room, { t: 'cut', by: me.id, v: m.v, x, y }, ws); break; }
+      case 'frz': { if (!(me.frz > 0) && !FREE_ITEMS) break; me.frz--; const x = +m.x || 0, y = +m.y || 0; bcast(room, { t: 'frz', by: me.id, x, y }, ws); botsim.onFreeze(room, me, x, y); break; }
       case 'horn': { const now = Date.now(); const k = clean(m.k, 10); if (now - (me.hornT || 0) > (k === 'classic' ? 2000 : 7000)) { me.hornT = now; bcast(room, { t: 'horn', by: me.id, k, ...(m.x !== undefined ? { x: Math.round(+m.x || 0), y: Math.round(+m.y || 0) } : {}) }, ws); if (m.x !== undefined) botsim.onHorn(room, me, +m.x || 0, +m.y || 0, k); } break; }   // หวูดไล่บอท (ใช้ได้ทุก 8 วิ)
       // ---- ผลกับบอทบนเซิร์ฟเวอร์ ----
       case 'bhit': if (typeof m.id === 'number') botsim.onBossHit(room, me, m.id, m.d); break;
@@ -280,6 +286,8 @@ wss.on('connection', (ws, req) => {
   });
   ws.on('close', () => {
     idle.delete(ws);
+    if (me && me.st && (me.st.f & 4) && room && room.ffa) me.aud.g++;
+    flushAud(me);
     if (!room || !me || me.kicked) return;
     room.players.delete(me.id);
     bcast(room, { t: 'left', id: me.id });
@@ -287,6 +295,10 @@ wss.on('connection', (ws, req) => {
     if (me.host) setHost(room, room.players.values().next().value); else lobby(room);
   });
 });
+// ส่งเวลาเล่น/เกม/กำจัดที่เซิร์ฟเวอร์เห็นให้ accounts.js (ทุก 60 วิ + ตอนออก) · kills นับจาก p.kills (เซิร์ฟเวอร์ตัดสิน: บอทชนเรา / คนตายแจ้งชื่อเรา)
+function flushAud(p) { if (!p || !p.acct || !p.aud) return; const a = p.aud, k = Math.max(0, p.kills - a.k0);
+  addPlay(p.acct, { sec: a.sec, g: a.g, k, ml: a.ml }); p.aud = { sec: 0, g: 0, k0: p.kills, ml: 0 }; }
+setInterval(() => { for (const r of rooms.values()) for (const p of r.players.values()) flushAud(p); }, 60000).unref();
 function dropFoods(room, drop, v, ttl) {
   if (!Array.isArray(drop)) return;
   v = Math.max(.1, Math.min(20, +v || 1));
