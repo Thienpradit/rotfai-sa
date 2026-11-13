@@ -126,9 +126,10 @@ function aiThink(S, room, w, f, trains) {
     let bh = null, bd0 = 1100 + 250 * bossRage(w);
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
-    else if (w.mass > (vs ? 12 : 22)) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt) / (vs && hu ? 1.8 : 1);   // 2v2: เล็งคนจริงก่อนบอท
+    else if (w.mass > (vs ? 12 : 22)) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w) || (w.hunter && !o.human)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt) / (vs && hu ? 1.8 : 1);   // 2v2: เล็งคนจริงก่อนบอท
       if (!(hu ? (o.safe || o.ghost) : vs && (o.safe > 0 || o.ghost > 0)) && d < (hu ? P.huntR + 200 * bt : vs ? DV.othersR : 380) && de < bd && Math.random() < (hu ? P.huntP + (1 - P.huntP) * Math.min(1, .1 * bt) : P.others)) { bd = de; ai.hunt = o; } }
-      if (vs && ai.hunt && (!ai.hunt.human || w.hunter)) { let hb = null, hd = 1e9;   // นักล่ากลาง: เลือกคนใหม่ทุกครั้งที่คิด (กระจายไล่ทั้งสองทีม)
+      // นักล่ากลาง 🎯 ล่าผู้เล่นจริงอย่างเดียว ไม่ยุ่งกับบอท (เจ้าของสั่ง 13 พ.ย. 09:22) · เลือกคนใหม่ทุกครั้งที่คิด (กระจายไล่ทั้งสองทีม)
+      if (vs && (w.hunter || (ai.hunt && !ai.hunt.human))) { let hb = null, hd = 1e9;
       for (const o of trains) if (o.human && o.alive && !ally(o, w) && !(o.safe || o.ghost)) { let d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d >= DV.huntR) continue;
         // นักล่า: คนที่นักล่าอีกตัวไล่อยู่แล้ว นับว่าไกลขึ้น 3 เท่า → นักล่า 2 ตัวแยกไล่คนละคน (บอททีมยังรุมประกบคนเดียวกันได้)
         if (w.hunter) for (const q of trains) if (q !== w && q.hunter && q.alive && q.ai && q.ai.hunt === o) { d *= 3; break; }

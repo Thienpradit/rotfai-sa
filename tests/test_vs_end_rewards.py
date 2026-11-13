@@ -27,14 +27,23 @@ async def main():
         # A) จบแมตช์ปกติ
         async def wait_end(a,b):await a.wait_for_timeout(20000)
         a,b=await match(p,'http://127.0.0.1:3456/','END'+str(int(time.time())%1000),wait_end)
+        SP='/tmp/claude-0/-home-claude/25cb9392-c762-56ab-9405-b678b539416b/scratchpad/'
         for pg in (a,b):
-            chk('จบแล้วอยู่หน้าห้องรอ: ผลรอบที่แล้ว + ปุ่มพร้อม (ไม่ใช่หน้าแรก)',await pg.evaluate("NET.phase==='lobby'&&!!document.querySelector('#sheet .vsres')&&!!document.getElementById('readyBtn')&&document.getElementById('menu').classList.contains('hidden')===false?true:NET.phase==='lobby'&&!!document.querySelector('#sheet .vsres')&&!!document.getElementById('readyBtn')"))
+            r=await pg.evaluate("({res:!!document.querySelector('#sheet .vsres'),rows:[...document.querySelectorAll('#sheet .vsrk')].map(e=>e.textContent),next:!!document.getElementById('vsNext'),ready:!!document.getElementById('readyBtn'),head:document.querySelector('#sheet .vsrh').textContent})")
+            print('  ',r)
+            chk('จบแล้ว = หน้าผลงาน: ทีมที่ชนะ + อันดับ 1–4 + ปุ่มต่อไป (ยังไม่ใช่ห้องรอ)',r['res'] and len(r['rows'])==4 and r['rows'][0].startswith('🥇') and r['rows'][3].startswith('4') and r['next'] and not r['ready'] and ('ชนะ' in r['head'] or 'เสมอ' in r['head']))
+            chk('มีแถวของเรา (คุณ) ไฮไลต์',await pg.evaluate("!!document.querySelector('#sheet .vsrk.me')"))
+        await pg.evaluate("document.getElementById('rwPop')&&document.getElementById('rwPop').remove()");await b.screenshot(path=SP+'vs_end_result.png')
+        for pg in (a,b):
+            await pg.evaluate("document.getElementById('rwPop')&&document.getElementById('rwPop').remove()");await pg.click('#vsNext');await pg.wait_for_timeout(400)
+            print('  after next',await pg.evaluate("({ph:NET.phase,title:document.getElementById('sheetTitle').textContent,res:!!document.querySelector('#sheet .vsres'),rb:!!document.getElementById('readyBtn'),le:NET.lastEnd,hid:document.getElementById('sheet').classList.contains('hidden')})"),pg._errs[-3:])
+            chk('กดต่อไป → ห้องรอ 2v2 ไม่มีผลรอบที่แล้ว + ปุ่มพร้อม',await pg.evaluate("NET.phase==='lobby'&&!document.querySelector('#sheet .vsres')&&!!document.getElementById('readyBtn')&&NET.lastEnd===null"))
         await a.screenshot(path='/tmp/claude-0/-home-claude/25cb9392-c762-56ab-9405-b678b539416b/scratchpad/vs_end_lobby.png')
         for pg in (a,b):
-            await pg.evaluate("document.getElementById('rwPop')&&document.getElementById('rwPop').remove()");await pg.click('#readyBtn');await pg.wait_for_timeout(300)
+            await pg.click('#readyBtn');await pg.wait_for_timeout(300)
         chk('ทุกคนกดพร้อม → เล่นเลยกดได้',await a.evaluate("!document.getElementById('startBtn').disabled"))
         await a.click('#startBtn');await a.wait_for_timeout(1200)
-        chk('เริ่มรอบใหม่ในห้องเดิม · ผลรอบเก่าหายไป',await b.evaluate("NET.phase==='play'&&NET.lastEnd===null"))
+        chk('เริ่มรอบใหม่ในห้องเดิม',await b.evaluate("NET.phase==='play'&&NET.lastEnd===null"))
         # B) อัปเดตเซิร์ฟเวอร์ระหว่างเล่น → จบแมตช์ให้ก่อน
         env=dict(os.environ,PORT='3458',MATCH_SECS='300',GRACEFUL='1',RESET_SECS='8')
         srv=subprocess.Popen(['node','server.js'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);time.sleep(1.5)

@@ -97,8 +97,15 @@ ok(!vb[0].alive && vb[0].dead && room.bots.has(vb[0].id), '2v2 บอทตา�
 step(room, 70); ok(live(room).filter(b => !b.hunter).length === 2, '2v2 บอทเกิดใหม่ภายใน ~3 วิ');
 step(room, 60); { const hs = live(room).filter(b => b.hunter); ok(hs.length === 2 && hs.every(b => !b.team && b.info.hunter && b.name.startsWith('🎯')), '2v2 มีนักล่ากลาง 2 ตัว ไม่มีทีม (ได้ ' + hs.length + ')');
   room.players.set(2, { id: 2, kills: 0, team: 'B', st: { x: -300, y: 200, a: 0, m: 60, f: 4 } }); let hitA = 0, hitB = 0;
-  for (let i = 0; i < 200; i++) { step(room, 1); for (const b of live(room).filter(b => b.hunter)) { const h = b.ai.hunt; if (h && h.human) { if (h.team === 'A') hitA++; else if (h.team === 'B') hitB++; } } }
-  ok(hitA > 0 && hitB > 0, 'นักล่ากลางไล่คนทั้งทีม A และ B (A ' + hitA + ' · B ' + hitB + ')'); room.players.delete(2); }
+  let botHunt = 0;
+  for (let i = 0; i < 200; i++) { step(room, 1); for (const b of live(room).filter(b => b.hunter)) { const h = b.ai.hunt; if (h && !h.human) botHunt++; if (h && h.human) { if (h.team === 'A') hitA++; else if (h.team === 'B') hitB++; } } }
+  ok(hitA > 0 && hitB > 0, 'นักล่ากลางไล่คนทั้งทีม A และ B (A ' + hitA + ' · B ' + hitB + ')');
+  ok(botHunt === 0, 'นักล่ากลางไม่ไล่บอทเลย (ไล่บอท ' + botHunt + ' ครั้ง)');
+  // คนจริงเป็นผีหมด (ไล่ไม่ได้) → นักล่ายังต้องไม่หันไปไล่บอท
+  room.players.get(1).st.f = 4 | 32; room.players.get(2).st.f = 4 | 32; let botHunt2 = 0;
+  for (let i = 0; i < 200; i++) { room.players.get(1).st.f = 36; room.players.get(2).st.f = 36; step(room, 1); for (const b of live(room).filter(b => b.hunter)) { const h = b.ai.hunt; if (h && !h.human) botHunt2++; } }
+  ok(botHunt2 === 0, 'คนจริงเป็นผี → นักล่ากลางก็ไม่ไล่บอท (ไล่บอท ' + botHunt2 + ' ครั้ง)');
+  room.players.get(1).st.f = 4; room.players.delete(2); }
 room.phase = 'lobby'; const n0 = room.msgs.length; step(room, 5); ok(room.msgs.length === n0, 'ล็อบบี้ 2v2 บอทไม่ขยับ');
 
 // 8) ความเร็ว: 30 ขบวน ต่อ tick ต้องเร็วพอ
