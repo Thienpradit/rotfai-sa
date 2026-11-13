@@ -1886,25 +1886,6 @@ function step(f,dt){
 function carPose(p,f,b){const A=p[f],B=p[b];return{x:(A.x+B.x)/2,y:(A.y+B.y)/2,a:Math.atan2(A.y-B.y,A.x-B.x)}}
 function star4(x,y,s){ctx.beginPath();ctx.moveTo(x,y-s);ctx.lineTo(x+s*.3,y);ctx.lineTo(x,y+s);ctx.lineTo(x-s*.3,y);ctx.fill();ctx.beginPath();ctx.moveTo(x-s,y);ctx.lineTo(x,y-s*.3);ctx.lineTo(x+s,y);ctx.lineTo(x,y+s*.3);ctx.fill()}
 function glowAlong(w,col,mul,vx0,vy0,vx1,vy1,M){const p=w.pts,r=w.r();ctx.fillStyle=col;ctx.beginPath();for(let i=0;i<p.length;i+=3){const q=p[i];if(q.x<vx0-M||q.x>vx1+M||q.y<vy0-M||q.y>vy1+M)continue;ctx.moveTo(q.x+r*mul,q.y);ctx.arc(q.x,q.y,r*mul,0,TAU)}ctx.fill()}
-// ===== รางรถไฟใต้ขบวน (เจ้าของสั่ง 13 พ.ย. 19:32 "ให้ตัวรถไฟมีรางอยู่ใต้ เหมือนกำลังเดินทางบนราง") =====
-// วาดตามจุดลำตัว (ห่างกัน r×.42) ทุก 2 จุด: หินโรยทาง → หมอนไม้ → รางเหล็ก 2 เส้น · ต่อรางยื่นหน้าหัว/หลังท้ายขบวนแล้วจางหาย
-// วาดก่อนขบวนทุกคัน (ไม่ทับรถคันอื่น) · ข้ามช่วงที่คร่อมอุโมงค์ · นอกจอไม่วาด
-function drawTrack(w,vx0,vy0,vx1,vy1){const p=w.pts,n=p.length;if(n<4)return;const r=w.r(),W=r*1.75,G=W*.44,M=W*2,TK=w.tun?w.tun.k:1e9;
-  const out=q=>q.x<vx0-M||q.x>vx1+M||q.y<vy0-M||q.y>vy1+M;
-  const h=p[0],ha=w.angle,ext=r*2.6,ta=Math.atan2(p[n-1].y-p[n-3].y,p[n-1].x-p[n-3].x),tl=p[n-1];
-  const pts=[{x:h.x+Math.cos(ha)*ext,y:h.y+Math.sin(ha)*ext,i:-1}];for(let i=0;i<n;i+=2)pts.push({x:p[i].x,y:p[i].y,i});pts.push({x:tl.x+Math.cos(ta)*ext,y:tl.y+Math.sin(ta)*ext,i:n});
-  const N=pts.length;for(let k=0;k<N;k++){const a=pts[Math.max(0,k-1)],b=pts[Math.min(N-1,k+1)],d=Math.hypot(a.x-b.x,a.y-b.y)||1;pts[k].nx=-(a.y-b.y)/d;pts[k].ny=(a.x-b.x)/d}
-  const brk=k=>k>0&&((pts[k-1].i<TK)!==(pts[k].i<TK)||out(pts[k])&&out(pts[k-1]));
-  const line=(off)=>{ctx.beginPath();for(let k=0;k<N;k++){const q=pts[k],x=q.x+q.nx*off,y=q.y+q.ny*off;if(k===0||brk(k))ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.stroke()};
-  const ga=ctx.globalAlpha;ctx.lineCap='butt';ctx.lineJoin='round';
-  ctx.strokeStyle='rgba(120,112,104,.28)';ctx.lineWidth=W*1.45;line(0);   // หินโรยทาง
-  ctx.strokeStyle='#5b4330';ctx.lineWidth=r*.36;ctx.beginPath();   // หมอนไม้
-  for(let k=1;k<N-1;k++){const q=pts[k];if(out(q))continue;ctx.moveTo(q.x-q.nx*G*1.45,q.y-q.ny*G*1.45);ctx.lineTo(q.x+q.nx*G*1.45,q.y+q.ny*G*1.45)}ctx.stroke();
-  // ปลายรางยื่นหน้า/หลัง: หมอนจาง ๆ
-  ctx.globalAlpha=ga*.5;ctx.beginPath();for(const q of[pts[0],pts[N-1]]){if(out(q))continue;ctx.moveTo(q.x-q.nx*G*1.45,q.y-q.ny*G*1.45);ctx.lineTo(q.x+q.nx*G*1.45,q.y+q.ny*G*1.45)}ctx.stroke();ctx.globalAlpha=ga;
-  ctx.strokeStyle='#2b2f3f';ctx.lineWidth=r*.2;line(-G);line(G);   // รางเหล็ก
-  if(QUAL>0){ctx.strokeStyle='rgba(205,215,235,.75)';ctx.lineWidth=r*.07;line(-G);line(G)}   // เงาวาวบนราง
-  ctx.lineCap='round'}
 // ===== สไปรต์หัวจักร/ตู้/หวูด แบบใหม่ (เจ้าของสั่ง 11 พ.ย. 21:55 "ใส่ในเกม") =====
 // งานออกแบบ (SVG) แปลงเป็นภาพครั้งเดียวต่อ (แบบ, สี) แล้วเก็บไว้ → ทุกเฟรมแค่ drawImage (เบากว่าวาดเส้นทีละชิ้นแบบเดิม)
 // ยังโหลดไม่เสร็จ / กราฟิก 🔋 ประหยัด (QUAL 0) → วาดแบบเดิม · เซิร์ฟเวอร์/เน็ตไม่เกี่ยว (วาดในเครื่องล้วน)
@@ -2285,7 +2266,6 @@ function render(){
   ctx.textBaseline='alphabetic';
   const list=worms.filter(w=>w.alive).sort((a,b)=>(a.isP-b.isP)||(a.mass-b.mass));
   drawStationBanners();
-  for(const w of list){if(w.ghost>0)ctx.globalAlpha=.4;drawTrack(w,vx0,vy0,vx1,vy1);ctx.globalAlpha=1}   // รางใต้ขบวน (13 พ.ย.)
   for(const w of list)drawWorm(w,vx0,vy0,vx1,vy1);
   drawPortalMouths(vx0,vy0,vx1,vy1);
   drawSmoke();   // ควันอยู่บนสุด ทับตัวรถไฟ (เจ้าของสั่ง 13 พ.ย. 19:32 — เดิมควันอยู่ใต้ขบวน)
@@ -2587,7 +2567,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
   {id:33,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
-  {id:32,d:'13 พ.ย. 2026',t:'🛤️ รถไฟวิ่งบนราง + ควันโฉมใหม่',l:['ทุกขบวนมีรางรถไฟอยู่ใต้ตัว เหมือนกำลังเดินทางอยู่บนราง','🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
+  {id:32,d:'13 พ.ย. 2026',t:'🔥 ควันเปลวไฟ & 🍃 ควันใบไม้โฉมใหม่',l:['🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
   {id:31,d:'13 พ.ย. 2026',t:'🧲 หัวจักรในร้านดูดพลอยไกลขึ้น 30%',l:['หัวจักรทุกหัวที่ซื้อจากร้าน เก็บพลอยและเพชรขาวได้ไกลขึ้นอีก <b>30%</b>','ดีเซล +20 · กระสุน +39 · รถราง +59 · ใต้ดิน +78 · ดาวหาง +104','ใครมีหัวจักรอยู่แล้วได้ทันที ไม่ต้องซื้อใหม่']},
   {id:30,d:'13 พ.ย. 2026',t:'🏅 ขบวนยาวได้แรงก์มากขึ้น',l:['ความยาวตอนจบเกมให้ RP มากขึ้น: ทุก <b>50</b> = +1 RP (เดิมทุก 60)','เช่น ยาว 3,000 + กำจัด 8 ตัว = +76 RP (เดิม +66)','ใช้กับเกมที่เล่นตั้งแต่วันนี้เป็นต้นไป แต้มเดิมของทุกคนอยู่ครบ']},
   {id:29,adv:1,d:'13 พ.ย. 2026',t:'🗺️ ผจญภัยเล่นง่ายขึ้น เห็นเป้าหมายชัด',l:['ไม่จำกัดเวลาแล้ว — ทำเป้าหมายให้ครบก็ผ่านด่าน ด่านแรกเป้าหมายง่ายขึ้น ด่านหลัง ๆ บอทเก่งขึ้น','แถบเป้าหมายตรงกลางบนจอ บอกว่าทำได้เท่าไรแล้ว เหลืออีกเท่าไรถึงผ่านด่าน','นาฬิกาจับเวลา ยิ่งผ่านเร็วยิ่งได้ดาวเยอะ แถบบอกว่าต้องผ่านภายในเท่าไรถึงได้ ⭐⭐⭐']},
@@ -2806,7 +2786,6 @@ function pvDraw(me){const cv=me.cv,c2=cv.getContext('2d'),W=cv.width,H=cv.height
     c2.fillStyle='rgba(255,255,255,.05)';for(let x=10;x<PV_W;x+=26)for(let y=10;y<PV_H;y+=26){c2.beginPath();c2.arc(x,y,1.3,0,TAU);c2.fill()}
     c2.strokeStyle='rgba(255,255,255,.06)';c2.lineWidth=26;c2.beginPath();c2.ellipse(PV_CX,PV_CY,PV_RX,PV_RY,0,0,TAU);c2.stroke();
     if(me.o.ring){const h=me.w.pts[0],rr=me.w.r()+12,pk=LOCO_PICK[me.o.loco]||0;c2.setLineDash([7,6]);c2.lineWidth=2;c2.strokeStyle='rgba(255,255,255,.3)';c2.beginPath();c2.arc(h.x,h.y,rr,0,TAU);c2.stroke();if(pk){c2.strokeStyle='#7cfc9a';c2.beginPath();c2.arc(h.x,h.y,rr+pk,0,TAU);c2.stroke()}c2.setLineDash([])}
-    if(me.en)drawTrack(me.en,-1e4,-1e4,1e4,1e4);drawTrack(me.w,-1e4,-1e4,1e4,1e4);
     if(me.en)drawWorm(me.en,-1e4,-1e4,1e4,1e4);
     drawWorm(me.w,-1e4,-1e4,1e4,1e4);
     drawSmoke();   // ควันวาดทับขบวนเหมือนในเกม
