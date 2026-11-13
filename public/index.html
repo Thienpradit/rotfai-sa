@@ -1462,10 +1462,10 @@ function spawnBoss(){
 
 // =====================================================================
 //  🗺️ ผจญภัย — เล่นคนเดียว 30 ด่าน (เจ้าของสั่ง 11 พ.ย. 2026)
-//  เวลาด่าน S.T: ด่านแรก 1 นาที → ด่านสุดท้าย 5 นาที (เจ้าของสั่ง 13 พ.ย. 16:32 · เดิม 10 นาทีทุกด่าน) · บอทเก่งขึ้นทุกด่าน · สิ่งกีดขวาง: 🪨 หิน / 🏚️ โกดัง / 🚧 ไม้กั้นทางข้าม (ตอนปิด) ชน = ตาย · 🟫 โคลน = ช้าลง
+//  ไม่มีเวลาจำกัดแล้ว (เจ้าของสั่ง 13 พ.ย. 16:51) · S.T = เวลามาตรฐานของด่าน 1 → 5 นาที ใช้ตั้งเป้าหมาย/ดาว/ด่านรอด (เจ้าของสั่ง 13 พ.ย. 16:32 · เดิม 10 นาทีทุกด่าน) · บอทเก่งขึ้นทุกด่าน · สิ่งกีดขวาง: 🪨 หิน / 🏚️ โกดัง / 🚧 ไม้กั้นทางข้าม (ตอนปิด) ชน = ตาย · 🟫 โคลน = ช้าลง
 //  ได้ดาว 1–3 ตามเวลาที่ใช้ · ผ่านทุกครั้งได้เหรียญรางวัลผ่านด่าน 20+3×ด่าน + ดาวใหม่ดาวละ S.coin (12 พ.ย.) · ไม่ได้ RP ไม่เข้าตารางอันดับ ไม่นับความยาวเข้าสถิติ
 // =====================================================================
-const STAGE_T1=60,STAGE_T2=300,LEN_RATE=3,MUD_SLOW=.55,GATE_LEN=230,STAGE_N=30;
+const STAGE_DENS=1.0,STAGE_T1=60,STAGE_T2=300,LEN_RATE=3,MUD_SLOW=.55,GATE_LEN=230,STAGE_N=30;
 const CHAPTERS=[{n:'🌾 ทุ่งพลอย',rock:'#7d8296',roof:'#b5523b',mud:'#6b4a2b'},{n:'🏭 ย่านโกดัง',rock:'#6f7480',roof:'#4e6e9e',mud:'#5c4632'},{n:'🌋 หุบเขาไฟ',rock:'#6e3b35',roof:'#7b2d26',mud:'#4a2c1c'}];
 const STAGES=Array.from({length:STAGE_N},(_,i)=>{const t=i/(STAGE_N-1),e=Math.pow(t,1.7),c=Math.floor(i/10),k=i%5,R=Math.round;
   // 11 พ.ย. 18:12 เจ้าของบอกด่านแรก ๆ ยากไป บอทเยอะไป → ความยากไต่แบบโค้ง e=t^1.7 (ด่านต้นง่ายมาก ด่านท้ายยากเท่าเดิม) · นักล่าเริ่มด่าน 1-4
@@ -1473,11 +1473,14 @@ const STAGES=Array.from({length:STAGE_N},(_,i)=>{const t=i/(STAGE_N-1),e=Math.po
   // 13 พ.ย. 16:32 เจ้าของ: 10 นาทีนานไป → เวลาด่าน T = 1 นาที (ด่านแรก) → 5 นาที (ด่านสุดท้าย) · เป้าหมายปรับตามเวลา (วัดความเร็วเก็บพลอยจริง LEN_RATE ยาว/วิ)
   const T=R((STAGE_T1+(STAGE_T2-STAGE_T1)*t)/10)*10;
   const g=k===0||k===2?['len',Math.max(50,R(T*LEN_RATE*(.55+.25*t)/10)*10)]:k===1?['kills',1+R(i*.3)]:k===3?['survive',T]:['boss',1];
-  return{i,code:(c+1)+'-'+(i%10+1),ch:c,g,T,ai:R(5+33*e),R:R((1500+900*t)/50)*50,
+  // 13 พ.ย. 16:53 เจ้าของ: ด่านหลังรถไฟยาวขึ้น สนามแคบไป → คำนวณความแน่น: โลกออนไลน์ 40 ขบวน/รัศมี 4370 ≈ 0.67 ขบวน ต่อพื้นที่ 1 ล้าน px²
+  //   เดิมผจญภัย 3-10 (38 บอท/รัศมี 2400) ≈ 2.1 = แน่นกว่าออนไลน์ 3 เท่า → ตั้งรัศมีให้ความแน่นคงที่ ~1.0 (ยังคึกกว่าออนไลน์นิดหน่อย) ขั้นต่ำ 1,500
+  const ai=R(5+33*e),RR=Math.max(1500,R(Math.sqrt((ai+1)/STAGE_DENS/Math.PI)*1000/50)*50),obK=(RR/(1500+900*t))**2;
+  return{i,code:(c+1)+'-'+(i%10+1),ch:c,g,T,ai,R:RR,
     d:{huntP:.15+.8*e,huntR:R(450+950*e),others:.05+.3*e,look:.5+.75*e,think:[R(22-16*e),R(42-28*e)],big:.06+.39*e,regen:.4*e},
     wave:Math.max(20,Math.min(R(60-35*e),R(T/3))),waveN:i<3?0:1+Math.floor(4.99*e),waveM:R(60+340*e),
     boss:g[0]==='boss'?Math.max(10,R(T*.15)):0,bossM:R(500+30*i),
-    ob:{rock:R(3+13*e),house:i<2?0:R(1+11*e),gate:i<4?0:R(2+8*e),mud:R(1+5*e)},
+    ob:{rock:R((3+13*e)*obK),house:i<2?0:R((1+11*e)*obK),gate:i<4?0:R((2+8*e)*obK),mud:R((1+5*e)*obK)},   // สิ่งกีดขวางเพิ่มตามพื้นที่ (ความแน่นเท่าเดิม)
     st:g[0]==='survive'?[R(T*LEN_RATE*.75/10)*10,R(T*LEN_RATE*.45/10)*10]:[R(T*.55),R(T*.8)],coin:40+8*i}});   // เหรียญต่อดาวใหม่ 40 → 272 (12 พ.ย. 01:59 เจ้าของ: ผจญภัยได้เหรียญมากไป · เดิม 100+20i)
 const goalText=(g,cur)=>g[0]==='len'?'ยาว '+(cur!==undefined?Math.min(cur,g[1])+'/':'')+g[1]:g[0]==='kills'?'กำจัด '+(cur!==undefined?Math.min(cur,g[1])+'/':'')+g[1]+' ขบวน':g[0]==='survive'?'รอด '+(cur!==undefined?fmtT(Math.min(cur,g[1]))+'/':'')+fmtT(g[1]):'ล้มบอส 👑'+(cur!==undefined?' '+cur+'/1':'');
 const fmtT=s=>{s=Math.max(0,Math.ceil(s));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
@@ -1556,7 +1559,7 @@ function startStage(i){if(!stageUnlocked(i))return;setTimeout(presOpen,500);stag
   STAGE_RES=null;STAGE_BOSS=false;stageClock=0;STAGE_RUN=true;$('sheet').classList.add('hidden');
   startGame('stage');try{obPreload(STAGE.ch+1)}catch(e){}bossTimer=STAGE.boss||1e9;STAGE_WAVE=STAGE.wave;setPause(false);$('advBar').classList.remove('hidden');document.body.classList.add('stageOn');
   {const[x,y]=farSpot(800,600);for(const q of player.pts){q.x+=x-player.pts[0].x;q.y+=y-player.pts[0].y}}   // จุดเกิดห่างสิ่งกีดขวาง/บอท
-  player.ghost=SPAWN_GHOST;announce('🗺️ ด่าน '+STAGE.code+' · '+goalText(STAGE.g)+' ภายใน '+fmtT(STAGE.T)+' นาที · '+hearts(STAGE_LIVES)+' 3 ชีวิต · ⚠️ ไม่นับสถิติ')}
+  player.ghost=SPAWN_GHOST;announce('🗺️ ด่าน '+STAGE.code+' · '+goalText(STAGE.g)+' · '+hearts(STAGE_LIVES)+' 3 ชีวิต · ⚠️ ไม่นับสถิติ')}
 function spawnHunters(n,m){const h=player.pts[0];let k=0;
   for(let j=0;j<40&&k<n;j++){const a=Math.random()*TAU,d=rnd(750,1000),x=h.x+Math.cos(a)*d,y=h.y+Math.sin(a)*d;
     if(x*x+y*y>(AR-250)**2||(OBST.length&&obstStatic(x,y,120))||worms.some(w=>w.alive&&Math.hypot(w.pts[0].x-x,w.pts[0].y-y)<220))continue;
@@ -1566,7 +1569,7 @@ function spawnHunters(n,m){const h=player.pts[0];let k=0;
 function stageTick(dt){stageClock+=dt;if(!player||!player.alive)return;
   if(STAGE.waveN){STAGE_WAVE-=dt;if(STAGE_WAVE<=0){STAGE_WAVE=STAGE.wave;spawnHunters(STAGE.waveN,STAGE.waveM)}}
   if(stageGoal().done){STAGE_RES={ok:true,t:stageClock};finish(true);player.alive=false}
-  else if(stageClock>=STAGE.T){STAGE_RES={ok:false,why:'time'};finish(true);player.alive=false}}
+}
 function stageStars(S,res,len){if(!res||!res.ok)return 0;if(S.g[0]==='survive')return len>=S.st[0]?3:len>=S.st[1]?2:1;return res.t<=S.st[0]?3:res.t<=S.st[1]?2:1}
 // ⏸ หยุด / 🚪 ออก ในโหมดผจญภัย (เจ้าของสั่ง 11 พ.ย. 2026) — หยุดแล้วทุกอย่างค้าง (บอท นักล่า เวลาด่าน) · สลับแอป/ปิดจอ = หยุดเอง · คีย์ P/Esc
 var PAUSED=false;
@@ -1574,7 +1577,7 @@ function canPause(){return state==='play'&&mode==='stage'&&STAGE&&player&&player
 function setPause(on,exitAsk){PAUSED=!!on&&canPause();const o=$('pauseOv');if(!o)return;o.classList.toggle('hidden',!PAUSED);if(!PAUSED)return;
   input.keyB=false;input.boost=false;
   $('pTitle').textContent=exitAsk?'🚪 ออกจากด่าน?':'⏸ หยุดชั่วคราว';
-  $('pInfo').innerHTML='ด่าน '+STAGE.code+' · '+hearts(STAGE_LIFE)+' · 🎯 '+goalText(STAGE.g)+' · ⏱ เหลือ '+fmtT(STAGE.T-stageClock)+(exitAsk?'<br>ออกตอนนี้ = ไม่ผ่านด่าน ไม่ได้ดาว/เหรียญ':'')}
+  $('pInfo').innerHTML='ด่าน '+STAGE.code+' · '+hearts(STAGE_LIFE)+' · 🎯 '+goalText(STAGE.g)+' · ⏱ '+fmtT(stageClock)+(exitAsk?'<br>ออกตอนนี้ = ไม่ผ่านด่าน ไม่ได้ดาว/เหรียญ':'')}
 function quitStage(){setPause(false);if(player)player.alive=false;toMenu();openStages()}
 const stageClearCoins=i=>20+3*i;   // รางวัลผ่านด่าน (ทุกครั้งที่ผ่าน) 20 → 107 (เดิม 80+10i มากไป)
 function stageOver(){const S=STAGE;if(!S)return;$('advBar').classList.add('hidden');setPause(false);const res=STAGE_RES||{ok:false,why:'die'},stars=stageStars(S,res,Math.floor(player.mass)),prev=prof.stage[S.i]||0;
@@ -1596,10 +1599,10 @@ function stageOver(){const S=STAGE;if(!S)return;$('advBar').classList.add('hidde
     STAGE_AUTO=setInterval(()=>{if(state==='play'||mode!=='stage'||$('over').classList.contains('hidden')){stageAutoStop();return}if(--n<=0){stageAutoStop();startStage(S.i)}else tick()},1000)}
   if(res.ok){sfx('coin');if(stars===3)killFx(player.pts[0].x,player.pts[0].y,'firework')}}
 function renderStages(b){const tot=prof.stage.reduce((a,v)=>a+(v||0),0);let cur=0;while(cur<STAGE_N-1&&(prof.stage[cur]||0)>0)cur++;
-  let h=`<div class="help" style="margin:0 0 8px;text-align:left"><div class="vsnote">⚠️ โหมดผจญภัย<b>ไม่นับสถิติ</b> (ยาวสุด กำจัด เกม ภารกิจรายวัน เหรียญตรา) ไม่ได้ RP และไม่เข้าตารางอันดับ · ได้แค่ดาวและเหรียญรางวัลด่าน</div>❤️ <b>3 ชีวิต</b>ต่อด่าน (ตายแล้วเกิดใหม่ในด่านเดิม หมด 3 ชีวิต = เริ่มด่านใหม่) · ⏱ เวลาด่านละ <b>1 นาที</b> (ด่านแรก) ถึง <b>5 นาที</b> (ด่านสุดท้าย) · บอทเก่งขึ้นทุกด่าน · 🎯 <b>นักล่า</b>บุกมาไล่คุณเป็นระลอก<br>🪨 หิน · 🏚️ โกดัง · 🚧 ไม้กั้นตอนปิด (ไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลน = ช้าลง<br>✅ <b>ผ่านด่าน = ทำเป้าหมาย 🎯 ให้ครบก่อนหมดเวลา</b> (ดูแถบเป้าหมายตรงกลางบนจอระหว่างเล่น) · หมดเวลาก่อน = ไม่ผ่าน<br>⭐ ยิ่งผ่านเร็วยิ่งได้ดาวมาก (ด่านรอด = ยิ่งยาวยิ่งได้ดาว) · ได้เหรียญเมื่อผ่าน + ได้ดาวใหม่ · ไม่ได้ RP</div><div class="coin" style="display:inline-block;margin-bottom:4px">⭐ ${tot} / ${STAGE_N*3}</div>`;
+  let h=`<div class="help" style="margin:0 0 8px;text-align:left"><div class="vsnote">⚠️ โหมดผจญภัย<b>ไม่นับสถิติ</b> (ยาวสุด กำจัด เกม ภารกิจรายวัน เหรียญตรา) ไม่ได้ RP และไม่เข้าตารางอันดับ · ได้แค่ดาวและเหรียญรางวัลด่าน</div>❤️ <b>3 ชีวิต</b>ต่อด่าน (ตายแล้วเกิดใหม่ในด่านเดิม หมด 3 ชีวิต = เริ่มด่านใหม่) · ⏱ <b>ไม่จำกัดเวลา</b> · บอทเก่งขึ้นทุกด่าน · 🎯 <b>นักล่า</b>บุกมาไล่คุณเป็นระลอก<br>🪨 หิน · 🏚️ โกดัง · 🚧 ไม้กั้นตอนปิด (ไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลน = ช้าลง<br>✅ <b>ผ่านด่าน = ทำเป้าหมาย 🎯 ให้ครบ</b> (ดูแถบเป้าหมายตรงกลางบนจอระหว่างเล่น) · ไม่จำกัดเวลา แต่ตาย 3 ครั้ง = เริ่มด่านใหม่<br>⭐ ยิ่งผ่านเร็วยิ่งได้ดาวมาก (ด่านรอด = ยิ่งยาวยิ่งได้ดาว) · ได้เหรียญเมื่อผ่าน + ได้ดาวใหม่ · ไม่ได้ RP</div><div class="coin" style="display:inline-block;margin-bottom:4px">⭐ ${tot} / ${STAGE_N*3}</div>`;
   for(let c=0;c<CHAPTERS.length;c++){h+=`<div class="chap">${CHAPTERS[c].n}</div><div class="stg3">`;
     for(const S of STAGES.filter(s=>s.ch===c)){const st=prof.stage[S.i]||0,lk=!stageUnlocked(S.i);
-      h+=`<div class="stc${lk?' lock':''}${S.i===cur?' cur':''}" data-i="${S.i}"><b>${lk?'🔒 ':''}ด่าน ${S.code}</b><span class="sstars">${'★'.repeat(st)}<span style="opacity:.3">${'★'.repeat(3-st)}</span></span><small>🎯 ${goalText(S.g)} · ⏱ ${fmtT(S.T)}<br>🤖 บอท ${S.ai} · 🎯 นักล่า ${S.waveN} ตัว/${S.wave} วิ<br>⭐ ละ ${S.coin} 🪙</small></div>`}
+      h+=`<div class="stc${lk?' lock':''}${S.i===cur?' cur':''}" data-i="${S.i}"><b>${lk?'🔒 ':''}ด่าน ${S.code}</b><span class="sstars">${'★'.repeat(st)}<span style="opacity:.3">${'★'.repeat(3-st)}</span></span><small>🎯 ${goalText(S.g)}<br>${S.g[0]==='survive'?'⭐⭐⭐ ยาว '+S.st[0]:'⭐⭐⭐ ภายใน '+fmtT(S.st[0])}<br>🤖 บอท ${S.ai} · 🎯 นักล่า ${S.waveN} ตัว/${S.wave} วิ<br>⭐ ละ ${S.coin} 🪙</small></div>`}
     h+='</div>'}
   b.innerHTML=h;b.querySelectorAll('.stc').forEach(e=>{const i=+e.dataset.i;if(stageUnlocked(i))e.onclick=()=>startStage(i)});
   const ce=b.querySelector('.stc.cur');if(ce)setTimeout(()=>ce.scrollIntoView({block:'center'}),50)}
@@ -2225,7 +2228,7 @@ function hornHitMe(m){const P=hornPerk(m.k),f=HORN_SLOW[m.k];if(!P.r||!f||m.x===
   const h=player.pts[0];if(Math.hypot(h.x-m.x,h.y-m.y)>P.r+player.r())return;
   player.hslow=Math.max(player.hslow||0,P.t);player.hslowF=Math.min(player.hslowF&&player.hslow>0?player.hslowF:1,f);player.hslowT=P.t;
   texts.push({x:h.x,y:h.y-30,txt:'🐌 โดนหวูดของ '+((by||{}).name||'ผู้เล่น')+'! ช้าลง '+hornSlowPct(m.k)+'%',t:2,c:'#ffb36b'});sfx('freeze')}
-// ⏱ เวลาด่านผจญภัย ตัวใหญ่ตรงกลางบนสุดของจอ (เจ้าของสั่ง 11 พ.ย. 21:08) · เหลือ < 60 วิ แดงกะพริบ · < 10 วิ ใหญ่ขึ้น
+// ⏱ เวลาด่านผจญภัย ตัวใหญ่ตรงกลางบนสุดของจอ (เจ้าของสั่ง 11 พ.ย. 21:08) · ตั้งแต่ 13 พ.ย. 16:51 เป็นนาฬิกาจับเวลานับขึ้น (ไม่จำกัดเวลา)
 // ⚔️ 2v2: เวลาตัวใหญ่กลางบนสุด + ใต้เวลาเป็นจำนวนที่แต่ละทีมกำจัดได้ ตัวเลขใหญ่ (เล็กกว่าเวลา) · เจ้าของสั่ง 13 พ.ย. 12:43
 const VSB={on:false,k:{A:0,B:0},t:{A:0,B:0},bottom:0};
 function drawVsBoard(){const on=!!(NET&&!NET.ffa&&NET.phase==='play'&&(state==='play'||state==='dead'));
@@ -2265,7 +2268,7 @@ function drawVsBoard(){const on=!!(NET&&!NET.ffa&&NET.phase==='play'&&(state==='
   ctx.restore();VSB.bottom=y2+h2+(sm?8:10)}
 const STAGE_TIMER_H=44,GOAL_H=30;
 function drawStageTimer(){if(mode!=='stage'||!STAGE||(state!=='play'&&state!=='dead'))return;
-  const left=Math.max(0,STAGE.T-stageClock),warn=left<Math.min(60,STAGE.T*.3),crit=left<10,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y=SAFE.t+6,t=performance.now()/1000;
+  const left=stageClock,warn=false,crit=false,x=SAFE.l+(VW-SAFE.l-SAFE.r)/2,y=SAFE.t+6,t=performance.now()/1000;
   const sc=crit?1+.08*Math.abs(Math.sin(t*Math.PI*2)):1,txt='⏱ '+fmtT(Math.ceil(left)),fs=VW<420?22:26;
   ctx.save();ctx.translate(x,y+STAGE_TIMER_H/2);ctx.scale(sc,sc);ctx.font='700 '+(crit?fs+4:fs)+'px Mitr,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   const w=ctx.measureText(txt).width+(VW<420?24:34),h=VW<420?38:STAGE_TIMER_H,pulse=warn?.55+.45*Math.abs(Math.sin(t*Math.PI*(crit?2:1))):1;
@@ -2275,7 +2278,7 @@ function drawStageTimer(){if(mode!=='stage'||!STAGE||(state!=='play'&&state!=='d
 // แถบเป้าหมายใต้เวลาด่าน (เจ้าของสั่ง 13 พ.ย. 16:36: โชว์ตรงกลางบนว่าได้เท่าไรแล้ว ต้องทำอะไรถึงผ่าน) · ผ่าน = ทำเป้าหมายครบก่อนหมดเวลา · ดาวตามความเร็ว (ด่านรอด = ตามความยาว)
 function stageStarHint(){const S=STAGE,g=S.g;
   if(g[0]==='survive'){const L=Math.floor(player.mass);return L>=S.st[0]?'⭐⭐⭐ ได้แล้ว':L>=S.st[1]?'⭐⭐⭐ ยาว '+S.st[0]:'⭐⭐ ยาว '+S.st[1]}
-  return stageClock<=S.st[0]?'⭐⭐⭐ ใน '+fmtT(S.st[0]-stageClock):stageClock<=S.st[1]?'⭐⭐ ใน '+fmtT(S.st[1]-stageClock):'⭐ ผ่านก่อนหมดเวลา'}
+  return stageClock<=S.st[0]?'⭐⭐⭐ ใน '+fmtT(S.st[0]-stageClock):stageClock<=S.st[1]?'⭐⭐ ใน '+fmtT(S.st[1]-stageClock):'⭐ ทำเป้าหมายให้ครบ'}
 function drawStageGoal(cx,top){if(!player)return;const G=stageGoal(),small=VW<420,narrow=VW<560&&VH>VW,h=GOAL_H,t=performance.now()/1000;   // มือถือแนวตั้ง: วางขวาของกรอบข้อมูลซ้ายบน ไม่ทับกัน
   const x0=narrow?SAFE.l+124:cx-Math.min(small?300:360,VW-SAFE.l-SAFE.r-24)/2,w=narrow?VW-SAFE.r-10-x0:Math.min(small?300:360,VW-SAFE.l-SAFE.r-24);
   ctx.save();ctx.fillStyle='rgba(10,13,35,.78)';ctx.strokeStyle=G.done?'#ffd23f':'rgba(255,210,63,.55)';ctx.lineWidth=2;
@@ -2483,7 +2486,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['⚔️ วิธีฆ่าบอส','<b>1)</b> เอาหัวรถไฟเราชน <b>หัวบอส</b> ตรง ๆ = บอสเสีย 1 หัวใจ (เราเด้งกลับ ไม่เป็นไร)<br><b>2)</b> หรือล่อให้บอสเอาหัวมาชน <b>ตัวเรา</b> = บอสเสีย 1 หัวใจ (เราไม่ขาด)<br><b>3)</b> ครบ 3 ครั้ง บอสตาย ได้ 500 🪙<br>💢 เสียหัวใจทุกดวง บอสจะ<b>โกรธ</b> วิ่งเร็วขึ้น เลี้ยวไวขึ้น ไล่ไกลขึ้น (ชีวิตสุดท้ายเร็วเท่าเราเร่ง แต่ไม่เร็วกว่า)<br>⚠️ <b>ห้ามเอาหัวเราชนตัว/ตู้ของบอส = เราตาย!</b> · ระเบิดกับร่างทองทำอะไรบอสไม่ได้'],
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · 2v2 คิดแค่กำจัด×2 + ชนะ 15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (🗺️ ผจญภัยไม่ได้ RP) (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
-  ['🗺️ ผจญภัย (เล่นคนเดียว)','30 ด่าน 3 โลก · ❤️ ด่านละ 3 ชีวิต (ตายเกิดใหม่ในด่านเดิม หมด 3 ชีวิตเริ่มด่านใหม่) · สนามเล็กกว่าออนไลน์ บอทเยอะและไล่คุณ + 🎯 <b>นักล่า</b>บุกมาเป็นระลอก (สีส้มบนมินิแมป) · <b>ไม่นับสถิติ ภารกิจ เหรียญตรา ไม่ได้ RP</b> · แต่ละด่านมีเป้าหมาย (ยาวให้ถึง / กำจัด / รอด / ล้มบอส) ทำให้ได้ภายในเวลาด่าน (<b>1 นาที</b> ด่านแรก → <b>5 นาที</b> ด่านสุดท้าย) · บอทเก่งขึ้นและสิ่งกีดขวางเยอะขึ้นทุกด่าน · 🪨 หิน 🏚️ โกดัง 🚧 ไม้กั้นทางข้าม (ตอนปิดไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลนทำให้ช้าลง · ผ่านเร็วได้ ⭐ มาก · ได้เหรียญเมื่อได้ดาวใหม่ · ไม่ได้ RP'],
+  ['🗺️ ผจญภัย (เล่นคนเดียว)','30 ด่าน 3 โลก · ❤️ ด่านละ 3 ชีวิต (ตายเกิดใหม่ในด่านเดิม หมด 3 ชีวิตเริ่มด่านใหม่) · สนามเล็กกว่าออนไลน์ บอทเยอะและไล่คุณ + 🎯 <b>นักล่า</b>บุกมาเป็นระลอก (สีส้มบนมินิแมป) · <b>ไม่นับสถิติ ภารกิจ เหรียญตรา ไม่ได้ RP</b> · แต่ละด่านมีเป้าหมาย (ยาวให้ถึง / กำจัด / รอด / ล้มบอส) ทำให้ครบเพื่อผ่านด่าน (<b>ไม่จำกัดเวลา</b>) · บอทเก่งขึ้นและสิ่งกีดขวางเยอะขึ้นทุกด่าน · 🪨 หิน 🏚️ โกดัง 🚧 ไม้กั้นทางข้าม (ตอนปิดไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลนทำให้ช้าลง · ผ่านเร็วได้ ⭐ มาก · ได้เหรียญเมื่อได้ดาวใหม่ · ไม่ได้ RP'],
   ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ทีมที่กำจัดได้มากกว่าชนะ</b> (กำจัดเท่ากันดูความยาวรวม) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์ = ทีมชนะได้ กำจัด×2 + 15 · ทีมแพ้ไม่ได้ RP'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบเดือนแจกตามอันดับแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
 let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
@@ -2494,7 +2497,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
   {id:30,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
-  {id:29,d:'13 พ.ย. 2026',t:'🗺️ ผจญภัยด่านสั้นลง เร้าใจขึ้น',l:['ด่านแรกเหลือ 1 นาที แล้วค่อย ๆ นานขึ้นจนด่านสุดท้าย 5 นาที บอทเก่งขึ้นทุกด่าน','แถบเป้าหมายตรงกลางบนจอ บอกว่าทำได้เท่าไรแล้ว เหลืออีกเท่าไรถึงผ่านด่าน','บอกด้วยว่าต้องผ่านภายในเวลาเท่าไรถึงได้ ⭐⭐⭐']},
+  {id:29,d:'13 พ.ย. 2026',t:'🗺️ ผจญภัยเล่นง่ายขึ้น เห็นเป้าหมายชัด',l:['ไม่จำกัดเวลาแล้ว — ทำเป้าหมายให้ครบก็ผ่านด่าน ด่านแรกเป้าหมายง่ายขึ้น ด่านหลัง ๆ บอทเก่งขึ้น','แถบเป้าหมายตรงกลางบนจอ บอกว่าทำได้เท่าไรแล้ว เหลืออีกเท่าไรถึงผ่านด่าน','นาฬิกาจับเวลา ยิ่งผ่านเร็วยิ่งได้ดาวเยอะ แถบบอกว่าต้องผ่านภายในเท่าไรถึงได้ ⭐⭐⭐']},
   {id:28,d:'13 พ.ย. 2026',t:'🌍 โลกออนไลน์ใหญ่ขึ้น',l:['สนามกว้างขึ้นอีก 15% มีพลอย เพชรขาว และไอเทมเพิ่มตามพื้นที่','อยู่ในโลกเดียวกันได้ถึง 40 ขบวน (เดิม 30) สนามยังคึกคักเท่าเดิม','ลื่นขึ้น: ไม่กระตุกตอนมีรถไฟสีใหม่หรือแบบใหม่โผล่เข้าจอ']},
   {id:27,d:'13 พ.ย. 2026',t:'🚇 ลอดอุโมงค์ลื่นขึ้น',l:['ขบวนยาว ๆ ค่อย ๆ เข้ารูทีละตู้ แล้วค่อย ๆ โผล่ออกอีกฝั่ง ไม่โผล่พรวดออกมาทั้งขบวนแล้ว','เลี้ยวทันทีหลังออกจากอุโมงค์ก็ไม่ค้าง']},
   {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
