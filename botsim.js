@@ -10,7 +10,8 @@ const bossRage = w => w.isBoss ? Math.max(0, (w.maxHp || BOSS_HEARTS) - w.hp) : 
 // หวูดไล่ศัตรู: ต้องตรงกับ HORN_PERK ใน index.html
 const HORN_PERK = { classic: { r: 0, t: 0 }, deep: { r: 150, t: 1.3 }, chime: { r: 200, t: 1.6 }, tune: { r: 260, t: 1.9 }, siren: { r: 330, t: 2.3 }, thunder: { r: 410, t: 2.7 }, dragon: { r: 500, t: 3.2 } };
 const D = { huntP: .8, huntR: 700, others: .3, look: 1, think: [10, 25], big: .25, boss: 120, bossM: 900, bossHp: BOSS_HEARTS };   // ระดับ Normal
-const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 15, en: 24 }, bullet: { pick: 30, en: 28 }, tram: { pick: 45, en: 32 }, metro: { pick: 60, en: 40 }, comet: { pick: 80, en: 50 } };
+// pick ×2 (13 พ.ย. 19:10) — ต้องตรงกับ index.html
+const LOCO_PERK = { classic: { pick: 0, en: 20 }, diesel: { pick: 30, en: 24 }, bullet: { pick: 60, en: 28 }, tram: { pick: 90, en: 32 }, metro: { pick: 120, en: 40 }, comet: { pick: 160, en: 50 } };
 const SKINS = [['#ffd23f', '#ff8c42'], ['#77ccff', '#3a7bff'], ['#ff6b9a', '#ffe0ec'], ['#7cfc9a', '#1fa35c'], ['#c08cff', '#5b2bd6'], ['#ff5e5e', '#ffffff'], ['#ffffff', '#30344a'], ['#ffb3e6', '#9ad9ff', '#fff59a'], ['#ff8c42', '#30344a'], ['#5ef2e0', '#ff6b9a']];
 const NAMES = ['ไส้เดือนสายซิ่ง', 'น้องหนอนน้อย', 'Wiggle', 'Noodle', 'ต้มยำกุ้ง', 'SlimJim', 'หนอนชาเขียว', 'กัปตันหนอน', 'มะม่วงสุก', 'Zigzag', 'ข้าวเหนียว', 'Spaghetti', 'หนอนหิว', 'Bubbles', 'Doodle', 'ลูกชิ้นปิ้ง', 'Mochi', 'Sneaky', 'Turbo', 'ปลาทูทอด', 'Pixel', 'Squiggle', 'Banana', 'ส้มตำ', 'Ninja', 'Gummy', 'ขนมครก', 'Shadow', 'หนอนบุ้ง', 'Lucky', 'ชาไทย', 'Bobo'];
 // 2v2 (เจ้าของสั่ง 12 พ.ย. 01:53 "บอทใน 2v2 ให้เป็นสีอื่น"): บอทประจำทีมใช้สีทีม (แดง/น้ำเงิน) · นักล่ากลางสีเหลือง (เดิมส้มดำ)
