@@ -1,4 +1,4 @@
-# ทดสอบออนไลน์ 4 คน: รันเซิร์ฟเวอร์ก่อนด้วย  PORT=3456 MATCH_SECS=40 npm start  แล้ว python tests/test_online.py
+# ทดสอบออนไลน์ 4 คน: รันเซิร์ฟเวอร์ก่อนด้วย  PORT=3456 TEST_FREE_ITEMS=1 MATCH_SECS=40 npm start  แล้ว python tests/test_online.py
 import asyncio
 _PAGES=[]
 async def __readyall():

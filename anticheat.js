@@ -31,6 +31,7 @@ const prizeScale = n => Math.min(1, Math.max(0.1, n / PRIZE_FULL));
 function seasonPrize(pos, n) { if (!(pos >= 1) || !(n >= 1)) return 0; const b = PRIZE_BANDS.find(x => pos <= x[0])[1]; return Math.max(100, Math.round(b * prizeScale(n) / 100) * 100); }
 const prevSeason = k => { let y = +k.slice(0, 4), m = +k.slice(5, 7) - 1; if (m < 1) { m = 12; y--; } return y + '-' + String(m).padStart(2, '0'); };
 // โควตา: เหรียญเก็บได้สูงสุด 5,000 ต่อรอบ เติม 15/วินาที (900/นาที) · RP สูงสุด 400 เติม 1/วินาที
+const RANK_ZERO = ['2026-12'];   // ฤดูกาลที่แรงก์เริ่มใหม่จาก 0 ทุกคน (เจ้าของสั่ง 13 พ.ย. 2026)
 const COIN_CAP = 5000, COIN_RATE = 15, RP_CAP = 400, RP_RATE = 1, MISSION_MAX = 360;   // รางวัลภารกิจรายวันสูงสุด (เพิ่ม 20% 12 พ.ย.: 300→360)
 // ลงทะเบียนครั้งแรก (ย้ายเหรียญ Guest/ข้อมูลเก่าในเครื่องเข้าบัญชี): เหรียญ+มูลค่าของรวมได้ไม่เกิน 60,000 และ RP ไม่เกิน 6,000
 const REG_COINS = 60000, REG_RP = 6000;
@@ -111,6 +112,8 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
     if (need > srv.cb) { coins = Math.max(0, oc - spent + extra + Math.floor(srv.cb)); srv.cb = 0; fixed = true; } else srv.cb -= need; }
   // RP (ลดลงได้เสมอ เช่น โดนหัก / ขึ้นฤดูกาลใหม่)
   const orp = num(old.rp); let rp = Math.min(1e7, num(nu.rp));
+  // ฤดูกาลที่แรงก์เริ่มใหม่จาก 0 (RANK_ZERO ต้องตรงกับ index.html): บันทึกแรกที่ขึ้นฤดูกาลนี้ → RP ไม่เกิน 200 (เผื่อเกมแรกของเดือน) · เครื่องเก่าที่ยังหารครึ่ง → โดนปรับ
+  if (RANK_ZERO.includes(seasonKey(now)) && nu.season === seasonKey(now) && old.season && old.season < nu.season && rp > 200) { rp = 200; fixed = true; }
   if (rp > orp) { const g = rp - orp; if (g > srv.rb) { rp = orp + Math.floor(srv.rb); srv.rb = 0; fixed = true; } else srv.rb -= g; }
   // สถิติ: ต้องเป็นตัวเลข · ความยาวสูงสุด (ใช้ในตารางอันดับ) เพิ่มได้ไม่เกิน 300 + 40/วินาที (ลงทะเบียนครั้งแรกไม่เกิน 3,000)
   const st = {}, ist = nu.st && typeof nu.st === 'object' ? nu.st : {};
@@ -150,4 +153,4 @@ function newRecovery() { const b = crypto.randomBytes(12); let s = ''; for (let 
 const normRecovery = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 const hashRecovery = (code, salt) => crypto.createHash('sha256').update('rc:' + salt + ':' + normRecovery(code)).digest('hex');
 
-module.exports = { validate, seedOnline, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, SALE_POOL, CATS, COIN_CAP, RP_CAP };
+module.exports = { RANK_ZERO, validate, seedOnline, seasonPrize, prevSeason, PRIZE_BANDS, priceFor, dealOf, seasonKey, bkkDay, newRecovery, hashRecovery, SHOP, LIMITED, SALE_POOL, CATS, COIN_CAP, RP_CAP };

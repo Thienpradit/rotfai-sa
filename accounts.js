@@ -25,15 +25,18 @@ function fileStore(note) {
     async save(l, data, rp) { if (db[l]) { db[l].data = data; db[l].rp = rp; db[l].updated = Date.now(); flush(); } },
     async setAuth(l, salt, hash) { if (db[l]) { db[l].salt = salt; db[l].hash = hash; flush(); } },
     async setRecovery(l, rhash) { if (db[l]) { db[l].rhash = rhash; flush(); } },
+    async setBan(l, why) { if (db[l]) { db[l].ban = why || null; flush(); } },
+    async setAudit(l, a) { if (db[l]) { db[l].audit = a; flush(); } },
+    async rank(season, n) { return Object.values(db).filter(u => !u.ban && (u.data || {}).season === season && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)).slice(0, n).map((u, i) => ({ l: u.lname, name: u.name, rp: LB_VAL.rp(u), pos: i + 1 })); },
     async rename(ol, nl, name, data, rp) { const u = db[ol]; if (!u || (nl !== ol && db[nl])) return false; delete db[ol]; Object.assign(u, { lname: nl, name, data, rp, updated: Date.now() }); db[nl] = u; flush(); return true; },
     async top(n, season, by, me) {   // by: rp (ฤดูกาลนี้) / len (ยาวสุดตลอดกาล) / coins (เหรียญที่มีตอนนี้)
-      const all = Object.values(db).filter(u => by !== 'rp' || (u.data || {}).season === season).map(u => ({ name: u.name, lname: u.lname, val: LB_VAL[by](u), rp: +u.rp || 0, tid: ((u.data || {}).eq || {}).title || '' })).filter(u => u.val > 0).sort((a, b) => b.val - a.val);
+      const all = Object.values(db).filter(u => !u.ban && (by !== 'rp' || (u.data || {}).season === season)).map(u => ({ name: u.name, lname: u.lname, val: LB_VAL[by](u), rp: +u.rp || 0, tid: ((u.data || {}).eq || {}).title || '' })).filter(u => u.val > 0).sort((a, b) => b.val - a.val);
       const i = me ? all.findIndex(u => u.lname === me) : -1;
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null, n: all.length }; },
     async getSeason(k) { return seasons[k] || null; },
     async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
-      const all = Object.values(db).filter(u => (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
+      const all = Object.values(db).filter(u => !u.ban && (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
       seasons[k] = { n: all.length, ranks, top: all.slice(0, SNAP_TOP).map((u, i) => topRow(u, i + 1)), at: new Date().toISOString() }; fs.mkdirSync(path.dirname(SFILE), { recursive: true }); fs.writeFileSync(SFILE, JSON.stringify(seasons)); return seasons[k]; },
   };
@@ -56,6 +59,8 @@ if (DB_URL) {
       created TIMESTAMPTZ NOT NULL DEFAULT now(), updated TIMESTAMPTZ NOT NULL DEFAULT now())`)
     .then(() => pool.query('CREATE INDEX IF NOT EXISTS players_rp ON players (rp DESC)'))
     .then(() => pool.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS rhash TEXT'))
+    .then(() => pool.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS ban TEXT'))
+    .then(() => pool.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS audit JSONB'))
     .then(() => pool.query(`CREATE TABLE IF NOT EXISTS seasons (key TEXT PRIMARY KEY, n INTEGER NOT NULL, ranks JSONB NOT NULL, created TIMESTAMPTZ NOT NULL DEFAULT now())`))
     .then(() => pool.query('ALTER TABLE seasons ADD COLUMN IF NOT EXISTS top JSONB'))
     .then(() => { console.log('accounts: using Postgres (' + describeUrl(url) + ')'); })
@@ -70,11 +75,16 @@ if (DB_URL) {
     async save(l, data, rp) { await ready; if (store !== dbStore) return store.save(l, data, rp); await pool.query('UPDATE players SET data=$2, rp=$3, updated=now() WHERE lname=$1', [l, data, rp]); },
     async setAuth(l, salt, hash) { await ready; if (store !== dbStore) return store.setAuth(l, salt, hash); await pool.query('UPDATE players SET salt=$2, hash=$3 WHERE lname=$1', [l, salt, hash]); },
     async setRecovery(l, rhash) { await ready; if (store !== dbStore) return store.setRecovery(l, rhash); await pool.query('UPDATE players SET rhash=$2 WHERE lname=$1', [l, rhash]); },
+    async setBan(l, why) { await ready; if (store !== dbStore) return store.setBan(l, why); await pool.query('UPDATE players SET ban=$2 WHERE lname=$1', [l, why || null]); },
+    async setAudit(l, a) { await ready; if (store !== dbStore) return store.setAudit(l, a); await pool.query('UPDATE players SET audit=$2 WHERE lname=$1', [l, JSON.stringify(a)]); },
+    async rank(season, n) { await ready; if (store !== dbStore) return store.rank(season, n);
+      const r = await pool.query(`SELECT lname, name, ${LB_SQL.rp} AS v FROM players WHERE ban IS NULL AND data->>'season'=$1 AND ${LB_SQL.rp} > 0 ORDER BY v DESC, updated ASC LIMIT $2`, [season, n]);
+      return r.rows.map((u, i) => ({ l: u.lname, name: u.name, rp: +u.v || 0, pos: i + 1 })); },
     async rename(ol, nl, name, data, rp) { await ready; if (store !== dbStore) return store.rename(ol, nl, name, data, rp);
       try { const r = await pool.query('UPDATE players SET lname=$2, name=$3, data=$4, rp=$5, updated=now() WHERE lname=$1', [ol, nl, name, data, rp]); return r.rowCount === 1; }
       catch (e) { if (e.code === '23505') return false; throw e; } },
     async top(n, season, by, me) { await ready; if (store !== dbStore) return store.top(n, season, by, me);
-      const ex = LB_SQL[by], w = by === 'rp' ? "data->>'season'=$1 AND " : '$1::text IS NOT NULL AND ';
+      const ex = LB_SQL[by], w = 'ban IS NULL AND ' + (by === 'rp' ? "data->>'season'=$1 AND " : '$1::text IS NOT NULL AND ');
       const r = await pool.query(`SELECT name, rp, ${ex} AS val, COALESCE(data->'eq'->>'title','') AS tid FROM players WHERE ${w}${ex} > 0 ORDER BY val DESC, updated ASC LIMIT $2`, [season, n]);
       let mine = null;
       if (me) { const q = await pool.query(`SELECT ${ex} AS val FROM players WHERE lname=$1 AND (${by !== 'rp'} OR data->>'season'=$2)`, [me, season]); const v = q.rows[0] ? +q.rows[0].val : 0;
@@ -86,7 +96,7 @@ if (DB_URL) {
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks, top, created AS at FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
-      const r = await pool.query(`SELECT lname, ${LB_SQL.rp} AS v FROM players WHERE data->>'season'=$1 AND ${LB_SQL.rp} > 0 ORDER BY v DESC, updated ASC`, [k]), ranks = {};
+      const r = await pool.query(`SELECT lname, ${LB_SQL.rp} AS v FROM players WHERE ban IS NULL AND data->>'season'=$1 AND ${LB_SQL.rp} > 0 ORDER BY v DESC, updated ASC`, [k]), ranks = {};
       r.rows.forEach((u, i) => { ranks[u.lname] = [i + 1, +u.v || 0]; });
       const top = []; for (const [i, row] of r.rows.slice(0, SNAP_TOP).entries()) { const u = await this.get(row.lname); if (u) top.push(topRow(u, i + 1)); }
       await pool.query('INSERT INTO seasons (key, n, ranks, top) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [k, r.rows.length, ranks, JSON.stringify(top)]);
@@ -114,7 +124,7 @@ const LB_SQL = { rp: "floor(COALESCE((data->>'onrp')::float,0))", len: "floor(CO
 
 // ผลจบฤดูกาล (เจ้าของสั่ง 13 พ.ย. 2026 · รางวัลอัญมณีอันดับ 1–3): เก็บชื่อ + สถิติ 10 อันดับแรกไว้ตอนตัดผล
 const SNAP_TOP = 10;
-function topRow(u, pos) { const d = u.data || {}, st = d.st || {}; return { pos, name: u.name, rp: LB_VAL.rp(u), kills: Math.floor(+st.okills || 0), len: Math.floor(+st.omaxLen || 0), games: Math.floor(+st.games || 0), title: (d.eq || {}).title || '' }; }
+function topRow(u, pos) { const d = u.data || {}, st = d.st || {}; return { pos, l: u.lname, name: u.name, rp: LB_VAL.rp(u), kills: Math.floor(+st.okills || 0), len: Math.floor(+st.omaxLen || 0), games: Math.floor(+st.games || 0), title: (d.eq || {}).title || '' }; }
 // ---------- helpers ----------
 const b64u = s => Buffer.from(s, 'utf8').toString('base64url');
 const unb64u = s => { try { return Buffer.from(s, 'base64url').toString('utf8'); } catch (e) { return ''; } };
@@ -169,6 +179,63 @@ async function prizeOf(u) { const d = (u && u.data) || {}; if (!d.season || d.se
   const sn = await store.getSeason(d.season).catch(() => null); if (!sn) return { season: d.season, pos: 0, n: 0, coins: 0 };
   const e = (sn.ranks || {})[u.lname], pos = e ? e[0] : 0; return { season: d.season, pos, n: sn.n, coins: AC.seasonPrize(pos, sn.n) }; }
 
+// ---------- รางวัลอัญมณีจริง + ตรวจโกง + แบน (เจ้าของสั่ง 13 พ.ย. 2026) ----------
+// GEM_SEASONS: ฤดูกาลที่มีรางวัลอัญมณี → จำนวนผู้ชนะ (อันดับ 1–N ของ 🏅 แรงก์ ที่ไม่ถูกแบน/ตัดสิทธิ์) · ของรางวัลแสดงใน index.html (GEM_PRIZES)
+const GEM_SEASONS = { '2026-12': 3 }, CLAIM_DAYS = 14;
+for (const x of String(process.env.GEM_EXTRA || '').split(',')) { const m = /^(\d{4}-\d{2}):(\d)$/.exec(x.trim()); if (m) GEM_SEASONS[m[1]] = +m[2]; }   // ทดสอบ: GEM_EXTRA=2026-10:3
+// ผู้ดูแล = ชื่อบัญชีใน env ADMINS (คั่นด้วย ,) — เห็นปุ่ม 🛡️ ผู้ดูแล ในหน้าบัญชี: ดูผลตรวจ แบน/ปลดแบน ให้สิทธิ์คืน ตรวจรหัสรับรางวัล
+const ADMINS = new Set(String(process.env.ADMINS || '').split(',').map(x => lower(x.trim())).filter(Boolean));
+const isAdmin = u => !!u && ADMINS.has(u.lname);
+const seasonEnd = k => Date.UTC(+k.slice(0, 4), +k.slice(5, 7), 1) - 7 * 36e5;   // 00:00 วันที่ 1 เดือนถัดไป เวลาไทย
+const claimCode = (season, l) => { const h = crypto.createHmac('sha256', SECRET).update('gem:' + season + ':' + l).digest(); let c = '';
+  for (let i = 0; i < 8; i++) { c += 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[h[i] % 32]; if (i === 3) c += '-'; } return c; };
+// การเล่นออนไลน์ที่เซิร์ฟเวอร์เห็นเอง (server.js ส่งมา) ต่อบัญชีต่อฤดูกาล: sec เวลาที่มีชีวิตในเกม, g เกม (ตาย/ออก), k กำจัดที่เซิร์ฟเวอร์ยืนยัน, ml ยาวสุด,
+// fix = ครั้งที่ส่งข้อมูลเกินจริงแล้วระบบกันโกงปรับคืน, rp0 = RP ตอนเริ่มเก็บข้อมูล, ok = ผู้ดูแลให้สิทธิ์คืน
+const audQ = new Map();
+function bumpAudit(l, fn) {
+  const p = (audQ.get(l) || Promise.resolve()).then(async () => { const u = await store.get(l); if (!u || u.ban) return;
+    const k = AC.seasonKey(), all = { ...(u.audit && typeof u.audit === 'object' ? u.audit : {}) }, d = u.data || {};
+    const a = all[k] || (all[k] = { sec: 0, g: 0, k: 0, ml: 0, fix: 0, rp0: d.season === k ? LB_VAL.rp(u) : Math.floor(LB_VAL.rp(u) / 2), t0: Date.now() });
+    fn(a); for (const s of Object.keys(all).sort().slice(0, -3)) delete all[s]; await store.setAudit(l, all); }).catch(e => console.error('audit error', e.message));
+  audQ.set(l, p); p.then(() => { if (audQ.get(l) === p) audQ.delete(l); }); return p; }
+async function tokenUser(tok) { const [a, sig] = String(tok || '').split('.'); if (!a || !sig) return null; const u = await store.get(unb64u(a)).catch(() => null); if (!u || u.ban) return null;
+  const want = Buffer.from(sign(u.lname, u.salt)), got = Buffer.from(sig); return want.length === got.length && crypto.timingSafeEqual(want, got) ? u.lname : null; }
+function addPlay(l, d) { if (!l || accountsDown()) return; const sec = Math.max(0, Math.min(3600, +d.sec || 0)), g = Math.max(0, Math.min(100, d.g | 0)), k = Math.max(0, Math.min(500, d.k | 0)), ml = Math.max(0, Math.min(5000, +d.ml || 0));
+  if (!sec && !g && !k) return; return bumpAudit(l, a => { a.sec = Math.round(a.sec + sec); a.g += g; a.k += k; a.ml = Math.max(a.ml, Math.round(ml)); }); }
+// ตรวจความผิดปกติ: RP ที่ได้มากกว่าที่เล่นจริงจะทำได้ / เล่นออนไลน์จริงน้อยมาก / ส่งข้อมูลเกินจริงบ่อย → ตัดสิทธิ์อัตโนมัติ (ผู้ดูแลกดให้สิทธิ์คืนได้)
+function reviewOf(u, season, rp) {
+  const a = u && u.audit && u.audit[season] || null, flags = [];
+  if (!a || a.sec < 600) flags.push('เล่นออนไลน์จริงที่ระบบเห็น ' + Math.round((a ? a.sec : 0) / 60) + ' นาที (ต้อง 10 นาทีขึ้นไป)');
+  else { const gain = Math.max(0, rp - (a.rp0 || 0)), plaus = 60 + a.g * 70 + a.k * 2;
+    if (gain > plaus * 1.5) flags.push(`RP เพิ่ม ${gain} แต่เล่นจริง ${a.g} เกม กำจัด ${a.k} (ทำได้ไม่เกิน ~${Math.round(plaus * 1.5)})`); }
+  if (a && a.fix >= 3) flags.push(`ส่งข้อมูลเกินจริง ${a.fix} ครั้ง (ระบบกันโกงปรับคืนแล้ว)`);
+  return { a, flags, dq: flags.length > 0 && !(a && a.ok) };
+}
+async function standings(season) {
+  if (season >= AC.seasonKey()) return store.rank(season, SNAP_TOP);
+  const sn = await store.getSeason(season); if (!sn) return [];
+  if (Array.isArray(sn.top) && sn.top.length && sn.top[0].l) return sn.top;
+  return Object.entries(sn.ranks || {}).sort((a, b) => a[1][0] - b[1][0]).slice(0, SNAP_TOP).map(([l, e]) => ({ l, pos: e[0], rp: e[1] }));
+}
+const revCache = new Map();
+async function reviewList(season, fresh) {
+  const c = revCache.get(season); if (!fresh && c && Date.now() - c.t < 30000) return c.rows;
+  const N = GEM_SEASONS[season] || 0, rows = []; let place = 0;
+  for (const r of await standings(season)) { const u = await store.get(r.l), rv = reviewOf(u, season, r.rp), status = !u ? 'gone' : u.ban ? 'ban' : rv.dq ? 'dq' : 'ok';
+    const pl = status === 'ok' && place < N ? ++place : 0, a = rv.a;
+    rows.push({ pos: r.pos, l: r.l, name: u ? u.name : (r.name || r.l), rp: r.rp, status, why: u && u.ban || '', place: pl, code: pl ? claimCode(season, r.l) : '', flags: rv.flags, ok: !!(a && a.ok),
+      aud: a ? { min: Math.round(a.sec / 60), g: a.g, k: a.k, ml: a.ml, fix: a.fix, rp0: a.rp0 } : null }); }
+  revCache.set(season, { t: Date.now(), rows }); return rows;
+}
+// ผู้ชนะอัญมณีของฤดูกาลที่จบแล้ว (ภายใน CLAIM_DAYS วัน) → โชว์ป๊อปอัปรหัสรับรางวัลในเกม
+async function gemOf(u) { const now = Date.now();
+  for (const k of Object.keys(GEM_SEASONS)) { if (k >= AC.seasonKey() || now > seasonEnd(k) + CLAIM_DAYS * 864e5) continue;
+    const r = (await reviewList(k)).find(x => x.l === u.lname); if (!r) continue;
+    if (r.place) return { season: k, place: r.place, code: r.code, until: seasonEnd(k) + CLAIM_DAYS * 864e5 };
+    if (r.status === 'dq' && r.pos <= (GEM_SEASONS[k] || 0) + 2) return { season: k, review: true }; }
+  return null; }
+const BAN_MSG = why => 'บัญชีนี้ถูกระงับ' + (why ? ' (' + why + ')' : '') + ' — ถ้าคิดว่าผิดพลาด ติดต่อทีมงาน';
+
 // ---------- API ----------
 async function handleApi(req, res, p) {
   const out = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(o)); };
@@ -186,7 +253,7 @@ async function handleApi(req, res, p) {
       const sn = await store.getSeason(key); if (!sn) return out(200, { key, n: 0, top: [] });
       let top = Array.isArray(sn.top) ? sn.top : null;
       if (!top) { top = []; for (const [l, e] of Object.entries(sn.ranks || {}).sort((a, b) => a[1][0] - b[1][0]).slice(0, SNAP_TOP)) { const u = await store.get(l); top.push({ pos: e[0], name: u ? u.name : l, rp: e[1] }); } }
-      return out(200, { key, n: sn.n, at: sn.at || null, top });
+      return out(200, { key, n: sn.n, at: sn.at || null, top: top.map(({ l, ...t }) => t) });
     }
     if (p === '/api/profile' && req.method === 'GET') {
       const nm = lower(String(new URL(req.url, 'http://x').searchParams.get('name') || '').trim().slice(0, 40));
@@ -196,7 +263,26 @@ async function handleApi(req, res, p) {
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดปรับปรุงชั่วคราว (ยังไม่ได้ต่อฐานข้อมูล) เล่นแบบ Guest ไปก่อนได้' });
     if (req.method === 'GET' && p === '/api/me') {
       const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
-      return out(200, { name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u) });
+      if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
+      return out(200, { name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined });
+    }
+    if (p.startsWith('/api/admin/')) {   // ผู้ดูแล (ADMINS) เท่านั้น
+      const u = await authUser(req); if (!isAdmin(u)) return out(403, { err: 'เฉพาะผู้ดูแล' });
+      const q = new URL(req.url, 'http://x').searchParams;
+      if (p === '/api/admin/review') { const key = /^\d{4}-\d{2}$/.test(q.get('key') || '') ? q.get('key') : AC.seasonKey();
+        return out(200, { key, live: key >= AC.seasonKey(), gems: GEM_SEASONS[key] || 0, seasons: Object.keys(GEM_SEASONS), rows: (await reviewList(key, true)).map(({ l, ...r }) => r) }); }
+      if (p === '/api/admin/claim') { const code = String(q.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        for (const k of Object.keys(GEM_SEASONS)) { if (k >= AC.seasonKey()) continue; const r = (await reviewList(k, true)).find(x => x.code.replace('-', '') === code);
+          if (r) return out(200, { ok: true, season: k, place: r.place, name: r.name, rp: r.rp }); }
+        return out(200, { ok: false }); }
+      if (req.method === 'POST') { const b = await readBody(req), t = await store.get(lower(cleanName(b.name)));
+        if (!t) return out(404, { err: 'ไม่พบผู้เล่นคนนี้' }); if (isAdmin(t) && p === '/api/admin/ban') return out(400, { err: 'แบนผู้ดูแลไม่ได้' });
+        if (p === '/api/admin/ban') { const why = b.unban ? null : String(b.why || 'โกง').slice(0, 80); await store.setBan(t.lname, why); revCache.clear();
+          console.log(`admin ${u.name}: ${why ? 'ban' : 'unban'} ${t.name}${why ? ' — ' + why : ''}`); return out(200, { ok: true, name: t.name, ban: why }); }
+        if (p === '/api/admin/allow') { const key = /^\d{4}-\d{2}$/.test(b.key || '') ? b.key : AC.seasonKey(), v = !!b.v;
+          await bumpAudit(t.lname, () => {}); const t2 = await store.get(t.lname), all = { ...(t2.audit || {}) }; all[key] = { ...(all[key] || { sec: 0, g: 0, k: 0, ml: 0, fix: 0, rp0: 0 }), ok: v };
+          await store.setAudit(t.lname, all); revCache.clear(); console.log(`admin ${u.name}: allow ${t.name} ${key} = ${v}`); return out(200, { ok: true }); } }
+      return out(404, { err: 'not found' });
     }
     if (req.method !== 'POST') return out(404, { err: 'not found' });
     const body = await readBody(req);
@@ -216,22 +302,26 @@ async function handleApi(req, res, p) {
       }
       const u = await store.get(l);
       if (!u || (await hashPass(pass, u.salt)) !== u.hash) return out(401, { err: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
-      return out(200, { token: makeToken(u), name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u) });
+      if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
+      return out(200, { token: makeToken(u), name: u.name, data: AC.seedOnline(u.data), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined });
     }
     if (p === '/api/reset') {   // ลืมรหัสผ่าน: ชื่อ + รหัสกู้คืน → ตั้งรหัสผ่านใหม่ (ได้รหัสกู้คืนชุดใหม่ด้วย)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
       const pass = String(body.pass || ''); if (!passOk(pass)) return out(400, { err: 'รหัสผ่านใหม่ต้องยาว 4 ตัวขึ้นไป' });
       const u = await store.get(lower(cleanName(body.name)));
       if (!u || !checkRecovery(u.rhash, body.code)) return out(401, { err: 'ชื่อหรือรหัสกู้คืนไม่ถูกต้อง' });
+      if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
       const salt = crypto.randomBytes(16).toString('hex'), rc = makeRecovery();
       await store.setAuth(u.lname, salt, await hashPass(pass, salt)); await store.setRecovery(u.lname, rc.rhash);
-      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: AC.seedOnline(u.data), code: rc.code, prize: await prizeOf(u) });
+      return out(200, { token: makeToken({ lname: u.lname, salt }), name: u.name, data: AC.seedOnline(u.data), code: rc.code, prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined });
     }
     const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
+    if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
     if (p === '/api/save') {
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
       const pz = await prizeOf(u), { data, fixed } = AC.validate(u.data || {}, raw, Date.now(), pz ? pz.coins : 0);
       await store.save(u.lname, data, rpOf(data));
+      if (fixed) bumpAudit(u.lname, a => { a.fix++; });
       return out(200, fixed ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
     }
     if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
@@ -245,6 +335,7 @@ async function handleApi(req, res, p) {
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });
       const name = cleanName(body.name); if ([...name].length < 2 || [...name].length > 14) return out(400, { err: 'ชื่อต้องยาว 2–14 ตัวอักษร' });
       if (name === u.name) return out(400, { err: 'ชื่อนี้เป็นชื่อปัจจุบันของคุณอยู่แล้ว' });
+      { const g = await gemOf(u).catch(() => null); if (g && g.place) return out(409, { err: 'คุณมีรางวัลอัญมณีรอรับอยู่ เปลี่ยนชื่อได้หลังรับรางวัลแล้ว (' + CLAIM_DAYS + ' วันหลังจบฤดูกาล)' }); }
       const nl = lower(name); if (nl !== u.lname && await store.get(nl)) return out(409, { err: 'ชื่อนี้มีคนใช้แล้ว ลองชื่ออื่น' });
       if (await prizeOf(u)) return out(409, { err: 'กำลังรับรางวัลจบฤดูกาล ปิดแล้วเปิดเกมใหม่ แล้วลองเปลี่ยนชื่ออีกครั้ง' });
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
@@ -262,4 +353,4 @@ async function handleApi(req, res, p) {
     return out(503, { err: 'ระบบบัญชีมีปัญหาชั่วคราว ลองใหม่อีกครั้ง' });
   }
 }
-module.exports = { handleApi, storeKind: () => store.kind };
+module.exports = { handleApi, storeKind: () => store.kind, tokenUser, addPlay };
