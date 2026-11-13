@@ -760,45 +760,53 @@ function gemRulesHTML(k){return`<div class="gemrules">
   <div>🏅 นับจาก<b>อันดับ 🏅 แรงก์</b> (โลกออนไลน์ + 2v2) · <b>ตัดผลเที่ยงคืนวันสิ้นเดือน</b> (เวลาไทย) ระบบบันทึกอันดับไว้อัตโนมัติ</div>
   <div>👤 เฉพาะ<b>บัญชีที่ลงทะเบียน</b> และต้องเล่นออนไลน์จริงที่ระบบเห็นไม่น้อยกว่า 10 นาทีในเดือนนั้น</div>
   <div>🛡️ <b>ระบบตรวจโกงอัตโนมัติ</b>: RP เกินกว่าที่เล่นจริงจะทำได้ / แก้ข้อมูลในเกม / ใช้โปรแกรมช่วย → <b style="color:#ff9b9b">ตัดสิทธิ์ หรือแบนบัญชีถาวร</b> รางวัลเลื่อนให้อันดับถัดไป</div>
-  <div>📨 <b>วิธีรับ</b>: ผู้ชนะเปิดเกมแล้วจะเห็น<b>รหัสรับรางวัล</b> → ทักแชท ${PRIZE_CONTACT.name} ส่งรหัส + ชื่อในเกม + ที่อยู่จัดส่ง ภายใน ${GEM_CLAIM_DAYS} วัน (ส่งฟรีในไทย)</div>
+  <div>📨 <b>วิธีรับ</b>: ผู้ชนะเปิดเกมแล้วจะมี<b>ใบแจ้งว่าได้รางวัล</b> → ทักแชท ${PRIZE_CONTACT.name} ส่งชื่อในเกม + ชื่อ-ที่อยู่-เบอร์โทร ภายใน ${GEM_CLAIM_DAYS} วัน (ส่งฟรีในไทย)</div>
   <div>🛡️ ทีมงาน/ผู้ดูแลเกมไม่มีสิทธิ์รับรางวัล · ⚖️ คำตัดสินของทีมงานถือเป็นที่สิ้นสุด</div></div>`}
 function gemShowcaseHTML(full){const g=gemNow();if(!g)return'';const k=g.k;
   return`<div class="gemx"><b>${g.live?'💎 รางวัลพิเศษ! อัญมณีแท้ส่งถึงบ้าน':'💎 เริ่ม '+startName(k)+'! ชิงอัญมณีแท้ส่งถึงบ้าน'}</b><small>${g.live?`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เหลืออีก ${seasonDaysLeft()} วัน`:`ฤดูกาล ${seasonName(k)} · อันดับ 1–3 ของ 🏅 แรงก์ · เริ่มในอีก ${seasonDaysLeft()} วัน`}</small>${gemCardsHTML(k)}${full?gemRulesHTML(k):'<small style="color:#ffd23f;margin-top:4px">แตะดูกติกา + วิธีรับรางวัล ›</small>'}</div>`}
 function gemStripHTML(){const g=gemNow();if(!g||ACCT.mode==='local')return'';const G=GEM_PRIZES[g.k];return`<div id="gemStrip"><img src="${G[0].img}" alt=""><span><b>💎 ${g.live?'ลุ้นเพชรแท้!':startName(g.k)+' ชิงเพชรแท้!'}</b> Top 3 แรงก์ ${g.live?'จบเดือน '+seasonName(g.k):'· แรงก์เริ่มใหม่จาก 0'}</span><i>ดู ›</i></div>`}
-// ผู้ชนะ: เปิดเกมแล้วเห็นรหัสรับรางวัล + วิธีติดต่อ (เซิร์ฟเวอร์ส่ง gem มากับ /api/me, /api/login)
+// ผู้ชนะ: เปิดเกมแล้วเห็นใบแจ้งได้รางวัล + วิธีติดต่อ (ไม่ใช้รหัสรับรางวัลแล้ว — เจ้าของสั่ง 13 พ.ย.) (เซิร์ฟเวอร์ส่ง gem มากับ /api/me, /api/login)
 function showGemWin(g){g=g||GEM_ME;if(!g)return;const G=GEM_PRIZES[g.season];
   openSheet(g.review?'🔎 กำลังตรวจสอบผล':'🎉 คุณได้รางวัลอัญมณี!',b=>{
-    if(g.review){b.innerHTML=`<div class="gwin"><div style="font-size:15px;line-height:1.7">ฤดูกาล ${seasonName(g.season)} คุณติดอันดับต้น ๆ<br>แต่ระบบพบข้อมูลที่ต้อง<b>ตรวจสอบเพิ่ม</b> (เช่น เวลาเล่นออนไลน์ที่ระบบเห็นน้อยเกินไป)<br>ทีมงานกำลังตรวจ ถ้าผ่านจะได้รับรหัสรับรางวัลในหน้านี้</div><div class="help" style="margin-top:8px">สอบถาม: ${PRIZE_CONTACT.name}</div><button class="btn" id="gwOk">ตกลง</button></div>`;b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden');return}
+    if(g.review){b.innerHTML=`<div class="gwin"><div style="font-size:15px;line-height:1.7">ฤดูกาล ${seasonName(g.season)} คุณติดอันดับต้น ๆ<br>แต่ระบบพบข้อมูลที่ต้อง<b>ตรวจสอบเพิ่ม</b> (เช่น เวลาเล่นออนไลน์ที่ระบบเห็นน้อยเกินไป)<br>ทีมงานกำลังตรวจ ถ้าผ่านจะมีใบแจ้งรางวัลขึ้นในหน้านี้</div><div class="help" style="margin-top:8px">สอบถาม: ${PRIZE_CONTACT.name}</div><button class="btn" id="gwOk">ตกลง</button></div>`;b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden');return}
     const it=G&&G[g.place-1],until=new Date(g.until).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric',timeZone:'Asia/Bangkok'});
     b.innerHTML=`<div class="gwin"><div style="font-size:18px;font-weight:700;color:#ffd23f">${['🥇','🥈','🥉'][g.place-1]||'🏆'} อันดับ ${g.place} · ฤดูกาล ${seasonName(g.season)}</div>
       ${it?`<img src="${it.img}" alt=""><div style="font-size:16px;font-weight:700">${it.n}</div><div class="help" style="margin:2px 0 6px">${it.d}</div>`:''}
-      <div class="help" style="margin:0">รหัสรับรางวัลของคุณ</div><div class="gcode">${g.code}</div>
-      <div class="gsteps"><b>📨 วิธีรับรางวัล</b><br>1️⃣ แคปหน้าจอนี้ไว้<br>2️⃣ ทักแชท <b>${PRIZE_CONTACT.name}</b><br>3️⃣ ส่ง: <b>รหัสรับรางวัล</b> + <b>ชื่อในเกม (${escH(ACCT.name||'')})</b> + ชื่อ-ที่อยู่-เบอร์โทร สำหรับจัดส่ง<br>⏰ ภายใน <b>${until}</b> (ส่งฟรีในไทย)<br><small>⚠️ ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</small></div>
-      <a class="btn" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;width:100%;text-align:center;text-decoration:none;margin-top:10px">💬 เปิด${PRIZE_CONTACT.name} ทักแชท</a><button class="btn alt" id="gwCp">📋 คัดลอกรหัส</button><button class="btn gray" id="gwOk">ปิด</button></div>`;
-    b.querySelector('#gwCp').onclick=()=>{try{navigator.clipboard.writeText(g.code).then(()=>announce('📋 คัดลอกรหัสรับรางวัลแล้ว'),()=>{})}catch(e){}};
+      <div style="font-size:15px;line-height:1.6;margin:4px 0">ยินดีด้วย <b>${escH(ACCT.name||'')}</b>! 🎉 คุณได้รางวัลนี้</div>
+      <div class="gsteps"><b>📨 วิธีรับรางวัล</b><br>1️⃣ ทักแชท <b>${PRIZE_CONTACT.name}</b> (ปุ่มด้านล่าง)<br>2️⃣ บอกว่าได้อันดับ ${g.place} + <b>ชื่อในเกม (${escH(ACCT.name||'')})</b><br>3️⃣ ส่ง <b>ชื่อ-นามสกุล ที่อยู่ เบอร์โทร</b> สำหรับจัดส่ง<br>⏰ ภายใน <b>${until}</b> (ส่งฟรีในไทย)<br><small>⚠️ ทีมงานจะไม่ขอรหัสผ่านเกมของคุณเด็ดขาด</small></div>
+      <a class="btn" href="${PRIZE_CONTACT.url}" target="_blank" rel="noopener" style="display:block;box-sizing:border-box;width:100%;text-align:center;text-decoration:none;margin-top:10px">💬 เปิด${PRIZE_CONTACT.name} ทักแชท</a><button class="btn gray" id="gwOk">ปิด</button></div>`;
     b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden')});
   if(!g.review)sfx('gold')}
-function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);if(GEM_ME&&!gemShown){gemShown=true;setTimeout(()=>{if(state==='menu')showGemWin()},900)}}
+function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);ADM_WIN=j&&j.winners||null;if(GEM_ME&&!gemShown){gemShown=true;setTimeout(()=>{if(state==='menu')showGemWin()},900)}
+  else if(ADM_WIN&&!gemShown){const w=ADM_WIN[ADM_WIN.length-1];let seen='';try{seen=localStorage.getItem('admWinSeen')||''}catch(e){}if(seen!==w.season){gemShown=true;setTimeout(()=>{if(state==='menu')showWinners(w,true)},900)}}}
+// ผู้ดูแล: จบฤดูกาลชิงพลอยแล้ว เปิดเกม → รายชื่อผู้ชนะ 1–3 ขึ้นเอง (ครั้งเดียวต่อฤดูกาลต่อเครื่อง · ดูซ้ำได้ใน 🛡️)
+let ADM_WIN=null;
+function winnersHTML(w){const G=GEM_PRIZES[w.season]||[];
+  return`<div class="help" style="margin:0 0 8px">ฤดูกาล ${seasonName(w.season)} · ตัดผล ${new Date(w.at).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'})}</div>`+
+    (w.win.length?w.win.map(r=>`<div class="adrow win"><div class="ah"><span class="chip">${['🥇','🥈','🥉'][r.place-1]||'🏆'} รางวัลที่ ${r.place}</span><b>${escH(r.name)}</b><span class="chip">${(+r.rp).toLocaleString()} RP</span></div><div style="color:#aab">${G[r.place-1]?escH(G[r.place-1].n):''}${r.pos!==r.place?' · อันดับแรงก์ที่ '+r.pos:''}</div></div>`).join(''):'<div class="help">ไม่มีผู้ได้รางวัล</div>')+
+    (w.dq.length?`<div class="help" style="margin-top:6px;color:#ff9b9b">⛔ ข้ามไป (ถูกตัดสิทธิ์/แบน): ${w.dq.map(d=>'#'+d.pos+' '+escH(d.name)).join(' · ')}</div>`:'')+
+    `<div class="help" style="margin-top:8px">ผู้ชนะจะเห็นใบแจ้งในเกม และจะทักแชท ${PRIZE_CONTACT.name} พร้อมชื่อในเกม + ที่อยู่ · เทียบชื่อกับรายชื่อนี้ได้เลย</div>`}
+function showWinners(w,first){try{localStorage.setItem('admWinSeen',w.season)}catch(e){}
+  openSheet('🏆 ผู้ชนะรางวัลอัญมณี',b=>{b.innerHTML=winnersHTML(w)+`<button class="btn" id="wnAdm">🛡️ เปิดหน้าผู้ดูแล</button><button class="btn gray" id="wnOk">ปิด</button>`;
+    b.querySelector('#wnAdm').onclick=()=>{admKey=w.season;openAdmin()};b.querySelector('#wnOk').onclick=()=>$('sheet').classList.add('hidden')});if(first)sfx('gold')}
 function bannedOut(msg){try{localStorage.removeItem('rsAuth')}catch(e){}GEM_ME=null;IS_ADMIN=false;setProfile('guest',null);
   openSheet('🚫 บัญชีถูกระงับ',b=>{b.innerHTML=`<div class="help" style="font-size:14px;line-height:1.7">${escH(msg||'บัญชีนี้ถูกระงับ')}</div><button class="btn" id="bnOk">ตกลง</button>`;b.querySelector('#bnOk').onclick=()=>$('sheet').classList.add('hidden')})}
-// 🛡️ ผู้ดูแล (ชื่อบัญชีอยู่ใน env ADMINS บนเซิร์ฟเวอร์): ผลตรวจโกงอันดับต้น ๆ · แบน/ปลดแบน · ให้สิทธิ์คืน · ตรวจรหัสรับรางวัล
+// 🛡️ ผู้ดูแล (ADMINS ใน accounts.js, ค่าเริ่มต้น 'พล'): ผู้ชนะ · ผลตรวจโกงอันดับต้น ๆ · แบน/ปลดแบน · ให้สิทธิ์คืน
 let admKey='';
 function openAdmin(){openSheet('🛡️ ผู้ดูแล — ตรวจผู้ชนะ',renderAdmin)}
 function renderAdmin(b){const keys=[...new Set([seasonKey(),...Object.keys(GEM_PRIZES)])].sort().reverse();if(!admKey)admKey=keys.includes(seasonKey())?seasonKey():keys[0];
   b.innerHTML=`<div class="tabs" id="admTabs">${keys.map(k=>`<div class="tab${k===admKey?' on':''}" data-k="${k}">${seasonName(k)}${k===seasonKey()?' (ตอนนี้)':''}</div>`).join('')}</div>
-    <div class="rnbox" style="margin:8px 0"><b>🔎 ตรวจรหัสรับรางวัล</b><input id="admCode" placeholder="เช่น ABCD-EFGH" autocomplete="off" style="margin-top:6px"><button class="btn alt" id="admChk" style="padding:8px">ตรวจ</button><div class="status" id="admChkR"></div></div>
+    ${(ADM_WIN||[]).filter(w=>w.season===admKey).map(w=>`<div class="rnbox" style="margin:8px 0"><b>🏆 ผู้ชนะ (ตัดผลแล้ว)</b>${winnersHTML(w)}</div>`).join('')}
     <div id="admList">กำลังโหลด...</div>`;
   b.querySelectorAll('#admTabs .tab').forEach(t=>t.onclick=()=>{admKey=t.dataset.k;renderAdmin(b)});
-  b.querySelector('#admChk').onclick=async()=>{const r=b.querySelector('#admChkR');r.textContent='กำลังตรวจ...';
-    try{const j=await api('/api/admin/claim?code='+encodeURIComponent(b.querySelector('#admCode').value));r.innerHTML=j.ok?`✅ ถูกต้อง: <b>${escH(j.name)}</b> อันดับรางวัล ${j.place} · ฤดูกาล ${seasonName(j.season)} · ${(+j.rp).toLocaleString()} RP`:'❌ ไม่พบรหัสนี้ (หรือผู้ชนะถูกตัดสิทธิ์/แบนไปแล้ว)'}catch(e){r.textContent='❌ '+e.message}};
   loadAdmin(b)}
 async function loadAdmin(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/review?key='+admKey)}catch(e){el.textContent='❌ '+e.message;return}
   const S={ok:['✅ ปกติ','ok'],dq:['⛔ ตัดสิทธิ์อัตโนมัติ','dq'],ban:['🚫 แบนแล้ว','ban'],gone:['— ไม่พบบัญชี','ban'],admin:['🛡️ ผู้ดูแล — ไม่ร่วมชิงพลอย','ban']};
-  el.innerHTML=`<div class="help" style="margin:2px 0 6px">${j.live?'🔴 ฤดูกาลนี้ยังไม่จบ (อันดับตอนนี้)':'📸 ผลที่บันทึกตอนเที่ยงคืนสิ้นเดือน'}${j.gems?' · 💎 แจกอัญมณี '+j.gems+' อันดับ':''}</div>`+
+  el.innerHTML=`<div class="help" style="margin:2px 0 6px">${j.live?'🔴 ฤดูกาลนี้ยังไม่จบ (อันดับตอนนี้)':'📸 ผลที่บันทึกตอนเที่ยงคืนสิ้นเดือน'}${j.gems?' · 💎 แจกอัญมณี '+j.gems+' อันดับ':''}</div>${j.partial?`<div class="help" style="margin:0 0 8px;color:#9fd">ℹ️ ระบบเริ่มจดเวลาเล่นจริงเมื่อ ${escH(j.partial)} — เดือนนี้ข้อมูลไม่ครบเดือน จึง<b>ไม่ใช้เกณฑ์เล่น 10 นาที</b> (ใช้เต็มรูปแบบตั้งแต่ฤดูกาลชิงพลอย ธ.ค.)</div>`:''}`+
     (j.rows.length?j.rows.map(r=>{const s=r.place?['🏆 ได้รางวัลที่ '+r.place,'win']:S[r.status]||S.ok,a=r.aud;
       return`<div class="adrow ${s[1]}"><div class="ah"><span class="chip">#${r.pos}</span><b>${escH(r.name)}</b><span class="chip">${(+r.rp).toLocaleString()} RP</span></div>
-        <div>${s[0]}${r.code?` · รหัส <b style="color:#ffd23f">${r.code}</b>`:''}${r.why?' · เหตุผล: '+escH(r.why):''}${r.ok?' · 👍 ผู้ดูแลให้สิทธิ์แล้ว':''}</div>
-        <div style="color:#aab">${a?`🎮 เล่นออนไลน์จริง ${a.min} นาที · ${a.g} เกม · 💀 ${a.k} · 🚂 ยาวสุด ${Math.round(a.ml)} · RP ตอนเริ่มเก็บ ${a.rp0} · ส่งข้อมูลเกินจริง ${a.fix} ครั้ง`:'ยังไม่มีข้อมูลการเล่นที่ระบบเห็น'}</div>
+        <div>${s[0]}${r.why?' · เหตุผล: '+escH(r.why):''}${r.ok?' · 👍 ผู้ดูแลให้สิทธิ์แล้ว':''}</div>
+        <div style="color:#aab">${a?`🎮 เล่นออนไลน์จริง ${a.min} นาที · ${a.g} เกม · 💀 ${a.k} · 🚂 ยาวสุด ${Math.round(a.ml)} · RP ตอนเริ่มเก็บ ${a.rp0} · ส่งข้อมูลเกินจริง ${a.fix} ครั้ง`:j.partial?'ยังไม่ได้เล่นออนไลน์หลังระบบเริ่มจด ('+escH(j.partial)+')':'ยังไม่มีข้อมูลการเล่นที่ระบบเห็น'}</div>
         ${r.flags.map(f=>`<div class="fl">⚠️ ${escH(f)}</div>`).join('')}
         <div class="bt">${r.status==='ban'?`<button class="g" data-a="unban" data-n="${escH(r.name)}">ปลดแบน</button>`:r.status!=='gone'?`<button class="r" data-a="ban" data-n="${escH(r.name)}">🚫 แบนบัญชี</button>`:''}
           ${r.flags.length&&r.status!=='ban'?(r.ok?`<button data-a="unallow" data-n="${escH(r.name)}">ยกเลิกให้สิทธิ์</button>`:`<button class="g" data-a="allow" data-n="${escH(r.name)}">👍 ตรวจแล้ว ให้สิทธิ์คืน</button>`):''}</div></div>`}).join(''):'<div class="help">ยังไม่มีผู้เล่นติดอันดับ</div>');
@@ -808,7 +816,7 @@ async function loadAdmin(b){const el=b.querySelector('#admList');let j;try{j=awa
       else{await api('/api/admin/allow',{name:n,key:admKey,v:a==='allow'});announce(a==='allow'?'👍 ให้สิทธิ์ '+n+' แล้ว':'ยกเลิกให้สิทธิ์ '+n)}loadAdmin(b)}catch(e){announce('❌ '+e.message);bt.disabled=false}})}
 // หน้า 🎁 รางวัลจบเดือน: รายละเอียดการแจก + อันดับตอนนี้พร้อมรางวัลของแต่ละคน
 function openPrizes(){openSheet('🎁 รางวัลจบเดือน',b=>{
-  b.innerHTML=`${GEM_ME?`<button class="btn" id="pzGem" style="background:linear-gradient(#ffd23f,#e0a800);color:#3a2a00">${GEM_ME.review?'🔎 ผลรางวัลอัญมณีของคุณกำลังตรวจสอบ':'🎉 คุณได้รางวัลอัญมณี! ดูรหัสรับรางวัล'}</button>`:''}${gemShowcaseHTML(true)}<div class="help" style="color:#ffd23f;margin:2px 0 8px">🗓️ ฤดูกาล ${seasonName(seasonKey())} · จบสิ้นเดือน (เที่ยงคืนเวลาไทย) · เหลืออีก ${seasonDaysLeft()} วัน</div><div id="pzBody">กำลังโหลด...</div>
+  b.innerHTML=`${GEM_ME?`<button class="btn" id="pzGem" style="background:linear-gradient(#ffd23f,#e0a800);color:#3a2a00">${GEM_ME.review?'🔎 ผลรางวัลอัญมณีของคุณกำลังตรวจสอบ':'🎉 คุณได้รางวัลอัญมณี! ดูวิธีรับรางวัล'}</button>`:''}${gemShowcaseHTML(true)}<div class="help" style="color:#ffd23f;margin:2px 0 8px">🗓️ ฤดูกาล ${seasonName(seasonKey())} · จบสิ้นเดือน (เที่ยงคืนเวลาไทย) · เหลืออีก ${seasonDaysLeft()} วัน</div><div id="pzBody">กำลังโหลด...</div>
     <div class="howbox prules"><b>📜 วิธีแจกรางวัล</b>
       <div>🏅 แจกตาม<b>อันดับแรงก์ (RP) ของเดือนนี้</b> ตอนสิ้นเดือน · ต้องลงทะเบียนและมี RP มากกว่า 0 ถึงจะติดอันดับ (Guest ไม่ได้)</div>
       <div>👥 <b>ปรับตามจำนวนผู้เล่นอัตโนมัติ</b>: ผู้เล่นติดอันดับ ${PRIZE_FULL} คนขึ้นไป = ได้เต็ม 100% · น้อยกว่านั้นลดตามสัดส่วน (เช่น 25 คน = 50%) ต่ำสุด 10%</div>
@@ -2466,7 +2474,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:29,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะเห็นรหัสรับรางวัล · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:29,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
   {id:28,d:'13 พ.ย. 2026',t:'🌍 โลกออนไลน์ใหญ่ขึ้น',l:['สนามกว้างขึ้นอีก 15% มีพลอย เพชรขาว และไอเทมเพิ่มตามพื้นที่','อยู่ในโลกเดียวกันได้ถึง 40 ขบวน (เดิม 30) สนามยังคึกคักเท่าเดิม','ลื่นขึ้น: ไม่กระตุกตอนมีรถไฟสีใหม่หรือแบบใหม่โผล่เข้าจอ']},
   {id:27,d:'13 พ.ย. 2026',t:'🚇 ลอดอุโมงค์ลื่นขึ้น',l:['ขบวนยาว ๆ ค่อย ๆ เข้ารูทีละตู้ แล้วค่อย ๆ โผล่ออกอีกฝั่ง ไม่โผล่พรวดออกมาทั้งขบวนแล้ว','เลี้ยวทันทีหลังออกจากอุโมงค์ก็ไม่ค้าง']},
   {id:26,d:'12 พ.ย. 2026',t:'⚔️ 2v2 เล่นต่อได้ทันที',l:['จบแมตช์ 2v2 แล้วกลับห้องรอเลย ไม่ต้องออกไปหน้าแรก · ทุกคนกดพร้อมเล่นอีกรอบ','ห้อง 2v2 มีคนจริง 2 คนขึ้นไป: เวลานับถอยหลังตัวใหญ่อยู่บนสุดของห้อง ครบ 30 วิแล้วใครยังไม่กด ✋ พร้อม จะถูกเชิญออกจากห้อง บอทเข้าแทน','ชวนเล่น 2v2 ถึงคนที่อยู่หน้าแรกของเกมได้ด้วย (นอกจากคนในโลกออนไลน์และผจญภัย)','บอทนักล่ากลางในห้อง 2v2 เปลี่ยนเป็นรถไฟสีเหลือง ชื่อสีเหลือง จุดบนมินิแมปสีเหลือง แยกออกง่ายจากทีมแดงและทีมน้ำเงิน']},
@@ -2556,7 +2564,7 @@ function renderAccount(b,first){
       <div class="help" style="margin:6px 0">🪙 ${prof.coins.toLocaleString()} เหรียญ · ✅ บันทึกบนเซิร์ฟเวอร์แล้ว เข้าสู่ระบบเครื่องไหนก็เล่นต่อได้</div>
       <button class="btn alt" id="acClose">เล่นต่อ</button>
       <div class="row4" style="grid-template-columns:1fr 1fr 1fr"><button class="mbtn" id="acRn">✏️<br>เปลี่ยนชื่อ<br><small>${RENAME_COST.toLocaleString()} 🪙</small></button><button class="mbtn" id="acPw">🔒<br>เปลี่ยนรหัสผ่าน</button><button class="mbtn" id="acRc">🔑<br>รหัสกู้คืนใหม่</button></div>
-      ${GEM_ME?`<button class="btn" id="acGem" style="background:linear-gradient(#ffd23f,#e0a800);color:#3a2a00">${GEM_ME.review?'🔎 ผลรางวัลอัญมณีกำลังตรวจสอบ':'🎉 รหัสรับรางวัลอัญมณีของคุณ'}</button>`:''}${IS_ADMIN?'<button class="btn alt" id="acAdm">🛡️ ผู้ดูแล — ตรวจผู้ชนะ / แบนคนโกง</button>':''}
+      ${GEM_ME?`<button class="btn" id="acGem" style="background:linear-gradient(#ffd23f,#e0a800);color:#3a2a00">${GEM_ME.review?'🔎 ผลรางวัลอัญมณีกำลังตรวจสอบ':'🎉 คุณได้รางวัลอัญมณี! ดูวิธีรับ'}</button>`:''}${IS_ADMIN?'<button class="btn alt" id="acAdm">🛡️ ผู้ดูแล — ตรวจผู้ชนะ / แบนคนโกง</button>':''}
       <div id="acMore"></div><button class="btn gray" id="acOut">ออกจากระบบ</button>`;
     {const g=b.querySelector('#acGem');if(g)g.onclick=()=>showGemWin();const a=b.querySelector('#acAdm');if(a)a.onclick=openAdmin}
     gearDraw(b);

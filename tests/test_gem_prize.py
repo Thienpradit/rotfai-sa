@@ -26,21 +26,21 @@ async def main():
       require('fs').writeFileSync(process.argv[1],JSON.stringify(db))"""
     subprocess.run(['node','-e',js,os.path.join(D,'users.json'),json.dumps(users)],check=True)
     if os.path.exists(os.path.join(D,'seasons.json')): os.remove(os.path.join(D,'seasons.json'))
-    srv=subprocess.Popen(['node','server.js'],cwd=ROOT,env={**os.environ,'PORT':'3457','ADMINS':'boss1','GEM_EXTRA':'2026-10:3'},stdout=subprocess.PIPE,stderr=subprocess.STDOUT);time.sleep(1.8)
+    srv=subprocess.Popen(['node','server.js'],cwd=ROOT,env={**os.environ,'PORT':'3457','ADMINS':'boss1','GEM_EXTRA':'2026-10:3','AUDIT_FROM':'2026-01'},stdout=subprocess.PIPE,stderr=subprocess.STDOUT);time.sleep(1.8)
     try:
         se=api('/api/season?key=2026-10');print('season 2026-10:',[(t['pos'],t['name']) for t in se['top']])
         check(se['top'][0]['name']=='W1' and 'l' not in se['top'][0],'ผลจบฤดูกาลบันทึกไว้ (ไม่มี lname หลุดออกไป)')
-        j=login('W1');check(j.get('gem',{}).get('place')==1 and len(j['gem']['code'])==9,'W1 ได้อันดับรางวัล 1 + รหัส '+str(j.get('gem')))
-        c1=j['gem']['code'];w1tok=j['token']
+        j=login('W1');check(j.get('gem',{}).get('place')==1 and 'code' not in j['gem'],'W1 ได้อันดับรางวัล 1 (ไม่มีรหัส) '+str(j.get('gem')))
+        w1tok=j['token']
         j=login('CHEAT');check(j.get('gem',{}).get('review') is True,'CHEAT เล่นจริง 2 นาที → ตัดสิทธิ์ (กำลังตรวจสอบ)')
         j=login('W2');check(j.get('gem',{}).get('place')==2,'W2 เลื่อนเป็นรางวัลที่ 2');w2tok=j['token']
         j=login('W4');check(j.get('gem') is None,'W4 ไม่ได้รางวัล')
         b=login('BOSS1');tok=b['token'];check(b.get('admin') is True,'BOSS1 เป็นผู้ดูแล')
+        w=(b.get('winners') or [{}])[0];check(w.get('season')=='2026-10' and [(x['place'],x['name']) for x in w.get('win',[])]==[(1,'W1'),(2,'W2'),(3,'W3')],'ผู้ดูแลได้รายชื่อผู้ชนะทันที '+str(w.get('win')))
+        check(login('W1').get('winners') is None,'คนทั่วไปไม่ได้รายชื่อผู้ชนะ')
         check(api('/api/admin/review?key=2026-10',tok=w1tok).get('_status')==403,'คนทั่วไปเข้าหน้าผู้ดูแลไม่ได้')
         r=api('/api/admin/review?key=2026-10',tok=tok);print('  review:',[(x['name'],x['status'],x['place']) for x in r['rows']])
         check([x['place'] for x in r['rows']][:5]==[1,0,2,3,0],'ลำดับผู้ชนะ W1/W2/W3 (ข้าม CHEAT)')
-        check(api('/api/admin/claim?code='+c1,tok=tok).get('name')=='W1','ตรวจรหัสรับรางวัล W1 ถูกต้อง')
-        check(api('/api/admin/claim?code=AAAA-BBBB',tok=tok).get('ok') is False,'รหัสมั่วไม่ผ่าน')
         api('/api/admin/ban',{'name':'W2','why':'แก้ RP'},tok=tok)
         r=api('/api/admin/review?key=2026-10',tok=tok);print('  after ban W2:',[(x['name'],x['status'],x['place']) for x in r['rows']])
         check([x['place'] for x in r['rows']][:5]==[1,0,0,2,3],'แบน W2 → W3 ที่ 2, W4 ที่ 3')
@@ -61,7 +61,7 @@ async def main():
                 await pg.goto('http://127.0.0.1:3457/');await pg.evaluate("GEM_PRIZES['2026-10']=GEM_PRIZES['2026-12'];GEM_PRIZES[seasonKey()]=GEM_PRIZES['2026-12']");return pg,errs
             pg,errs=await page(login('W1')['token'],'W1');await pg.wait_for_timeout(2200)
             t=await pg.evaluate("document.getElementById('sheet').classList.contains('hidden')?'':document.getElementById('sheetBody').innerText")
-            check(c1 in t and 'Ponpoj' in t,'W1 เปิดเกม → ป๊อปอัปรหัสรับรางวัล')
+            check('อันดับ 1' in t and 'ที่อยู่' in t and 'Ponpoj' in t and 'รหัสรับ' not in t,'W1 เปิดเกม → ใบแจ้งได้รางวัล + วิธีส่งที่อยู่')
             await pg.screenshot(path=SP+'/gem_win.png')
             await pg.evaluate("$('sheet').classList.add('hidden');showBest()");await pg.wait_for_timeout(300)
             check(await pg.evaluate("!!document.getElementById('gemStrip')"),'หน้าแรกมีแถบ 💎 ลุ้นเพชรแท้');await pg.screenshot(path=SP+'/gem_home.png')
@@ -70,12 +70,14 @@ async def main():
             check(not errs,'ไม่มี error ฝั่งผู้เล่น '+str(errs[:2]))
             pg,errs=await page(login('CHEAT')['token'],'CHEAT');await pg.wait_for_timeout(2200)
             check('ตรวจสอบ' in await pg.evaluate("document.getElementById('sheetBody').innerText"),'CHEAT เห็น "กำลังตรวจสอบ"')
-            pg,errs=await page(tok,'BOSS1');await pg.wait_for_timeout(1500)
+            pg,errs=await page(tok,'BOSS1');await pg.wait_for_timeout(2200)
+            t=await pg.evaluate("document.getElementById('sheet').classList.contains('hidden')?'':document.getElementById('sheetBody').innerText")
+            check('ผู้ชนะ' in t and 'W1' in t and 'W3' in t,'ผู้ดูแลเปิดเกม → รายชื่อผู้ชนะขึ้นเอง');await pg.screenshot(path=SP+'/gem_winners.png')
             await pg.evaluate("$('sheet').classList.add('hidden');admKey='2026-10';openAdmin()");await pg.wait_for_timeout(1200)
             t=await pg.evaluate("document.getElementById('sheetBody').innerText");check('ตัดสิทธิ์อัตโนมัติ' in t and 'ได้รางวัลที่ 1' in t,'หน้าผู้ดูแลแสดงผลตรวจ')
             await pg.screenshot(path=SP+'/gem_admin.png')
             # แบนจากหน้าผู้ดูแล (กด 2 ครั้ง + เหตุผล)
-            row=pg.locator('.adrow').nth(3);await row.locator('button[data-a=ban]').click();await row.locator('input').fill('ทดสอบแบน');await pg.screenshot(path=SP+'/gem_admin_banask.png');await row.locator('button[data-a=ban]').click();await pg.wait_for_timeout(1000)
+            row=pg.locator('#admList .adrow').nth(3);await row.locator('button[data-a=ban]').click();await row.locator('input').fill('ทดสอบแบน');await pg.screenshot(path=SP+'/gem_admin_banask.png');await row.locator('button[data-a=ban]').click();await pg.wait_for_timeout(1000)
             r=api('/api/admin/review?key=2026-10',tok=tok);check(r['rows'][3]['status']=='ban' and r['rows'][3]['why']=='ทดสอบแบน','แบนผ่านปุ่มในหน้าผู้ดูแล ('+r['rows'][3]['name']+')')
             await pg.screenshot(path=SP+'/gem_admin_ban.png')
             # เล่นออนไลน์จริง → เซิร์ฟเวอร์จดเวลาเล่นของบัญชี
