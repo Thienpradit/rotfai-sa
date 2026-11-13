@@ -7,7 +7,7 @@ async def main():
         b=await p.chromium.launch();pg=await (await b.new_context(viewport={'width':390,'height':844},device_scale_factor=2)).new_page()
         errs=[];pg.on('pageerror',lambda e:errs.append(str(e)))
         await pg.goto('http://127.0.0.1:3456/');await pg.wait_for_timeout(600)
-        await pg.evaluate("startStage(1)") if False else await pg.evaluate("prof.stage[0]=1;startStage(1)")   # 1-2 = กำจัด
+        await pg.evaluate("startStage(1)") if False else await pg.evaluate("prof.stage[0]=1;STAGES[1].g=['kills',5];startStage(1)")   # 1-2 = กำจัด
         await pg.wait_for_timeout(800)
         r=[]
         for k in range(2):
