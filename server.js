@@ -152,12 +152,14 @@ function startMatch(room) {
 }
 function endMatch(room) {
   const sc = teamScore(room);
-  const A = sc.A.k * 100 + Math.floor(sc.A.l), B = sc.B.k * 100 + Math.floor(sc.B.l);
+  // ผู้ชนะ = ทีมที่กำจัดได้มากกว่า (ตรงกับตัวเลขบนป้ายกลางจอ · เจ้าของเลือก 13 พ.ย.) · กำจัดเท่ากัน → ดูความยาวรวมของคนที่ยังมีชีวิต · เท่ากันอีก = เสมอ
+  const A = sc.A.k, B = sc.B.k, lA = Math.floor(sc.A.l), lB = Math.floor(sc.B.l);
+  const winner = A > B ? 'A' : B > A ? 'B' : lA > lB ? 'A' : lB > lA ? 'B' : 'draw';
   const ps = [...room.players.values()];
   let mvp = null, mv = -1; for (const p of ps) { const v = p.kills * 100 + p.maxLen; if (v > mv) { mv = v; mvp = p.id; } }
   const bots = [...room.bots.values()].filter(b => b.info.team && (!b.dead || b.kills)).map(b => ({ id: b.info.id, name: b.info.name, team: b.info.team, kills: b.kills || 0, maxLen: b.maxLen || 20, bot: true }));
   for (const b of bots) { const v = b.kills * 100 + b.maxLen; if (v > mv) { mv = v; mvp = b.id; } }
-  bcast(room, { t: 'end', winner: A > B ? 'A' : B > A ? 'B' : 'draw', A, B, mvp,
+  bcast(room, { t: 'end', winner, A, B, lA, lB, tie: A === B, mvp,
     players: ps.map(p => ({ id: p.id, name: p.name, team: p.team, kills: p.kills, maxLen: p.maxLen })).concat(bots) });
   clearBots(room);
   room.phase = 'lobby'; room.timeLeft = MATCH; room.items = { tgs: null, gold: null }; room.cdAt = null; room.endAt = Date.now(); for (const p of room.players.values()) { p.ready = false; p.inLobby = false; }

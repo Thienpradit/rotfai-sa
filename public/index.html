@@ -145,8 +145,8 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(58p
 #killBadge.pop{animation:kbPop 2.1s ease forwards}
 @keyframes kbPop{0%{opacity:0;transform:translateX(-50%) scale(.3)}10%{opacity:.92;transform:translateX(-50%) scale(1.15)}18%{transform:translateX(-50%) scale(.95)}24%{transform:translateX(-50%) scale(1)}82%{opacity:.92;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) scale(.9) translateY(-8px)}}
 body.stageOn #killBadge{top:calc(108px + env(safe-area-inset-top))}
-body.vsOn #ann.low,body.vsOn #bossWarn,body.vsOn #bossDown{top:calc(158px + env(safe-area-inset-top))}
-@media (max-width:520px),(max-height:500px){body.vsOn #ann.low,body.vsOn #bossWarn,body.vsOn #bossDown{top:calc(126px + env(safe-area-inset-top))}}
+body.vsOn #ann.low,body.vsOn #bossWarn,body.vsOn #bossDown{top:calc(124px + env(safe-area-inset-top))}
+@media (max-width:520px),(max-height:500px){body.vsOn #ann.low,body.vsOn #bossWarn,body.vsOn #bossDown{top:calc(98px + env(safe-area-inset-top))}}
 /* 2v2: ไม่มีตารางอันดับขวาบน → ป้ายกำจัดไปอยู่มุมขวาบน ไม่ทับรถไฟกลางจอ (แนวตั้งยังอยู่ใต้มินิแมปตามเดิม) */
 @media (orientation:landscape),(min-width:601px){body.vsOn #killBadge{left:auto;right:calc(14px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top));transform:none;transform-origin:right center}body.vsOn #killBadge.pop{animation-name:kbPopR}}
 @keyframes kbPopR{0%{opacity:0;transform:scale(.3)}10%{opacity:.92;transform:scale(1.15)}18%{transform:scale(.95)}24%{transform:scale(1)}82%{opacity:.92;transform:scale(1)}100%{opacity:0;transform:scale(1)}}
@@ -2132,7 +2132,7 @@ function drawVsBoard(){const on=!!(NET&&!NET.ffa&&NET.phase==='play'&&(state==='
   // แบบใหม่ (เจ้าของ 13 พ.ย. 12:54): ตัวเลขล้วน ไม่มีกะโหลก · พื้นโปร่งมองทะลุ · ขีดกลางคั่นแดง–น้ำเงิน · ทีมที่กำจัดได้มากกว่าตัวเลขเด่นกว่า
   const sc=NET.score||{A:{k:0,l:0},B:{k:0,l:0}},tl=Math.max(0,NET.timeLeft),s=Math.ceil(tl),txt=Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
   const sm=VW<520||VH-SAFE.t-SAFE.b<430;let x=SAFE.l+(VW-SAFE.l-SAFE.r)/2;const now=performance.now()/1000,warn=tl<30,crit=tl<10;
-  const fs=sm?34:46,h=sm?44:58,y=SAFE.t+5,fs2=sm?28:38,h2=sm?38:50,half=sm?58:78;
+  const fs=sm?34:46,h=sm?44:58,y=SAFE.t+5,fs2=sm?19:25,h2=sm?28:34,half=sm?44:56;   // ตัวเลขคะแนนเล็กกว่าเวลาชัด ๆ (เจ้าของ 12:57: ใหญ่ไป)
   ctx.save();ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.font='800 '+fs+'px Mitr,sans-serif';const tw=ctx.measureText(txt).width+(sm?36:48);
   // มือถือแนวตั้ง: ซ้ายบนมีกรอบข้อมูล/ชิป/มินิแมป (กว้าง ~172px) → เลื่อนป้ายไปกลางที่ว่างด้านขวาแทน ไม่ทับกัน
@@ -2152,14 +2152,14 @@ function drawVsBoard(){const on=!!(NET&&!NET.ffa&&NET.phase==='play'&&(state==='
   bg.addColorStop(0,'rgba(255,70,80,.38)');bg.addColorStop(.47,'rgba(255,70,80,.10)');bg.addColorStop(.53,'rgba(60,140,255,.10)');bg.addColorStop(1,'rgba(60,140,255,.38)');
   ctx.fillStyle=bg;pill(x,cy,half*2,h2);ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='rgba(255,255,255,.22)';ctx.stroke();
   // ขีดกลาง
-  ctx.fillStyle='rgba(255,255,255,.75)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-(sm?7:9),cy-1.5,sm?14:18,3,1.5):ctx.rect(x-8,cy-1.5,16,3);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.75)';ctx.beginPath();ctx.roundRect?ctx.roundRect(x-(sm?5:7),cy-1.25,sm?10:14,2.5,1.25):ctx.rect(x-8,cy-1.5,16,3);ctx.fill();
   for(const t of['A','B']){const k=sc[t].k|0;if(k>VSB.k[t])VSB.t[t]=now;VSB.k[t]=k;
     const age=now-VSB.t[t],bump=age<.55?1+.4*(1-age/.55):1,mine=player&&player.team===t,isLead=lead===t;
     const nx=x+(t==='A'?-1:1)*half*.5,col=t==='A'?'#ff6b74':'#5aa8ff';
     ctx.save();ctx.translate(nx,cy);ctx.scale(bump*(isLead?1.08:1),bump*(isLead?1.08:1));
-    ctx.font='800 '+fs2+'px Mitr,sans-serif';ctx.shadowColor=col;ctx.shadowBlur=isLead||age<.55?14:7;
+    ctx.font='800 '+fs2+'px Mitr,sans-serif';ctx.shadowColor=col;ctx.shadowBlur=isLead||age<.55?10:5;
     ctx.globalAlpha=lead&&!isLead?.82:1;ctx.fillStyle='#fff';ctx.fillText(k+'',0,fs2*.05);ctx.restore();
-    if(mine){ctx.fillStyle=col;ctx.globalAlpha=.9;ctx.beginPath();ctx.roundRect?ctx.roundRect(nx-(sm?9:12),cy+h2/2-(sm?6:7),sm?18:24,3,1.5):ctx.rect(nx-10,cy+h2/2-6,20,3);ctx.fill();ctx.globalAlpha=1}   // ขีดเล็กใต้ตัวเลข = ทีมคุณ
+    if(mine){ctx.fillStyle=col;ctx.globalAlpha=.9;ctx.beginPath();ctx.roundRect?ctx.roundRect(nx-(sm?7:9),cy+h2/2-(sm?5:6),sm?14:18,2.5,1.25):ctx.rect(nx-10,cy+h2/2-6,20,3);ctx.fill();ctx.globalAlpha=1}   // ขีดเล็กใต้ตัวเลข = ทีมคุณ
   }
   ctx.restore();VSB.bottom=y2+h2+(sm?8:10)}
 const STAGE_TIMER_H=44;
@@ -2371,7 +2371,7 @@ const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้
   ['✨ เกิดใหม่','ขบวนที่เพิ่งเกิดจะจาง 2.5 วิ ชนทะลุได้ไม่ตาย'],
   ['🏆 แรงก์','📈 ได้จาก: ความยาวตอนจบ (ทุก 60 = +1) · กำจัดตัวละ +2 · 2v2 คิดแค่กำจัด×2 + ชนะ 15 · <b>ได้เฉพาะโหมดออนไลน์และ 2v2</b> (🗺️ ผจญภัยไม่ได้ RP) (ตารางอันดับนับเฉพาะออนไลน์)<br>📉 ลดเมื่อ: แรงก์เงินขึ้นไปตายตอนขบวนยังสั้น · ขึ้นเดือนใหม่ RP เหลือครึ่ง<br><b>ดูตารางละเอียดในเมนู 🏆 แรงก์ → 📖 วิธีขึ้นแรงก์</b>'],
   ['🗺️ ผจญภัย (เล่นคนเดียว)','30 ด่าน 3 โลก · ❤️ ด่านละ 3 ชีวิต (ตายเกิดใหม่ในด่านเดิม หมด 3 ชีวิตเริ่มด่านใหม่) · สนามเล็กกว่าออนไลน์ บอทเยอะและไล่คุณ + 🎯 <b>นักล่า</b>บุกมาเป็นระลอก (สีส้มบนมินิแมป) · <b>ไม่นับสถิติ ภารกิจ เหรียญตรา ไม่ได้ RP</b> · แต่ละด่านมีเป้าหมาย (ยาวให้ถึง / กำจัด / รอด / ล้มบอส) ทำให้ได้ภายใน <b>10 นาที</b> · บอทเก่งขึ้นและสิ่งกีดขวางเยอะขึ้นทุกด่าน · 🪨 หิน 🏚️ โกดัง 🚧 ไม้กั้นทางข้าม (ตอนปิดไฟแดงกะพริบ) <b>ชน = ตาย</b> · 🟫 โคลนทำให้ช้าลง · ผ่านเร็วได้ ⭐ มาก · ได้เหรียญเมื่อได้ดาวใหม่ · ไม่ได้ RP'],
-  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์ = ทีมชนะได้ กำจัด×2 + 15 · ทีมแพ้ไม่ได้ RP'],
+  ['⚔️ 2v2','แข่งทีม 🔴 vs 🔵 (คนไม่ครบเติมบอท) · <b>ทีมที่กำจัดได้มากกว่าชนะ</b> (กำจัดเท่ากันดูความยาวรวม) · <b>ไม่นับความยาวเข้าสถิติ</b> (ยาวสุด / ตารางอันดับ 🚂 ยาวสุด) · แรงก์ = ทีมชนะได้ กำจัด×2 + 15 · ทีมแพ้ไม่ได้ RP'],
   ['🪙 เหรียญ','ได้จาก: ความยาวตอนจบ ÷10 · กำจัดตัวละ 5 · ขับผ่านสถานี · ล้มบอส '+BOSS_COINS+' · ภารกิจรายวัน · เหรียญตรา · ชนะ 2v2 +50 · จบเดือนแจกตามอันดับแรงก์<br>เอาไปซื้อหัวจักร สี ควัน ฯลฯ ใน 🛒 ร้านค้า']];
 let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / 💡 เคล็ดลับ (มีรูป)
 // ===== 📰 มีอะไรใหม่ (เจ้าของสั่ง 11 พ.ย. 22:24) =====
@@ -3035,7 +3035,7 @@ function renderVsResult(b){
   b.innerHTML=`<div class="vsres">
     <div class="vsrh" style="font-size:22px">${head}</div>
     <div class="vsrn" style="color:${E.win?'#7cfc9a':m.winner==='draw'?'#ffd23f':'#ff8a8a'}">${m.winner==='draw'?'ไม่มีทีมไหนชนะ':E.win?'ทีมคุณชนะ 🎉':'ทีมคุณแพ้ รอบหน้าเอาคืน!'}</div>
-    <div class="teams"><div class="tcol A${m.winner==='A'?' win':''}"><b>${tn.A}${m.winner==='A'?' 🏆':''}</b><div style="font-size:24px;font-weight:600">${m.A}</div></div><div class="tcol B${m.winner==='B'?' win':''}"><b>${tn.B}${m.winner==='B'?' 🏆':''}</b><div style="font-size:24px;font-weight:600">${m.B}</div></div></div>
+    <div class="teams"><div class="tcol A${m.winner==='A'?' win':''}"><b>${tn.A}${m.winner==='A'?' 🏆':''}</b><div style="font-size:26px;font-weight:700">${m.A}</div><small>กำจัด</small></div><div class="tcol B${m.winner==='B'?' win':''}"><b>${tn.B}${m.winner==='B'?' 🏆':''}</b><div style="font-size:26px;font-weight:700">${m.B}</div><small>กำจัด</small></div></div>${m.tie&&m.winner!=='draw'?`<div class="vsrn" style="margin-top:4px">กำจัดเท่ากัน → ตัดสินด้วยความยาวรวม (${(m.lA||0).toLocaleString()} : ${(m.lB||0).toLocaleString()})</div>`:''}
     <div class="help" style="margin:8px 0 2px">อันดับรอบนี้</div>
     ${ps.map((p,i)=>`<div class="vsrp vsrk${p.id===NET.id?' me':''}"><span><b class="vspos">${med[i]||(i+1)}</b> <span style="color:${TEAM_COL[p.team]}">${p.bot?(/^🤖/.test(p.name)?'':'🤖 '):'🚂 '}${esc(p.name)}${p.id===NET.id?' (คุณ)':''}</span></span><span>💀 ${p.kills} · ยาว ${Math.floor(p.maxLen)}</span></div>`).join('')}
     <div class="vsrc">รอบนี้ได้ +${E.coins} 🪙 · ${E.rp>=0?'+':''}${E.rp} RP</div>
