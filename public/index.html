@@ -137,8 +137,30 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(94p
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
 #resetBar{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;width:min(92vw,440px);box-sizing:border-box;padding:8px 12px;border-radius:12px;background:linear-gradient(#ff8c42,#e0601a);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:left}
 #resetBar.hidden{display:none}#resetBar span{flex:1;min-width:0}#resetBar small{font-weight:400;font-size:11.5px;opacity:.92}#resetBar b{font-size:18px;color:#fff3a8}#resetBar button{flex:none;border:0;border-radius:9px;padding:6px 10px;background:#fff;color:#c24a00;font:700 12.5px Mitr,sans-serif;cursor:pointer}
-#gjTip{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));z-index:95;transform:translate(-50%,-140%);max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:7px 16px;border-radius:999px;background:rgba(16,22,52,.94);border:2px solid var(--c,#4da3ff);box-shadow:0 0 16px color-mix(in srgb,var(--c,#4da3ff) 45%,transparent);color:#fff;font-size:14px;font-weight:600;pointer-events:none;opacity:0;transition:transform .35s,opacity .35s}
-#gjTip.show{transform:translate(-50%,0);opacity:1}
+#gjBig{position:fixed;left:50%;top:calc(15vh + env(safe-area-inset-top));z-index:96;pointer-events:none;transform:translateX(-50%);display:none;width:min(94vw,620px)}
+#gjBig.show{display:block}#gjBig.ingame{top:calc(8px + env(safe-area-inset-top));width:min(56vw,480px)}
+#gjBig .gjb{position:relative;text-align:center;padding:12px 18px 14px;border-radius:22px;overflow:visible;background:rgba(12,14,34,.9);box-shadow:0 0 30px var(--c);
+  background:radial-gradient(120% 140% at 50% 0%,color-mix(in srgb,var(--c) 38%,transparent),rgba(12,14,34,.9) 62%);border:2px solid var(--c);
+  box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 0 34px color-mix(in srgb,var(--c) 70%,transparent),0 14px 40px rgba(0,0,0,.5);animation:gjIn .7s cubic-bezier(.2,1.6,.4,1) both}
+#gjBig.ingame .gjb{background:rgba(12,14,34,.62);background:radial-gradient(120% 140% at 50% 0%,color-mix(in srgb,var(--c) 30%,transparent),rgba(12,14,34,.62) 62%);padding:8px 14px 10px}
+#gjBig.out .gjb{animation:gjOut .45s ease-in both}
+#gjBig .gjray{position:absolute;left:50%;top:50%;width:150%;aspect-ratio:1;transform:translate(-50%,-50%);z-index:-1;border-radius:50%;opacity:.5;
+  background:repeating-conic-gradient(from 0deg,color-mix(in srgb,var(--c) 60%,transparent) 0 8deg,transparent 8deg 22deg);-webkit-mask:radial-gradient(closest-side,#000 35%,transparent);mask:radial-gradient(closest-side,#000 35%,transparent);animation:gjSpin 6s linear infinite}
+#gjBig .gjm{display:inline-block;font:800 13px/1 Mitr,sans-serif;letter-spacing:2.5px;color:#fff;background:var(--c);padding:5px 12px 6px;border-radius:999px;box-shadow:0 0 14px var(--c)}
+#gjBig .gjn{font-family:Chonburi,Mitr,serif;font-size:clamp(34px,9vw,60px);line-height:1.18;margin:6px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:linear-gradient(100deg,#fff 0%,var(--c2) 22%,#fff 40%,#ffe27a 55%,#fff 70%,var(--c2) 85%,#fff 100%);background-size:260% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.55)) drop-shadow(0 0 14px var(--c));animation:gjShine 2.2s linear infinite}
+#gjBig.ingame .gjb{padding:6px 12px 8px;border-radius:16px}#gjBig.ingame .gjm{font-size:11px;padding:4px 10px 5px;letter-spacing:2px}
+#gjBig.ingame .gjn{font-size:clamp(24px,4.6vw,40px);margin-top:2px}#gjBig.ingame .gjs{font-size:13px}#gjBig.ingame .gjray{opacity:.26;width:125%}#gjBig.ingame i{font-size:14px}
+#gjBig .gjs{font:600 clamp(15px,3.8vw,20px)/1.3 Mitr,sans-serif;color:#fff;text-shadow:0 2px 6px #000;margin-top:2px}
+#gjBig i{position:absolute;left:50%;top:50%;font-style:normal;color:#fff6c8;font-size:18px;opacity:0;text-shadow:0 0 8px var(--c);animation:gjSpark 1.3s ease-out var(--d) both}
+@keyframes gjIn{0%{transform:translateY(-40px) scale(.5);opacity:0}100%{transform:none;opacity:1}}
+@keyframes gjOut{to{transform:translateY(-24px) scale(.92);opacity:0}}
+@keyframes gjSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes gjShine{from{background-position:100% 0}to{background-position:-160% 0}}
+@keyframes gjSpark{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(0) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(-150px) scale(1.2)}}
+body.vsOn #gjBig.ingame{top:auto;bottom:calc(10px + env(safe-area-inset-bottom));width:min(46vw,420px)}
+@media (max-aspect-ratio:1/1){#gjBig.ingame,body.vsOn #gjBig.ingame{top:auto;bottom:calc(150px + env(safe-area-inset-bottom));width:min(88vw,440px)}#gjBig.ingame .gjn{font-size:32px}}   /* มือถือแนวตั้ง: รถไฟอยู่กลางจอ HUD อยู่บน → ขึ้นเหนือปุ่มล่าง */
 #invTip{position:fixed;left:50%;bottom:calc(118px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:26;width:min(340px,92vw);background:rgba(16,22,52,.94);border:2px solid #4da3ff;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.45);font-family:Mitr,sans-serif;animation:kbyIn .3s ease}
 #invTip.hidden{display:none}#invTip .it1{font-size:15px;color:#fff}#invTip .it1 b{color:#ffd23f}#invTip .it2{font-size:12px;color:#aeb6e8;margin:2px 0 8px}
 #invTip .ib{display:flex;gap:8px}#invTip button{font:600 15px Mitr,sans-serif;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}#invYes{flex:1;background:#ffd23f;color:#2a1a00}#invNo{background:#2d355f;color:#cfd5ff}
@@ -476,7 +498,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <div id="pauseOv" class="hidden"><div class="pbox"><h2 id="pTitle">⏸ หยุดชั่วคราว</h2><div class="help" id="pInfo"></div>
   <button class="btn play" id="pResume">▶ เล่นต่อ</button><button class="btn alt" id="pRetry">🔄 เริ่มด่านนี้ใหม่</button><button class="btn alt" id="pQuit">🚪 ออกจากด่าน</button></div></div>
 <div id="coopBar" class="hidden"><span id="coopMode" class="hidden"></span><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
-<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="gjTip"></div>
+<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="gjBig"></div>
 <div id="invTip" class="hidden"><div class="it1">📨 <b></b> ชวนคุณเล่น ⚔️ 2v2</div><div class="it2"></div><div class="ib"><button id="invYes">⚔️ เข้าร่วม</button><button id="invNo">✕</button></div><div class="bar"></div></div><div id="kby" class="hidden"><div class="h">💀 คุณโดนกำจัดโดย</div><div class="n"></div><div class="tt"></div><div><div class="say"></div></div><div class="cd"></div></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
@@ -2685,7 +2707,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
   {id:35,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
-  {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง']},
+  {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง','มีคนเข้าโหมด 🔵 Normal / 🔴 Hard → ป้ายชื่อตัวใหญ่ประกาศให้ทุกคนเห็น!']},
   {id:33,d:'14 พ.ย. 2026',t:'🌍 โลกออนไลน์ 3 โหมด',l:['กด 🌍 เล่นออนไลน์ แล้วเลือกโหมดได้ · ปุ่มบอกด้วยว่าแต่ละโหมดมีคนเล่นกี่คน','🟢 <b>Easy</b> ฝึกเล่น บอทอ่อน — ไม่ได้เหรียญ แรงก์ ภารกิจ','🔵 <b>Normal</b> แบบเดิม','🔴 <b>Hard</b> บอทโหดไล่ตัดหน้าเก่ง + 🪨 หินกลางสนาม ชนแล้วตาย — ได้เหรียญและแรงก์ <b>×1.3</b>']},
   {id:32,d:'13 พ.ย. 2026',t:'🔥 ควันเปลวไฟ & 🍃 ควันใบไม้โฉมใหม่',l:['🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
   {id:31,d:'13 พ.ย. 2026',t:'🧲 หัวจักรในร้านดูดพลอยไกลขึ้น 30%',l:['หัวจักรทุกหัวที่ซื้อจากร้าน เก็บพลอยและเพชรขาวได้ไกลขึ้นอีก <b>30%</b>','ดีเซล +20 · กระสุน +39 · รถราง +59 · ใต้ดิน +78 · ดาวหาง +104','ใครมีหัวจักรอยู่แล้วได้ทันที ไม่ต้องซื้อใหม่']},
@@ -3297,10 +3319,17 @@ function presOpen(){presClose();if(NET||document.hidden||!/^https?:/.test(locati
 try{const ws=new WebSocket(netURL(''));PRES=ws;
   ws.onopen=()=>{try{ws.send(JSON.stringify({t:'idle',name:playerName()}))}catch(e){}};
   ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='inv')showInvite(m);else if(m.t==='gj')gjShow(m)};ws.onclose=()=>{if(PRES===ws)PRES=null}}catch(e){}}
-// ใครเข้าโหมด Normal/Hard → ประกาศให้ทุกคน (เซิร์ฟเวอร์ส่ง gj) · ในเกม = แถบข้อความบนจอ · หน้าแรก = ป้าย #gjTip บนสุด
-let gjT=0;function gjShow(m){const o=OMODE[m.d];if(!o)return;const nm=String(m.name||'ผู้เล่น').replace(/[<>&"]/g,'').slice(0,14),txt=o.ic+' '+nm+' เข้าโหมด '+o.n+' แล้ว!';
-  if(state==='play'||state==='dead'){killFeed.push({txt,c:o.col,until:performance.now()+4500,kf:1});if(killFeed.length>3)killFeed.shift();return}
-  const el=$('gjTip');if(!el)return;el.textContent=txt;el.style.setProperty('--c',o.col);el.classList.remove('show');void el.offsetWidth;el.classList.add('show');clearTimeout(gjT);gjT=setTimeout(()=>el.classList.remove('show'),4200)}
+// ใครเข้าโหมด Normal/Hard → ประกาศให้ทุกคน (เซิร์ฟเวอร์ส่ง gj) · แบนเนอร์ใหญ่อลังการ #gjBig (14 พ.ย. เจ้าของสั่ง): ชื่อตัวใหญ่ทองเงาวิ่ง + แสงหมุน + ประกาย + เสียง · มาหลายคนต่อคิว · ในเกมอยู่บนจอ โปร่ง ไม่รับการแตะ
+const GJQ=[];let gjBusy=false;const GJ_SHOW=3600;
+function gjShow(m){const o=OMODE[m.d];if(!o)return;const nm=String(m.name||'ผู้เล่น').replace(/[<>&"]/g,'').slice(0,14);
+  if(GJQ.some(q=>q.nm===nm&&q.d===m.d))return;GJQ.push({nm,d:m.d});if(GJQ.length>3)GJQ.shift();if(!gjBusy)gjNext()}
+function gjNext(){const q=GJQ.shift(),el=$('gjBig');if(!q||!el){gjBusy=false;return}gjBusy=true;const o=OMODE[q.d],hard=q.d==='hard';
+  el.className='';el.style.setProperty('--c',o.col);el.style.setProperty('--c2',hard?'#ffb35c':'#9fe0ff');
+  el.innerHTML=`<div class="gjb"><div class="gjray"></div><div class="gjm">${o.ic} ${hard?'HARD MODE':'NORMAL MODE'}</div><div class="gjn">${escH(q.nm)}</div><div class="gjs">${hard?'🔥 ท้าชนโหมดโหดแล้ว!':'🚂 เข้าสู่สนามแล้ว!'}</div>`+
+    Array.from({length:10},(_,i)=>`<i style="--a:${i*36+(i%2)*14}deg;--d:${(i%3)*.12}s">✦</i>`).join('')+`</div>`;
+  void el.offsetWidth;el.classList.add('show',state==='play'||state==='dead'?'ingame':'menu');
+  try{if(SND.on&&SND.ctx){if(hard)bossSfx('fanfare');else sfx('gold')}}catch(e){}
+  setTimeout(()=>{el.classList.add('out');setTimeout(()=>{el.className='';el.innerHTML='';gjNext()},450)},GJ_SHOW)}
 function presClose(){if(PRES){const w=PRES;PRES=null;try{w.close()}catch(e){}}}
 function showInvite(m){if(NET&&!NET.ffa)return;const el=$('invTip'),esc=t=>String(t||'').replace(/[<>&]/g,'');INV_CODE=String(m.code||'');
   const mini=state==='play'||state==='dead';el.classList.toggle('mini',mini);   // กำลังเล่น = การ์ดเล็กชิดขวา
