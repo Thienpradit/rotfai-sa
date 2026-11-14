@@ -2502,11 +2502,11 @@ function drawHUD2(){
   let l2=STG?(rank?'#'+rank+'/'+alive.length:'—')+' · 💀 '+player.kills:(NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,omW=0;
   const l1='ยาว '+Math.floor(player.mass);let l1W=0;
   if(OM){ctx.font='600 12px Mitr,sans-serif';omW=textW(OM.n)+14;ctx.font='600 20px Mitr,sans-serif';l1W=textW(l1);ctx.font='600 13px Mitr,sans-serif';const cW=textW('🪙 '+prof.coins);ctx.font='14px Mitr,sans-serif';
-    bw=Math.max(bw,Math.ceil(12+l1W+8+omW+10+cW+8),Math.ceil(textW(l2)+22))}   // ป้ายโหมดอยู่ข้าง "ยาว" บรรทัดบนสุด (เจ้าของสั่ง 12:26)
+    bw=Math.max(bw,Math.ceil(12+l1W+8+omW+10+cW+8),Math.ceil(textW(l2)+22))}   // ป้ายโหมดอยู่หน้าคำว่า "ยาว" บรรทัดบนสุด (เจ้าของสั่ง 12:28)
   ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(bx0,pad,bw,64,12);ctx.fill();
-  ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText(l1,bx0+12,pad+27);
+  ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText(l1,bx0+12+(OM?omW+8:0),pad+27);
   if(!STG){ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+bw-8,pad+26);ctx.textAlign='left'}
-  if(OM){const x=bx0+12+l1W+8,y=pad+12;ctx.fillStyle=OM.col+'40';roundRect(x,y,omW,18,9);ctx.fill();ctx.strokeStyle=OM.col;ctx.lineWidth=1.5;ctx.stroke();
+  if(OM){const x=bx0+12,y=pad+11;ctx.fillStyle=OM.col+'40';roundRect(x,y,omW,18,9);ctx.fill();ctx.strokeStyle=OM.col;ctx.lineWidth=1.5;ctx.stroke();
     ctx.fillStyle='#fff';ctx.font='600 12px Mitr,sans-serif';ctx.fillText(OM.n,x+7,y+13.5)}
   ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText(l2,bx0+12,pad+50);
   let py=pad+74;
