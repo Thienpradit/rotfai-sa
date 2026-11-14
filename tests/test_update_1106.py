@@ -36,8 +36,8 @@ async def main():
         await a.evaluate("toMenu()")
         # --- ออนไลน์: ทุกคนเข้าโลกเดียวกัน, บอท Normal, คน+บอท = 30 ---
         await a.evaluate("setDiff('hard')")      # ผู้เล่นตั้ง Hard ไว้ในโหมดบอท แต่ออนไลน์ต้องเป็น Normal
-        await a.click('#playInf'); await a.wait_for_timeout(3500); pages.append(a)
-        b = await open_page(1); await b.evaluate("setDiff('easy')"); await b.click('#playInf'); await b.wait_for_timeout(2500); pages.append(b)
+        await a.click('#playInf'); await a.click('.omode[data-k=normal]'); await a.wait_for_timeout(3500); pages.append(a)
+        b = await open_page(1); await b.evaluate("setDiff('easy')"); await b.click('#playInf'); await b.click('.omode[data-k=normal]'); await b.wait_for_timeout(2500); pages.append(b)
         await a.wait_for_timeout(4000)
         for i, pg in enumerate(pages):
             print(f'online P{i+1}', await pg.evaluate(f"[NET.room,NET.host,NET.players.size,{BOTS},D().label,diff,mode]"))

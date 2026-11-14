@@ -28,6 +28,27 @@ function buildWorld(R) {
   for (let k = 0; k < 3; k++) { const a = k * TAU / 3 + 1.05; portals.push({ x: Math.cos(a) * R * .33, y: Math.sin(a) * R * .33, pair: k * 2 + 1 }); portals.push({ x: Math.cos(a + Math.PI * .85) * R * .82, y: Math.sin(a + Math.PI * .85) * R * .82, pair: k * 2 }); }
   return { portals };
 }
+// ---------- 🌍 โลกออนไลน์ 3 โหมด (เจ้าของสั่ง 14 พ.ย.): Easy บอทอ่อน · Normal เดิม · Hard บอทแบบ 2v2 + หิน ----------
+// หิน (โหมด Hard): ตำแหน่งตายตัวตามรหัสโลก — เซิร์ฟเวอร์ส่งให้ผู้เล่นใน welcome.rocks [[x,y,r,sd]] · หลบสถานี/อุโมงค์/กลางสนาม/ขอบ
+const HARD_ROCKS = 40;
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function buildRocks(R, code) {
+  let h = 2166136261; for (const c of 'rocks:' + code) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+  const rr = mulberry(h), W = buildWorld(R), out = [], avoid = [];
+  for (let k = 0; k < 4; k++) { const a = k * TAU / 4 + .35; avoid.push([Math.cos(a) * R * .6, Math.sin(a) * R * .6, 300]); }   // สถานี (ตำแหน่งเดียวกับ buildWorld ในเกม)
+  for (const p of W.portals) avoid.push([p.x, p.y, 230]);
+  for (let tries = 0; out.length < HARD_ROCKS && tries < 4000; tries++) {
+    const r = 45 + rr() * 40, a = rr() * TAU, d = Math.sqrt(rr()) * (R - 320), x = Math.cos(a) * d, y = Math.sin(a) * d;
+    if (Math.hypot(x, y) < 480) continue;
+    if (avoid.some(([ax, ay, ar]) => Math.hypot(x - ax, y - ay) < ar + r)) continue;
+    if (out.some(o => Math.hypot(x - o[0], y - o[1]) < r + o[2] + 200)) continue;
+    out.push([Math.round(x), Math.round(y), Math.round(r), Math.round(rr() * 100) / 100]);
+  }
+  return out;
+}
+// ชนหิน: วงหิน + rad (หัวขบวนใช้ r*.5 เหมือน obstHit ในเกม)
+function rockHit(room, x, y, rad) { const rk = room.rocks; if (!rk) return false;
+  for (const o of rk) { const dx = x - o[0], dy = y - o[1], m = o[2] + rad; if (dx * dx + dy * dy < m * m) return true; } return false; }
 // ---------- ขบวน (บอท / ร่างจำลองของผู้เล่นจริงที่ใช้ตรวจชน) ----------
 function follow(t) {
   const n = nOf(t.mass), p = t.pts;
@@ -54,6 +75,7 @@ function farSpot(room, trains, margin, minD, side) {
   let best = null, bd = -Infinity; const AR = arenaR(room);   // -Infinity: คืนจุดที่ดีที่สุดเสมอ (เดิม -1 → วงหดแน่นแล้วคืน null → เซิร์ฟเวอร์ล่ม 12 พ.ย. 13:10)
   for (let i = 0; i < 36; i++) { let x, y;
     if (side !== undefined && i < 24) { const a = side + rnd(-.8, .8), rr = Math.sqrt(Math.random()) * Math.max(100, AR - margin); x = Math.cos(a) * rr; y = Math.sin(a) * rr; } else [x, y] = randIn(room, margin);
+    if (i < 32 && rockHit(room, x, y, 160)) continue;   // Hard: ไม่เกิดทับ/ชิดหิน
     let d = 1e9; for (const t of trains) { if (!t.alive) continue; const p = t.pts; for (let k = 0; k < p.length; k += 8) { const dd = Math.hypot(p[k].x - x, p[k].y - y) - (k ? 0 : 350); if (dd < d) d = dd; } }
     if (d >= minD) return [x, y]; if (d > bd) { bd = d; best = [x, y]; } }
   return best || randIn(room, margin);
@@ -68,11 +90,11 @@ function spawnBot(room, o = {}) {
   const side = o.team ? (o.team === 'A' ? Math.PI : 0) : undefined;
   const [x, y] = farSpot(room, trains, o.boss ? 500 : 400, o.boss ? 1100 : 650, side);
   const a = side !== undefined ? side + Math.PI + rnd(-.5, .5) : Math.random() * TAU;
-  let mass = o.boss ? D.bossM : rnd(25, 120); if (!o.boss && !o.team && !o.hunter && Math.random() < D.big) mass = rnd(150, 450); if (o.team) mass = rnd(40, 80); if (o.hunter) mass = rnd(80, 140);
+  const DP = dprof(room); let mass = o.boss ? DP.bossM : rnd(25, 120); if (!o.boss && !o.team && !o.hunter && Math.random() < DP.big) mass = rnd(150, 450); if (o.team) mass = rnd(40, 80); if (o.hunter) mass = rnd(80, 140);
   const id = -(100000000 + (nextBot++ % 90000000));
   const b = { id, bot: true, name: o.boss ? '👑 บอสยักษ์' : (o.hunter ? '🎯 ' : o.team ? '🤖 ' : '') + freeName(room), skin: o.boss ? BOSS_SKIN : o.hunter ? HUNTER_SKIN : o.team ? TEAM_SKIN[o.team] : pick(SKINS), loco: o.boss ? 'diesel' : pick(LOCOS), team: o.team,
     mass, maxLen: mass, pts: mkPts(x, y, a, mass), angle: a, target: a, boost: false, energy: o.boss ? 10 : 5, alive: true, safe: SPAWN_GHOST, ghost: SPAWN_GHOST, slow: 0, selfCD: 0, tunCD: 0,
-    kills: 0, isBoss: !!o.boss, hp: o.boss ? D.bossHp : 0, maxHp: o.boss ? D.bossHp : 0, ai: { t: 0, tx: x, ty: y, boostT: 0, hunt: null } };
+    kills: 0, isBoss: !!o.boss, hp: o.boss ? DP.bossHp : 0, maxHp: o.boss ? DP.bossHp : 0, ai: { t: 0, tx: x, ty: y, boostT: 0, hunt: null } };
   b.info = { id, name: b.name, skin: b.skin, loco: b.loco, boss: b.isBoss, mhp: b.maxHp }; if (b.team) b.info.team = b.team; if (o.hunter) { b.hunter = true; b.info.hunter = 1; }
   room.bots.set(id, b); if (b.isBoss) S.boss = b;
   S.bcast(room, { t: 'binfo', b: [b.info] });
@@ -114,13 +136,20 @@ const VS_HUNTERS = 2;   // จำนวนนักล่ากลางใน�
 // huntR 4800 = ทั้งสนาม 2v2 (กว้าง 4400): ทีมเกิดคนละฝั่ง ห่างกัน 1800–3000 เดิมระยะ 1900 เลยแทบไม่เคยไล่ (เจ้าของแจ้ง 13 พ.ย. 08:27)
 // โหดขึ้นอีกรอบ (เจ้าของสั่ง 13 พ.ย. 06:54): คิดถี่ขึ้น ไล่ไกลขึ้น เร่งบ่อยขึ้น เลี้ยวไวขึ้น (VS_TURN) ขบวนเกิดยาวขึ้น · 2 ตัวไล่เป้าเดียวกัน = ประกบสองข้าง (คีม)
 const DV = { huntP: .99, huntR: 4800, others: .9, othersR: 1800, look: 1.5, think: [3, 8], leadK: .7, boostR: 950, regen: .9, enMax: 8, dodge: 1 };
+// 🌍 Hard = AI แบบ 2v2 (DV) แต่ระยะไล่คนจริง 2,600 และ**ไล่คนเดียวกันได้พร้อมกันไม่เกิน HARD_CAP ตัว** (บอท 40 ตัวไม่รุมคนเดียวทั้งโลก)
+const DH = { ...DV, huntR: 2600 }, HARD_CAP = 4;
+// 🌍 Easy = บอทอ่อน (เหมือน Easy เดิมในเกม): ไล่น้อย มองใกล้ คิดช้า
+const DE = { huntP: .25, huntR: 420, others: .15, look: .6, think: [22, 45], big: .1, boss: 180, bossM: 600, bossHp: BOSS_HEARTS };
+const dprof = room => room.ffa && room.diff === 'easy' ? DE : D;   // บอส/บอทตัวใหญ่ตามโหมด
+const smart = (room, w) => !w.isBoss && (!room.ffa || room.diff === 'hard');   // ใช้ AI แบบ 2v2 (DV/DH)
+const huntersOn = (trains, o, w) => { let n = 0; for (const q of trains) if (q !== w && q.bot && q.alive && q.ai && q.ai.hunt === o) n++; return n; };
 const VS_TURN = 1.15, VS_RESPAWN = 2, VS_HUNT_RESPAWN = 4;
 const enemyHeadNear = (room, w, x, y, rr, trains) => { for (const o of trains) { if (o === w || !o.alive || ally(o, w) || o.ghost > 0) continue;   // หลบหัวศัตรูที่กำลังพุ่งมา (คาดตำแหน่งล่วงหน้า ~0.3 วิ)
     const oh = o.pts[0], oa = o.angle || 0, sp = (o.boost ? 5.4 : 2.7) * 18, px = oh.x + Math.cos(oa) * sp, py = oh.y + Math.sin(oa) * sp, R = rr + rOf(o.mass) + 14;
     if ((px - x) ** 2 + (py - y) ** 2 < R * R || (oh.x - x) ** 2 + (oh.y - y) ** 2 < R * R) return true; } return false; };
 function aiThink(S, room, w, f, trains) {
   const h = w.pts[0], r = rOf(w.mass), ai = w.ai; ai.t -= f;
-  const vs = !room.ffa && !w.isBoss, P = vs ? DV : D;
+  const vs = smart(room, w), P = vs ? (room.ffa ? DH : DV) : room.ffa && room.diff === 'easy' ? DE : D, capped = vs && room.ffa;   // capped: Hard จำกัดจำนวนบอทที่รุมคนจริงคนเดียว
   if (vs && w.energy < DV.enMax) w.energy += f / 60 * DV.regen;   // 2v2: บอทเติมพลังเร่งเองช้า ๆ ไว้พุ่งตัดหน้า/หนี
   if (ai.t <= 0) {
     ai.t = rnd(P.think[0], P.think[1]) / (1 + .4 * bossRage(w)); ai.hunt = null;
@@ -128,10 +157,11 @@ function aiThink(S, room, w, f, trains) {
     if (w.isBoss) for (const o of trains) { if (!o.alive || !o.human || o.safe || o.ghost) continue; const d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d < bd0) { bd0 = d; bh = o; } }
     if (bh) ai.hunt = bh;
     else if (w.mass > (vs ? 12 : 22)) { let bd = 1e9; for (const o of trains) { if (o === w || !o.alive || ally(o, w) || (w.hunter && !o.human)) continue; const oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y), hu = !!o.human, bt = bigTier(o), de = d / (1 + .4 * bt) / (vs && hu ? 1.8 : 1);   // 2v2: เล็งคนจริงก่อนบอท
+      if (hu && capped && huntersOn(trains, o, w) >= HARD_CAP) continue;
       if (!(hu ? (o.safe || o.ghost) : vs && (o.safe > 0 || o.ghost > 0)) && d < (hu ? P.huntR + 200 * bt : vs ? DV.othersR : 380) && de < bd && Math.random() < (hu ? P.huntP + (1 - P.huntP) * Math.min(1, .1 * bt) : P.others)) { bd = de; ai.hunt = o; } }
       // นักล่ากลาง 🎯 ล่าผู้เล่นจริงอย่างเดียว ไม่ยุ่งกับบอท (เจ้าของสั่ง 13 พ.ย. 09:22) · เลือกคนใหม่ทุกครั้งที่คิด (กระจายไล่ทั้งสองทีม)
       if (vs && (w.hunter || (ai.hunt && !ai.hunt.human))) { let hb = null, hd = 1e9;
-      for (const o of trains) if (o.human && o.alive && !ally(o, w) && !(o.safe || o.ghost)) { let d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d >= DV.huntR) continue;
+      for (const o of trains) if (o.human && o.alive && !ally(o, w) && !(o.safe || o.ghost)) { let d = Math.hypot(o.pts[0].x - h.x, o.pts[0].y - h.y); if (d >= P.huntR || (capped && huntersOn(trains, o, w) >= HARD_CAP)) continue;
         // นักล่า: คนที่นักล่าอีกตัวไล่อยู่แล้ว นับว่าไกลขึ้น 3 เท่า → นักล่า 2 ตัวแยกไล่คนละคน (บอททีมยังรุมประกบคนเดียวกันได้)
         if (w.hunter) for (const q of trains) if (q !== w && q.hunter && q.alive && q.ai && q.ai.hunt === o) { d *= 3; break; }
         if (d < hd) { hd = d; hb = o; } } if (hb) ai.hunt = hb; } }   // 2v2: มีคนจริงในระยะ = ไล่คนก่อนเสมอ
@@ -145,7 +175,7 @@ function aiThink(S, room, w, f, trains) {
   }
   let tx = ai.tx, ty = ai.ty, boost = false;
   if (ai.hunt && ai.hunt.alive) { const o = ai.hunt, oh = o.pts[0], d = Math.hypot(oh.x - h.x, oh.y - h.y);
-    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : vs ? (o.human ? DV.huntR : 1700) : 850 + 200 * bigTier(o)) || (vs && (o.ghost > 0))) ai.hunt = null;
+    if (d > (w.isBoss ? 1300 + 250 * bossRage(w) : vs ? (o.human ? P.huntR : 1700) : 850 + 200 * bigTier(o)) || (vs && (o.ghost > 0))) ai.hunt = null;
     else if (vs) {   // 2v2: วิ่งขนาน แล้วพุ่งตัดหน้าให้ศัตรูชนลำตัวเรา
       const oa = o.angle || 0, osp = o.boost ? 5.4 : 2.7; let cut = 90 + rOf(o.mass) * 4, side = Math.sign(Math.cos(oa) * (h.y - oh.y) - Math.sin(oa) * (h.x - oh.x)) || 1;
       // เดาว่าเป้าจะอยู่ไหนตอนเราไปถึง: วิ่งโค้งด้วยความเร็วเลี้ยวปัจจุบัน (o.av) · τ = เวลาที่เราใช้ไปถึง (เพดาน 2.2 วิ)
@@ -161,7 +191,8 @@ function aiThink(S, room, w, f, trains) {
   if (Math.hypot(h.x, h.y) > arenaR(room) - 350) { tx = 0; ty = 0; boost = false; }
   const want = Math.atan2(ty - h.y, tx - h.x), lk = w.isBoss ? 1.3 : P.look, near = (r * 1.4 + 25) * lk, look = (r * 3 + 65) * lk, mid = (r * 2.2 + 45) * lk;
   const blocked = a => bodyNear(S, room, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r + 12, w) || bodyNear(S, room, h.x + Math.cos(a) * look, h.y + Math.sin(a) * look, r + 18, w)
-    || (vs && (bodyNear(S, room, h.x + Math.cos(a) * mid, h.y + Math.sin(a) * mid, r + 14, w) || enemyHeadNear(room, w, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r, trains)));
+    || (vs && (bodyNear(S, room, h.x + Math.cos(a) * mid, h.y + Math.sin(a) * mid, r + 14, w) || enemyHeadNear(room, w, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r, trains)))
+    || (room.rocks && !w.isBoss && (rockHit(room, h.x + Math.cos(a) * near, h.y + Math.sin(a) * near, r + 22) || rockHit(room, h.x + Math.cos(a) * look, h.y + Math.sin(a) * look, r + 10)));   // Hard: หลบหิน
   let pk = want;
   if (blocked(want)) { pk = null; const side = Math.sign(Math.atan2(Math.sin(want - w.angle), Math.cos(want - w.angle))) || 1;
     for (const o of vs ? [0, .35, -.35, .7, -.7, 1.1, -1.1, 1.6, -1.6, 2.2, -2.2, 2.8, -2.8] : [0, .6, -.6, 1.2, -1.2, 1.9, -1.9, 2.6, -2.6]) { const a = w.angle + o * side; if (!blocked(a)) { pk = a; break; } }
@@ -172,7 +203,7 @@ function aiThink(S, room, w, f, trains) {
 function portalOpen(room, p) { const q = room.sim.world.portals[p.pair], AR = arenaR(room); return Math.hypot(q.x, q.y) < AR - PORTAL_EDGE && Math.hypot(p.x, p.y) < AR - 60; }
 function moveBot(S, room, w, f, dt) {
   const r = rOf(w.mass); let d = w.target - w.angle; d = Math.atan2(Math.sin(d), Math.cos(d));
-  const rg = bossRage(w), tr = .12 / (1 + r / 30) * f * (1 + RAGE_TURN * rg) * (!room.ffa && !w.isBoss ? VS_TURN : 1); w.angle += Math.max(-tr, Math.min(tr, d));
+  const rg = bossRage(w), tr = .12 / (1 + r / 30) * f * (1 + RAGE_TURN * rg) * (smart(room, w) ? VS_TURN : 1); w.angle += Math.max(-tr, Math.min(tr, d));
   let sp = 2.7 * (w.isBoss ? RAGE_SPD[Math.min(2, rg)] : 1); const slowed = w.slow > 0; if (slowed) { w.slow -= dt; sp *= .45; }
   if (w.boost && w.energy > 0) { sp *= 2; w.energy = Math.max(0, w.energy - dt); }
   if (w.isBoss) sp = Math.min(sp, BOSS_CAP * (slowed ? .45 : 1));
@@ -184,6 +215,7 @@ function moveBot(S, room, w, f, dt) {
   if (w.mass > w.maxLen) w.maxLen = w.mass;
   if (w.isBoss && w.energy < 20) w.energy += dt * .5 * (1 + bossRage(w));
   if (h.x * h.x + h.y * h.y > (arenaR(room) - r * .5) ** 2) killBot(room, w, null);
+  else if (room.rocks && !w.isBoss && !(w.ghost > 0) && !w.tun && rockHit(room, h.x, h.y, r * .5)) killBot(room, w, null);   // Hard: ชนหิน = ตาย (บอสทะลุได้)
 }
 
 // ---------- ตาย / ขาด ----------
@@ -259,7 +291,7 @@ function fill(S, room, dt) {
       const hs = [...room.players.values()].filter(p => p.body).map(p => p.body.pts[0]); let far = null, fd = -1;
       for (const b of live) { const h = b.pts[0]; let d = 1e9; for (const q of hs) d = Math.min(d, Math.hypot(q.x - h.x, q.y - h.y)); if (d > fd) { fd = d; far = b; } }
       if (far) killBot(room, far, null, 'trim'); }
-    if (!S.boss || !S.boss.alive) { S.boss = null; S.bossT -= dt; if (S.bossT <= 0 && room.players.size) { S.bossT = D.boss; spawnBot(room, { boss: true }); } }
+    if (!S.boss || !S.boss.alive) { S.boss = null; S.bossT -= dt; if (S.bossT <= 0 && room.players.size) { S.bossT = dprof(room).boss; spawnBot(room, { boss: true }); } }
   } else if (room.phase === 'play') {
     const hum = { A: 0, B: 0 }; for (const p of room.players.values()) if (hum[p.team] !== undefined) hum[p.team]++;
     for (const t of ['A', 'B']) { const mine = live.filter(b => b.team === t), want = Math.max(0, TEAM_MAX - hum[t]);
@@ -273,7 +305,7 @@ function fill(S, room, dt) {
 
 // ---------- เรียกจาก server.js ----------
 function ensure(room, bcast, drop) {
-  if (!room.sim || room.sim.R !== room.cfg.R) room.sim = { R: room.cfg.R, world: buildWorld(room.cfg.R), bossT: D.boss, boss: null, trimT: 0, vsT: { A: 0, B: 0 }, bgrid: new Map(), fgrid: new Map() };
+  if (!room.sim || room.sim.R !== room.cfg.R) room.sim = { R: room.cfg.R, world: buildWorld(room.cfg.R), bossT: dprof(room).boss, boss: null, trimT: 0, vsT: { A: 0, B: 0 }, bgrid: new Map(), fgrid: new Map() };
   room.sim.bcast = bcast; room.sim.drop = drop; return room.sim;
 }
 function step(room, dt, bcast, drop) {
@@ -318,4 +350,4 @@ function onCut(room, by, v, x, y) { const w = room.bots.get(v); if (!w || !w.ali
 function onBossHit(room, by, id) { const w = room.bots.get(id); if (w && w.isBoss) hurtBoss(room, w, by.body || { human: true, pid: by.id }); }
 function clear(room) { room.bots.clear(); if (room.sim) { room.sim.boss = null; room.sim.vsT = { A: 0, B: 0 }; } }
 
-module.exports = { step, onBomb, onFreeze, onHorn, onCut, onBossHit, clear, buildWorld };
+module.exports = { step, onBomb, onFreeze, onHorn, onCut, onBossHit, clear, buildWorld, buildRocks, rockHit, HARD_CAP };

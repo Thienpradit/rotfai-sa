@@ -52,6 +52,9 @@ const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
   if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ })); }
   if (p === '/version') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ v: VERSION, boot: BOOT, reset: resetAt ? Math.max(0, Math.ceil((resetAt - Date.now()) / 1000)) : 0 })); }
+  if (p === '/online') {   // 🌍 คนจริงที่กำลังเล่นแต่ละโหมด (ปุ่มเลือกโหมดในเกม)
+    const n = { easy: 0, normal: 0, hard: 0 }; for (const r of rooms.values()) if (r.ffa) n[r.diff] = (n[r.diff] || 0) + r.players.size;
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify(n)); }
   if (p === '/health') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
   // ย้ายเซิร์ฟเวอร์: ตั้ง env REDIRECT_TO=https://ที่อยู่ใหม่ แล้วลิงก์เก่าจะพาไปที่ใหม่เอง (เก็บ ?w=โค้ดโลก ไว้ด้วย)
   if (process.env.REDIRECT_TO) { res.writeHead(301, { Location: process.env.REDIRECT_TO.replace(/\/$/, '') + (req.url || '/') }); return res.end(); }
@@ -74,8 +77,10 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 const arena = room => !room.ffa && room.phase === 'play' && room.timeLeft < SHRINK ? room.cfg.R * (.3 + .7 * Math.max(0, room.timeLeft) / SHRINK) : room.cfg.R;
 // พลอย/เพชรขาว: กระจุกกลางสนามมากกว่าขอบ (เจ้าของขอ) · r = u^0.8 → ครึ่งในของสนามได้ ~42% ของพลอย (เดิม 25%), ขอบนอก 20% ได้ ~24% (เดิม 36%)
 const GEM_POW = 0.8;
-function gemIn(room, m) { const a = Math.random() * Math.PI * 2, r = Math.pow(Math.random(), GEM_POW) * Math.max(50, arena(room) - m); return [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)]; }
-function randIn(room, m) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * Math.max(50, arena(room) - m); return [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)]; }
+function gemIn(room, m) { for (let i = 0; ; i++) { const a = Math.random() * Math.PI * 2, r = Math.pow(Math.random(), GEM_POW) * Math.max(50, arena(room) - m), x = Math.round(Math.cos(a) * r), y = Math.round(Math.sin(a) * r);
+  if (!room.rocks || i > 8 || !botsim.rockHit(room, x, y, 40)) return [x, y]; } }   // Hard: พลอยไม่เกิดในหิน
+function randIn(room, m) { for (let i = 0; ; i++) { const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * Math.max(50, arena(room) - m), x = Math.round(Math.cos(a) * r), y = Math.round(Math.sin(a) * r);
+  if (!room.rocks || i > 8 || !botsim.rockHit(room, x, y, 60)) return [x, y]; } }
 function send(ws, o) { if (ws.readyState === 1) ws.send(JSON.stringify(o)); }
 function bcast(room, o, except) { const s = JSON.stringify(o); for (const p of room.players.values()) if (p.ws !== except && p.ws.readyState === 1) p.ws.send(s); }
 const clean = (s, n) => String(s || '').replace(/[<>&]/g, '').slice(0, n);
@@ -102,14 +107,15 @@ const foodsNow = room => { const now = Date.now(); return [...room.foods.values(
 function newWhite(room) { const [x, y] = gemIn(room, 60); const w = [room.nid++, x, y]; room.whites.set(w[0], w); return w; }
 function newPu(room) { const [x, y] = randIn(room, 150); const p = [room.nid++, x, y, PU_KEYS[(Math.random() * PU_KEYS.length) | 0]]; room.pups.set(p[0], p); return p; }
 
-function getRoom(code, ffa) {
+function getRoom(code, ffa, diff) {
   const key = (ffa ? 'F:' : 'V:') + code;
   let r = rooms.get(key);
   if (!r) {
     const cfg = ffa ? CFG.ffa : CFG.vs;
-    r = { key, code, ffa, diff: 'normal', cfg, arena,   // arena = รัศมีวงตอนนี้ (หดใน 2v2) — botsim ใช้หลบขอบ/ปิดอุโมงค์ ต้องตรงกับที่ผู้เล่นเห็น
+    r = { key, code, ffa, diff: ffa && DIFFS.includes(diff) ? diff : 'normal', cfg, arena,   // arena = รัศมีวงตอนนี้ (หดใน 2v2) — botsim ใช้หลบขอบ/ปิดอุโมงค์ ต้องตรงกับที่ผู้เล่นเห็น
       players: new Map(), foods: new Map(), whites: new Map(), pups: new Map(), items: { tgs: null, gold: null },
       timers: { tgs: 30, gold: 50 }, phase: ffa ? 'play' : 'lobby', timeLeft: MATCH, nid: 1, bots: new Map(), exp: new Map() };
+    if (ffa && r.diff === 'hard') r.rocks = botsim.buildRocks(cfg.R, code);   // 🪨 Hard: หินในสนาม (ชน = ตาย)
     for (let w = 0; w < cfg.food;) w += isJewel(newFood(r)) ? JEWEL_V : 1;
     for (let i = 0; i < cfg.white; i++) newWhite(r);
     for (let i = 0; i < cfg.pu; i++) newPu(r);
@@ -184,7 +190,7 @@ wss.on('connection', (ws, req) => {
       if (m.t === 'idle') { idle.set(ws, { name: clean(m.name, 14) }); return; }   // เล่นผจญภัยอยู่ → รอรับคำชวน 2v2
       if (m.t !== 'join') return;
       idle.delete(ws);
-      const ffa = m.mode === 'ffa' || m.mode === 'coop', d = ffa ? 'normal' : (DIFFS.includes(m.diff) ? m.diff : 'normal');   // ออนไลน์ใช้ Normal อย่างเดียว ทุกคนอยู่โลกเดียวกัน
+      const ffa = m.mode === 'ffa' || m.mode === 'coop', d = DIFFS.includes(m.diff) ? m.diff : 'normal';   // 🌍 โลกออนไลน์ 3 โหมด easy/normal/hard (14 พ.ย.) · เข้าด้วยรหัสโลก = ใช้โหมดของโลกนั้น
       let code = clean(m.room, 8).toUpperCase().replace(/[^0-9A-Z]/g, '');
       if (ffa && !code) {   // จับคู่อัตโนมัติ: เข้าโลกที่ระดับความยากเดียวกันและยังไม่เต็ม ถ้าไม่มีก็เปิดโลกใหม่
         const open = [...rooms.values()].find(r => r.ffa && r.diff === d && r.players.size < r.cfg.max);
@@ -192,20 +198,19 @@ wss.on('connection', (ws, req) => {
       }
       code = code || 'PUBLIC';
       const fresh = !rooms.has((ffa ? 'F:' : 'V:') + code);
-      room = getRoom(code, ffa);
-      if (fresh && ffa) room.diff = d;
+      room = getRoom(code, ffa, d);
       if (room.players.size >= room.cfg.max) { send(ws, { t: 'err', msg: `ห้องนี้เต็มแล้ว (${room.cfg.max} คน) ลองรหัสห้องอื่น` }); room = null; return; }
       const nA = [...room.players.values()].filter(p => p.team === 'A').length;
       me = { id: nextId++, ws, cz: !!m.cz, name: clean(m.name, 14) || 'ผู้เล่น', team: ffa ? null : nA <= room.players.size - nA ? 'A' : 'B',
         host: room.players.size === 0, skin: Array.isArray(m.skin) ? m.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffd23f', '#ff8c42'],
         loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
-      room.players.set(me.id, me);
+      room.players.set(me.id, me); me.easy = room.ffa && room.diff === 'easy';
       me.inLobby = true;
       // บัญชีที่ล็อกอิน: เซิร์ฟเวอร์จดเวลาเล่น/เกม/กำจัดที่เห็นเอง ไว้ตรวจโกงตอนแจกรางวัล (accounts.js reviewOf)
       me.aud = { sec: 0, g: 0, k0: 0, ml: 0 }; if (m.tok) tokenUser(m.tok).then(l => { if (l && me) me.acct = l; }).catch(() => {});
       if (!ffa && room.phase === 'lobby') room.cdAt = null;   // มีคนเข้ามาใหม่ → นับ 30 วิใหม่ให้เขา
       send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
-        foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room) });
+        foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room), rocks: room.rocks });
       if (resetAt) send(ws, { t: 'reset', s: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) });
       lobby(room);
       return;
@@ -297,6 +302,7 @@ wss.on('connection', (ws, req) => {
 });
 // ส่งเวลาเล่น/เกม/กำจัดที่เซิร์ฟเวอร์เห็นให้ accounts.js (ทุก 60 วิ + ตอนออก) · kills นับจาก p.kills (เซิร์ฟเวอร์ตัดสิน: บอทชนเรา / คนตายแจ้งชื่อเรา)
 function flushAud(p) { if (!p || !p.acct || !p.aud) return; const a = p.aud, k = Math.max(0, p.kills - a.k0);
+  if (p.easy) { p.aud = { sec: 0, g: 0, k0: p.kills, ml: 0 }; return; }   // 🌍 Easy ไม่ได้รางวัล → ไม่นับเวลาเล่น/เกม/กำจัดเข้าการตรวจรางวัล
   addPlay(p.acct, { sec: a.sec, g: a.g, k, ml: a.ml }); p.aud = { sec: 0, g: 0, k0: p.kills, ml: 0 }; }
 setInterval(() => { for (const r of rooms.values()) for (const p of r.players.values()) flushAud(p); }, 60000).unref();
 function dropFoods(room, drop, v, ttl) {

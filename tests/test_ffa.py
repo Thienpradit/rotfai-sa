@@ -17,7 +17,7 @@ async def main():
             return pg
         for i in range(3):
             pg = await open_page(i); await pg.fill('#name', f'P{i+1}')
-            await pg.click('#playInf'); await pg.wait_for_timeout(2500 if i == 0 else 1500); pages.append(pg)
+            await pg.click('#playInf'); await pg.click('.omode[data-k=normal]'); await pg.wait_for_timeout(2500 if i == 0 else 1500); pages.append(pg)
             print(f'P{i+1} joined', await pg.evaluate(f"[state,mode,NET&&NET.ffa,NET&&NET.room,NET&&NET.host,NET&&NET.players.size,{BOTS}]"))
         await pages[0].wait_for_timeout(3000)
         print('bots after 3 humans (want 30-3=27):', [await pg.evaluate(BOTS) for pg in pages])

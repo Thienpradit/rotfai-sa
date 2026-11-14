@@ -45,6 +45,13 @@ body.sideL #advBar{}
 #pauseOv .pbox{background:#161b3f;border:2px solid #3a4590;border-radius:20px;padding:20px 18px;width:min(340px,100%);text-align:center}
 #pauseOv h2{margin:0 0 4px;font-size:24px}#pauseOv .btn{margin-top:10px}
 #coopBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:6px}
+#coopMode{align-self:center;border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font-size:12px;font-weight:700;border-radius:12px;padding:5px 9px;white-space:nowrap}
+.easyMiss{background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.45);border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.6;color:#dfffea}
+.easyGo{margin-top:6px;border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4da3ff,#2b6fd6);cursor:pointer}
+.omodes{display:flex;gap:10px}
+.omode{flex:1;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border-radius:14px;padding:12px 4px 9px;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.omode.on{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 45%,transparent)}
+.omode b{font-size:18px;color:var(--c)}.omode small{font-size:12px;opacity:.85}
 #coopBar button{border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font:inherit;font-size:13px;border-radius:12px;padding:6px 10px;cursor:pointer}
 .btn.gray{background:#3a4470;color:#cfd6ff;box-shadow:0 4px 0 #262d52}
 .btn:disabled{opacity:.45}
@@ -395,7 +402,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
       <div class="skins" id="skins"></div>
     </div>
     <div class="lbl" style="margin-top:12px">เลือกโหมด</div>
-    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>เจอผู้เล่นจริง · สูงสุด 40 ขบวน (คนไม่ครบเติมบอท)</small></button>
+    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>🟢 Easy · 🔵 Normal · 🔴 Hard · เจอผู้เล่นจริง สูงสุด 40 ขบวน</small></button>
     <button class="btn team play" id="playOnline"><span class="bt">🌐 2v2 กับเพื่อน</span><small>สร้างห้องแข่งทีม · คนไม่ครบเติมบอทให้</small></button>
     <button class="btn adv play" id="playAdv"><span class="bt">🗺️ ผจญภัย (เล่นคนเดียว)</span><small id="advSub">30 ด่าน · ❤️ 3 ชีวิต · สิ่งกีดขวาง · ไม่นับสถิติ/แรงก์</small></button>
     <div id="rankMenu"></div>
@@ -444,7 +451,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <div id="advBar" class="hidden"><button id="advPause" class="ibtn" title="หยุด (P)">⏸</button><button id="advExit" class="ibtn" title="ออกจากด่าน">🚪</button></div>
 <div id="pauseOv" class="hidden"><div class="pbox"><h2 id="pTitle">⏸ หยุดชั่วคราว</h2><div class="help" id="pInfo"></div>
   <button class="btn play" id="pResume">▶ เล่นต่อ</button><button class="btn alt" id="pRetry">🔄 เริ่มด่านนี้ใหม่</button><button class="btn alt" id="pQuit">🚪 ออกจากด่าน</button></div></div>
-<div id="coopBar" class="hidden"><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
+<div id="coopBar" class="hidden"><span id="coopMode" class="hidden"></span><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
 <div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="invTip" class="hidden"><div class="it1">📨 <b></b> ชวนคุณเล่น ⚔️ 2v2</div><div class="it2"></div><div class="ib"><button id="invYes">⚔️ เข้าร่วม</button><button id="invNo">✕</button></div><div class="bar"></div></div><div id="kby" class="hidden"><div class="h">💀 คุณโดนกำจัดโดย</div><div class="n"></div><div class="tt"></div><div><div class="say"></div></div><div class="cd"></div></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
@@ -668,20 +675,22 @@ function ensureDaily(){const k=todayKey(),old=prof.daily;
   prof.daily={date:k,m:ms};saveProf()}
 ensureDaily();
 function track(k,n=1){
-  if(STAGE_RUN)return;   // 🗺️ ผจญภัยไม่นับสถิติ/ภารกิจ/เหรียญตรา (เจ้าของสั่ง 11 พ.ย. 17:50)
+  if(STAGE_RUN||noReward())return;   // 🟢 Easy: ไม่นับสถิติ/ภารกิจ/เหรียญตรา   // 🗺️ ผจญภัยไม่นับสถิติ/ภารกิจ/เหรียญตรา (เจ้าของสั่ง 11 พ.ย. 17:50)
   prof.st[k]=(prof.st[k]||0)+n;
   for(const m of prof.daily.m){const d=MP[m.id];if(d&&d.ev===k&&!d.max)m.p=Math.min(m.n,m.p+n)}
   profDirty=true;checkAch();
 }
 function trackMax(k,v){
-  if(STAGE_RUN)return;
+  if(STAGE_RUN||noReward())return;
   if(v>(prof.st[k]||0))prof.st[k]=v;
   for(const m of prof.daily.m){const d=MP[m.id];if(d&&d.ev===k&&d.max)m.p=Math.min(m.n,Math.max(m.p,Math.floor(v)))}
   profDirty=true;checkAch();
 }
 function checkAch(){for(const a of ACH){if(!prof.ach[a.id]&&a.f(prof.st)){prof.ach[a.id]=Date.now();prof.coins+=ACH_COINS;prof.st.coinsEarned=(prof.st.coinsEarned||0)+ACH_COINS;announce('🏅 ปลดล็อกเหรียญตรา: '+(a.ic.startsWith('<')?'{G}':a.ic)+' '+a.n+'  +'+ACH_COINS+' 🪙');saveProf();sfx('coin')}}}
-let roundCoins=0;
+let roundCoins=0,easyMiss=0;   // easyMiss = เหรียญที่จะได้ถ้าเล่น Normal (โชว์ตอนจบ Easy)
 function addCoins(n,label){if(n<=0||(STAGE_RUN&&label!=='stage'))return;   // ผจญภัย: ได้เหรียญเฉพาะรางวัลด่าน
+  if(noReward()){easyMiss+=n;return}   // 🟢 Easy ไม่ได้เหรียญ
+  if(onDiff()==='hard')n=Math.round(n*HARD_MUL);   // 🔴 Hard ×1.3
   prof.coins+=n;roundCoins+=n;prof.st.coinsEarned=(prof.st.coinsEarned||0)+n;profDirty=true;
   if(label&&player){const h=player.pts[0];texts.push({x:h.x,y:h.y-50,txt:label+'  +'+n+' 🪙',t:2,c:'#ffd23f'})}sfx('coin');checkAch()}
 // ---------- rank (แรงก์) ----------
@@ -1247,9 +1256,14 @@ const DIFF={
   normal:{label:'Normal',ai:26,huntP:.8,huntR:700,others:.3,look:1,think:[10,25],big:.25,safe:2.5,regen:0,boss:120,bossM:900,bossHp:120},
   hard:{label:'Hard',ai:32,huntP:.95,huntR:950,others:.4,look:1.25,think:[6,14],big:.4,safe:2,regen:.25,boss:90,bossM:1300,bossHp:180}};
 let diff='normal';try{diff=localStorage.getItem('wormDiff')||'normal';if(!DIFF[diff])diff='normal'}catch(e){}
-const ONLINE_DIFF='normal',FFA_MAX=40;   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 40 ขบวน (คนจริง + บอท)
+const ONLINE_DIFF='normal',FFA_MAX=40;
+// 🌍 โลกออนไลน์ 3 โหมด (เจ้าของสั่ง 14 พ.ย.): easy = ฝึกเล่น ไม่ได้อะไรเลย · normal = แบบเดิม · hard = บอทแบบ 2v2 + 🪨 หิน · เหรียญ/แรงก์ ×1.3
+let OD='normal';try{OD=localStorage.getItem('trainOD')||'normal';if(!['easy','normal','hard'].includes(OD))OD='normal'}catch(e){}
+const HARD_MUL=1.3,OMODE={easy:{ic:'🟢',n:'Easy',col:'#3ddc84'},normal:{ic:'🔵',n:'Normal',col:'#4da3ff'},hard:{ic:'🔴',n:'Hard',col:'#ff5e5e'}};
+const onDiff=()=>{try{return NET&&NET.ffa?(NET.diff||'normal'):null}catch(e){return null}};   // โหมดของโลกออนไลน์ที่อยู่ตอนนี้ (null = ไม่ได้อยู่โลกออนไลน์)
+const noReward=()=>onDiff()==='easy';   // โหมดออนไลน์: ความยากบอทล็อกไว้ที่ Normal, โลกละ 40 ขบวน (คนจริง + บอท)
 const netOn=()=>{try{return NET}catch(e){return null}};   // ปลอดภัยแม้เรียกก่อนประกาศ NET ตอนเริ่มเกม
-const D=()=>STAGE_D||DIFF[netOn()?ONLINE_DIFF:diff];
+const D=()=>STAGE_D||DIFF[netOn()?(onDiff()||ONLINE_DIFF):diff];
 const bestKey=()=>{const n=netOn();return n&&n.ffa?'online':diff};
 function loadBest(){best=+(prof.best&&prof.best[bestKey()])||0}
 loadBest();
@@ -2488,7 +2502,7 @@ function startGame(m){hideKby();LAST_KILLER=null;
   if(m==='stage'||!foods.length||foods[0].id!==undefined){foods=[];pups=[];whites=[];for(let w=0;w<FOOD_CAP;)w+=addFood();for(let i=0;i<PU_N;i++)addPu();for(let i=0;i<WHITE_CAP;i++)addWhite()}
   worms=worms.filter(w=>!w.isP&&!w.isRemote&&!w.isBoss);bossActive=null;bossTimer=D().boss;
   {let ais=worms.filter(w=>w.alive);while(ais.length>D().ai){const k=(Math.random()*ais.length)|0;ais[k].alive=false;ais.splice(k,1)}worms=worms.filter(w=>w.alive);while(ais.length<D().ai){spawnAI();ais.push(1)}}
-  mode=m;timeLeft=300;resetItems();roundCoins=0;roundRP=0;
+  mode=m;timeLeft=300;resetItems();roundCoins=0;roundRP=0;easyMiss=0;
   try{localStorage.setItem('wormName',playerName())}catch(e){}
   let x,y,ok,tries=0;
   do{[x,y]=randInWorld(800);ok=!worms.some(w=>w.alive&&Math.hypot(w.pts[0].x-x,w.pts[0].y-y)<500);tries++}while(!ok&&tries<40);
@@ -2502,16 +2516,18 @@ function finish(timeUp,quit,noPen){
   const alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   const score=Math.floor(timeUp?player.mass:player.maxMass),rk=alive.indexOf(player)+1;
   state='over';bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');input.boost=false;bb.classList.remove('on');
-  if(score>best&&mode!=='stage'){best=score;prof.best[bestKey()]=best}
+  if(score>best&&mode!=='stage'&&!noReward()){best=score;prof.best[bestKey()]=best}
   track('games');if(mode!=='stage')trackMax('maxLen',score);if(netOn())trackMax('omaxLen',score);if(timeUp&&rk===1&&diff==='hard')track('hardWin');
   addCoins(Math.floor(score/10)+player.kills*5);
-  {let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);if((!timeUp||quit)&&!noPen)rp-=deathPenalty(score);if(netOn())addRP(rp)}   // RP ได้เฉพาะโหมดออนไลน์ (ออฟไลน์ตอนต่อเซิร์ฟเวอร์ไม่ได้ = ไม่ได้ RP)
+  let easyRP=0;{let rp=gameRP(score,player.kills,timeUp&&mode==='time'?(rk===1?10:rk<=3?5:0):0);easyRP=rp;if(onDiff()==='hard')rp=Math.round(rp*HARD_MUL);if((!timeUp||quit)&&!noPen)rp-=deathPenalty(score);if(netOn()&&!noReward())addRP(rp)}   // Hard: RP ×1.3 (หักตอนตายสั้นเท่าเดิม) · Easy: ไม่ได้/ไม่เสีย RP   // RP ได้เฉพาะโหมดออนไลน์ (ออฟไลน์ตอนต่อเซิร์ฟเวอร์ไม่ได้ = ไม่ได้ RP)
   saveProf();
   $('overTitle').textContent=quit?'ออกจากเกม 🚪':timeUp?'หมดเวลา! ⏱':LAST_KILLER?'โดน '+LAST_KILLER.name+(LAST_KILLER.title?' « '+LAST_KILLER.title+' »':'')+' กำจัด! 💥':'โดนชนซะแล้ว! 💥';LAST_KILLER=null;hideKby();
   $('sLen').textContent=score;$('sKill').textContent=player.kills;
   $('sRank').textContent=(timeUp||NET)&&rk?'#'+rk:'-';
   $('sBest').textContent=best;$('sDiff').textContent=D().label;$('rankOver').innerHTML=rankHTML(roundRP);$('guestOver').classList.toggle('hidden',ACCT.mode!=='guest');
-  $('coinEarn').textContent='รอบนี้ได้ +'+roundCoins+' 🪙  (รวม '+prof.coins+' 🪙)';
+  $('coinEarn').innerHTML=noReward()?`<div class="easyMiss">🟢 โหมด Easy = ฝึกเล่น ไม่ได้เหรียญ แรงก์ ภารกิจ และสถิติ<br>💡 ถ้าเล่น <b>🔵 Normal</b> รอบนี้จะได้ <b>+${easyMiss} 🪙</b>${easyRP>0?` · <b>+${easyRP} RP</b>`:''}<br><button class="easyGo" id="easyGo">🔵 ไปเล่น Normal รับรางวัลจริง ›</button></div>`
+    :'รอบนี้ได้ +'+roundCoins+' 🪙  (รวม '+prof.coins+' 🪙)'+(onDiff()==='hard'?' · 🔴 Hard ×1.3':'');
+  {const eg=$('easyGo');if(eg)eg.onclick=()=>{OD='normal';try{localStorage.setItem('trainOD',OD)}catch(e){}toMenu();setTimeout(()=>playEndless(),80)}}
   $('again').textContent='เล่นอีกครั้ง';if(mode==='stage')stageOver();
   $('over').classList.remove('hidden');
   if(timeUp)player.alive=false;
@@ -2530,7 +2546,13 @@ function toMenu(){stageAutoStop();presClose();setTimeout(presOpen,600);
   $('over').classList.add('hidden');$('sheet').classList.add('hidden');$('menu').classList.remove('hidden');
   renderSkins();showBest();
 }
-$('playInf').onclick=()=>playEndless();
+$('playInf').onclick=()=>{audioInit();ONLINE_N=null;openSheet('🌍 เลือกโหมดออนไลน์',renderModePick);
+  fetch('/online',{cache:'no-store'}).then(r=>r.json()).then(j=>{ONLINE_N=j;if(sheetRender===renderModePick&&!$('sheet').classList.contains('hidden'))renderModePick($('sheetBody'))}).catch(()=>{})};
+// 🌍 เลือกโหมดโลกออนไลน์ + จำนวนคนที่กำลังเล่นแต่ละโหมด (GET /online)
+let ONLINE_N=null;
+function renderModePick(b){   // 3 ปุ่มเรียงกัน + จำนวนคนเล่นใต้ปุ่ม (เจ้าของสั่ง 14 พ.ย. 09:00: ไม่ต้องอธิบายเยอะ)
+  b.innerHTML='<div class="omodes">'+['easy','normal','hard'].map(k=>{const o=OMODE[k],n=ONLINE_N?ONLINE_N[k]|0:null;return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><b>${o.n}</b><small>${n===null?'👥 …':'👥 '+n+' คน'}</small></button>`}).join('')+'</div>';
+  b.querySelectorAll('.omode').forEach(e=>e.onclick=()=>{OD=e.dataset.k;try{localStorage.setItem('trainOD',OD)}catch(er){}$('sheet').classList.add('hidden');playEndless()});}
 $('playAdv').onclick=()=>{audioInit();openStages()};if(!ADV_ON)$('playAdv').classList.add('hidden');
 // ---------- เล่นกับบอท (ออฟไลน์) — เอาปุ่มออกจากหน้าแรกแล้ว (เจ้าของสั่ง 7 พ.ย. 18:45) เก็บโค้ดไว้เผื่อใช้ ----------
 function renderBotSheet(b){
@@ -2543,7 +2565,7 @@ function renderBotSheet(b){
   b.querySelector('#botInf').onclick=()=>{$('sheet').classList.add('hidden');startGame('inf')};
   b.querySelector('#botTime').onclick=()=>{$('sheet').classList.add('hidden');startGame('time')};
 }
-$('again').onclick=()=>{autoFS();if(mode==='stage'&&STAGE){startStage(STAGE_RES&&STAGE_RES.ok&&STAGE_I<STAGES.length-1?STAGE_I+1:STAGE_I);return}if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
+$('again').onclick=()=>{autoFS();if(mode==='stage'&&STAGE){startStage(STAGE_RES&&STAGE_RES.ok&&STAGE_I<STAGES.length-1?STAGE_I+1:STAGE_I);return}if(NET&&NET.ffa){$('over').classList.add('hidden');roundCoins=0;roundRP=0;easyMiss=0;resetItemsKeep();netSpawnMe()}else startGame(mode)};
 $('toMenu').onclick=toMenu;
 $('help').innerHTML=IS_TOUCH?'แตะค้างแล้วลากเพื่อบังคับทิศ · ปุ่ม <b>เร่ง!</b> เพื่อพุ่ง':'เมาส์บังคับทิศ · คลิกซ้ายค้าง/Space เร่ง · คลิกขวา/B ระเบิด · คลิกปุ่มกลาง(ล้อเมาส์)/H หวูด · M ปิดเสียง';
 const HOWTO=[['🚂 เป้าหมาย','เก็บพลอยให้ขบวนยาว ตัดหน้าให้คนอื่นมาชนลำตัวเรา · หัวเราชนลำตัวคนอื่น = ตาย · ชนขบวนตัวเอง = ขบวนขาด'],
@@ -2571,7 +2593,8 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:33,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:34,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:33,d:'14 พ.ย. 2026',t:'🌍 โลกออนไลน์ 3 โหมด',l:['กด 🌍 เล่นออนไลน์ แล้วเลือกโหมดได้ · ปุ่มบอกด้วยว่าแต่ละโหมดมีคนเล่นกี่คน','🟢 <b>Easy</b> ฝึกเล่น บอทอ่อน — ไม่ได้เหรียญ แรงก์ ภารกิจ','🔵 <b>Normal</b> แบบเดิม','🔴 <b>Hard</b> บอทโหดไล่ตัดหน้าเก่ง + 🪨 หินกลางสนาม ชนแล้วตาย — ได้เหรียญและแรงก์ <b>×1.3</b>']},
   {id:32,d:'13 พ.ย. 2026',t:'🔥 ควันเปลวไฟ & 🍃 ควันใบไม้โฉมใหม่',l:['🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
   {id:31,d:'13 พ.ย. 2026',t:'🧲 หัวจักรในร้านดูดพลอยไกลขึ้น 30%',l:['หัวจักรทุกหัวที่ซื้อจากร้าน เก็บพลอยและเพชรขาวได้ไกลขึ้นอีก <b>30%</b>','ดีเซล +20 · กระสุน +39 · รถราง +59 · ใต้ดิน +78 · ดาวหาง +104','ใครมีหัวจักรอยู่แล้วได้ทันที ไม่ต้องซื้อใหม่']},
   {id:30,d:'13 พ.ย. 2026',t:'🏅 ขบวนยาวได้แรงก์มากขึ้น',l:['ความยาวตอนจบเกมให้ RP มากขึ้น: ทุก <b>50</b> = +1 RP (เดิมทุก 60)','เช่น ยาว 3,000 + กำจัด 8 ตัว = +76 RP (เดิม +66)','ใช้กับเกมที่เล่นตั้งแต่วันนี้เป็นต้นไป แต้มเดิมของทุกคนอยู่ครบ']},
@@ -3068,7 +3091,7 @@ function netConnect(room,srv,nmode){presClose();hideInvite();const ffa=nmode==='
   const me=NET;
   try{localStorage.setItem('wormName',playerName())}catch(e){}
   if(ffa)setTimeout(()=>{if(NET===me&&!me.opened){try{ws.close()}catch(e){}fail()}},7000);
-  ws.onopen=()=>{me.opened=true;netSend({t:'join',cz:1,...(ACCT.mode==='acct'&&ACCT.token?{tok:ACCT.token}:{}),room,mode:ffa?'ffa':'vs',diff:ONLINE_DIFF,name:playerName(),skin:curSkin(),...myLook(),rk:myRank()})};
+  ws.onopen=()=>{me.opened=true;netSend({t:'join',cz:1,...(ACCT.mode==='acct'&&ACCT.token?{tok:ACCT.token}:{}),room,mode:ffa?'ffa':'vs',diff:ffa?OD:ONLINE_DIFF,name:playerName(),skin:curSkin(),...myLook(),rk:myRank()})};
   ws.onerror=()=>{if(!me.opened)fail()};
   ws.onclose=()=>{if(NET!==me||RESET)return;if(!me.opened){fail();return}NET=null;if(state==='over'){worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
   ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
@@ -3098,14 +3121,17 @@ function netMsg(m){
     case'err':if(NET.ffa){const n=NET;NET=null;try{n.ws.close()}catch(e){}announce(m.msg+' — หาโลกอื่นให้แทน');netConnect('','','ffa');break}netStatus('❌ '+m.msg);break;
     case'welcome':{
       NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';if(!NET.ffa)stations=[stations[0],stations[2]];   // 2v2 เหลือ 2 สถานี อยู่ตรงข้ามกัน (เจ้าของสั่ง 12 พ.ย. 12:08)
-      mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;loadBest();resetPlayBtn();resetItems()}
+      mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;NET.diff=m.diff||'normal';loadBest();resetPlayBtn();resetItems()}
+      OBST=(m.rocks||[]).map(a=>({k:'rock',x:a[0],y:a[1],r:a[2],sd:a[3]}));if(OBST.length)try{obPreload(1)}catch(e){}   // 🔴 Hard: หิน (ชน = ตาย)
+      {const cm=$('coopMode'),od=NET.ffa&&OMODE[NET.diff];if(cm){cm.textContent=od?od.ic+' '+od.n:'';cm.style.borderColor=od?od.col:'';cm.classList.toggle('hidden',!od)}}
       NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));for(const b of NET.bots.values())sprWarm(b.skin,b.loco,b.wag);
       if(m.mode==='vs')for(const sk of VS_BOT_SKINS)for(const lc of['classic','diesel','bullet'])sprWarm(sk,lc,'gem');   // 2v2: บอททีม/นักล่าใช้สีตายตัว → เตรียมตั้งแต่อยู่ห้องรอ
-      sprWarm(GOLD_SKIN,myLook().loco,myLook().wag);bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;
+      sprWarm(GOLD_SKIN,myLook().loco,myLook().wag);bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;easyMiss=0;
       setFoods(m.foods);whites=m.whites.map(a=>({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false}));pups=m.pups.map(a=>({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false}));
       setItems(m.items);NET.timeLeft=m.timeLeft;netPlayers(m.players);worms=[];player=null;
       if(m.phase==='play'){netSpawnMe();if(NET.ffa){player.safe=D().safe;$('sheet').classList.add('hidden');$('over').classList.add('hidden');$('coopBar').classList.remove('hidden');
-        announce(NET.players.size>1?'🌍 เข้าโลก '+NET.room+' · มีผู้เล่นจริง '+NET.players.size+' คน':'🌍 โลก '+NET.room+' · กด 📤 ชวนเพื่อนเข้ามาเล่นด้วยได้')}}
+        announce(NET.players.size>1?'🌍 เข้าโลก '+NET.room+' · มีผู้เล่นจริง '+NET.players.size+' คน':'🌍 โลก '+NET.room+' · กด 📤 ชวนเพื่อนเข้ามาเล่นด้วยได้');
+        if(NET.diff!=='normal')setTimeout(()=>{if(NET&&NET.ffa&&state==='play')announce(NET.diff==='easy'?'🟢 โหมด Easy · ฝึกเล่น ไม่ได้เหรียญ/แรงก์/ภารกิจ':'🔴 โหมด Hard · บอทโหด + 🪨 หิน ชนแล้วตาย · เหรียญ/แรงก์ ×1.3')},2600)}}
       else{state='lobby';openSheet('🌐 ห้อง '+NET.room,renderLobby)}
       $('menu').classList.add('hidden');break}
     case'lobby':{const old=NET.players;netPlayers(m.players);NET.phase=m.phase;NET.avail=m.avail|0;NET.cdEnd=m.cd?performance.now()+m.cd:0;refreshSheet();
@@ -3115,7 +3141,7 @@ function netMsg(m){
     case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);sprWarm(b.skin,b.loco,b.wag);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
-    case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;roundRP=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
+    case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;roundRP=0;easyMiss=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
       NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();

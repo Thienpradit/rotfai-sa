@@ -218,7 +218,7 @@ const auditPartial = season => season < AUDIT_FROM;
 function reviewOf(u, season, rp) {
   const a = u && u.audit && u.audit[season] || null, flags = [], part = auditPartial(season);
   if (!a || a.sec < 600) { if (!part) flags.push('เล่นออนไลน์จริงที่ระบบเห็น ' + Math.round((a ? a.sec : 0) / 60) + ' นาที (ต้อง 10 นาทีขึ้นไป)'); }
-  if (a && a.sec >= 600 || part && a) { const gain = Math.max(0, rp - (a.rp0 || 0)), plaus = 60 + a.g * 120 + a.k * 2;   // 13 พ.ย. 18:39 ความยาวทุก 30 = +1 RP (เดิม 60) → เผื่อต่อเกม 70 → 120
+  if (a && a.sec >= 600 || part && a) { const gain = Math.max(0, rp - (a.rp0 || 0)), plaus = 60 + a.g * 160 + a.k * 2.6;   /* 14 พ.ย. โหมด Hard ได้ RP ×1.3 → เผื่อต่อเกม 120 → 160, กำจัด ×1.3 */   // 13 พ.ย. 18:39 ความยาวทุก 30 = +1 RP (เดิม 60) → เผื่อต่อเกม 70 → 120
     if (gain > plaus * 1.5) flags.push(`RP เพิ่ม ${gain} แต่เล่นจริง ${a.g} เกม กำจัด ${a.k} (ทำได้ไม่เกิน ~${Math.round(plaus * 1.5)})`); }
   if (a && a.fix >= 3) flags.push(`ส่งข้อมูลเกินจริง ${a.fix} ครั้ง (ระบบกันโกงปรับคืนแล้ว)`);
   return { a, flags, dq: flags.length > 0 && !(a && a.ok) };
