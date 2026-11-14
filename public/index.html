@@ -46,9 +46,6 @@ body.sideL #advBar{}
 #pauseOv h2{margin:0 0 4px;font-size:24px}#pauseOv .btn{margin-top:10px}
 #coopBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));z-index:6;display:flex;gap:6px}
 #coopMode{align-self:center;border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font-size:12px;font-weight:700;border-radius:12px;padding:5px 9px;white-space:nowrap}
-.easyMiss{background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.45);border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.5;color:#dfffea;display:flex;flex-direction:column;align-items:center;gap:3px}
-.easyMiss .el{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.easyMiss .el.a{opacity:.85}.easyMiss .el.b b{color:#ffd45e}
-.easyGo{margin-top:6px;border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4da3ff,#2b6fd6);cursor:pointer}
 .omodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
 .omode{position:relative;overflow:hidden;border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 24%,#101828) 0%,#0e1522 78%);border-radius:16px;padding:13px 6px 10px;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;transition:transform .12s,box-shadow .12s;-webkit-tap-highlight-color:transparent}
 .omode::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--c);box-shadow:0 0 14px var(--c)}
@@ -2549,9 +2546,9 @@ function finish(timeUp,quit,noPen){
   $('sLen').textContent=score;$('sKill').textContent=player.kills;
   $('sRank').textContent=(timeUp||NET)&&rk?'#'+rk:'-';
   $('sBest').textContent=best;$('sDiff').textContent=D().label;$('rankOver').innerHTML=rankHTML(roundRP);$('guestOver').classList.toggle('hidden',ACCT.mode!=='guest');
-  $('coinEarn').innerHTML=noReward()?`<div class="easyMiss"><div class="el b">💡 ถ้าเล่น 🔵 Normal รอบนี้จะได้ <b>+${easyMiss} 🪙</b>${easyRP>0?` · <b>+${easyRP} RP</b>`:''}</div><button class="easyGo" id="easyGo">🔵 ไปเล่น Normal รับรางวัลจริง ›</button></div>`
+  $('coinEarn').innerHTML=noReward()?''   // 🟢 Easy: หน้าจบไม่มีคำอธิบาย/ปุ่มไป Normal (เจ้าของสั่ง 14 พ.ย. 10:01)
     :'รอบนี้ได้ +'+roundCoins+' 🪙  (รวม '+prof.coins+' 🪙)'+(onDiff()==='hard'?' · 🔴 Hard ×1.3':'');
-  fitLines('#coinEarn .easyMiss .el',10);{const eg=$('easyGo');if(eg)eg.onclick=()=>{OD='normal';try{localStorage.setItem('trainOD',OD)}catch(e){}toMenu();setTimeout(()=>playEndless(),80)}}
+
   $('again').textContent='เล่นอีกครั้ง';if(mode==='stage')stageOver();
   $('over').classList.remove('hidden');
   if(timeUp)player.alive=false;

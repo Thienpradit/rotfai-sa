@@ -35,7 +35,7 @@ async def main():
             c1,rp1,k1,g1=await e.evaluate("[prof.coins,prof.rp,prof.st.kills||0,prof.st.games||0]")
             check(c1==c0 and rp1==rp0 and k1==k0 and g1==g0,f'Easy ไม่ได้เหรียญ/RP/สถิติ (เหรียญ {c0}→{c1} RP {rp0}→{rp1} กำจัด {k0}→{k1} เกม {g0}→{g1})')
             t=await e.inner_text('#coinEarn');print('    ',t.replace('\n',' | '))
-            check('Normal' in t and '+175' in t and '+18 RP' in t,'จบเกม Easy บอกว่าถ้าเล่น Normal ได้ +175 🪙 (100+60+15) · +18 RP')
+            check(t.strip()=='' and not await e.query_selector('#easyGo'),'จบเกม Easy ไม่มีคำอธิบาย/ปุ่มไป Normal')
             await e.screenshot(path=SHOTS+'/omode_easy_over.png')
             # --- Hard ---
             b2,h,err2=await page()
@@ -55,9 +55,10 @@ async def main():
             rp0=await h2.evaluate("prof.rp");await h2.evaluate("player.kills=3;player.maxMass=600;player.mass=600;finish(false)")
             check(await h2.evaluate("prof.rp")-rp0==round(18*1.3),'Hard RP ×1.3 (18 → 23) ได้ '+str(await h2.evaluate("prof.rp")-rp0))
             check('Hard ×1.3' in await h2.inner_text('#coinEarn'),'หน้าจบบอก Hard ×1.3')
-            # ปุ่ม "ไปเล่น Normal" จากหน้าจบ Easy
-            await e.click('#easyGo');await e.wait_for_timeout(2500)
-            check(await e.evaluate("NET&&NET.diff")=='normal','กดปุ่มในหน้าจบ Easy → เข้าโลก Normal')
+            # เข้าโลก Normal
+            await e.evaluate("$('over').classList.add('hidden');toMenu()");await e.wait_for_timeout(500)
+            await e.click('#playInf');await e.wait_for_timeout(300);await e.click('.omode[data-k=normal]');await e.wait_for_timeout(2500)
+            check(await e.evaluate("NET&&NET.diff")=='normal','เลือก Normal → เข้าโลก Normal')
             c0=await e.evaluate("prof.coins");await e.evaluate("addCoins(100)");check(await e.evaluate("prof.coins")-c0==100,'Normal เหรียญเท่าเดิม')
             # มือถือแนวนอน: หน้าเลือกโหมดพอดีจอ
             b4,m,err4=await page(844,390);await m.click('#playInf');await m.wait_for_timeout(600);await m.screenshot(path=SHOTS+'/omode_pick_land.png')
