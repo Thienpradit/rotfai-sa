@@ -28,7 +28,7 @@ async def main():
             # --- Easy ---
             await e.click('.omode[data-k=easy]');await e.wait_for_timeout(2500)
             check(await e.evaluate("NET&&NET.diff")=='easy','เข้าโลก Easy (รหัส '+await e.evaluate("NET.room")+')')
-            check('Easy' in await e.inner_text('#coopMode'),'ป้ายโหมดในเกม: '+await e.inner_text('#coopMode'))
+            check(await e.evaluate("NET.diff==='easy'&&$('coopMode').classList.contains('hidden')"),'ป้ายโหมดอยู่กรอบซ้ายบน (ไม่อยู่แถบล่าง)')
             c0,rp0,k0,g0=await e.evaluate("[prof.coins,prof.rp,prof.st.kills||0,prof.st.games||0]")
             await e.evaluate("addCoins(100);track('kills',3);player.kills=3;player.maxMass=600;player.mass=600")
             await e.evaluate("finish(false)");await e.wait_for_timeout(400)

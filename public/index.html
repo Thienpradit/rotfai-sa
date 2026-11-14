@@ -2497,12 +2497,17 @@ function drawHUD2(){
   const pad=12,alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass),PH=Math.min(VW,VH)<520,LS=VH<500;   // LS = มือถือแนวนอน → ชิป/มินิแมปเล็กลง ไม่ลงไปทับปุ่มด้านล่าง
      // PH = มือถือ → ตารางอันดับเล็กลง
   const bx0=pad;
-  const STG=mode==='stage'&&STAGE,bw=STG?108:160;   // ผจญภัย: กรอบแคบลง (ไม่โชว์เหรียญ) ให้ที่เวลาตัวใหญ่ตรงกลาง
+  const STG=mode==='stage'&&STAGE;let bw=STG?108:160;   // ผจญภัย: กรอบแคบลง (ไม่โชว์เหรียญ) ให้ที่เวลาตัวใหญ่ตรงกลาง
+  const OM=NET&&NET.ffa&&OMODE[NET.diff||'normal'],rank=alive.indexOf(player)+1;   // โลกออนไลน์: ป้ายโหมด Easy/Normal/Hard หน้าจำนวนคน (14 พ.ย. — ย้ายจากแถบล่าง)
+  let l2=STG?(rank?'#'+rank+'/'+alive.length:'—')+' · 💀 '+player.kills:(NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,omW=0;
+  if(OM){l2='👥'+NET.players.size+' · #'+(rank||'—')+'/'+alive.length+' · 💀 '+player.kills;ctx.font='600 12px Mitr,sans-serif';omW=textW(OM.n)+14;ctx.font='14px Mitr,sans-serif';bw=Math.max(bw,Math.ceil(omW+6+textW(l2)+22))}
   ctx.textAlign='left';ctx.fillStyle='rgba(15,19,48,.7)';roundRect(bx0,pad,bw,64,12);ctx.fill();
   ctx.fillStyle='#ffd23f';ctx.font='600 20px Mitr,sans-serif';ctx.fillText('ยาว '+Math.floor(player.mass),bx0+12,pad+27);
-  if(!STG){ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+152,pad+26);ctx.textAlign='left'}
-  const rank=alive.indexOf(player)+1;
-  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText(STG?(rank?'#'+rank+'/'+alive.length:'—')+' · 💀 '+player.kills:(NET&&!NET.ffa?'🌐 ออนไลน์':(NET?'👥'+NET.players.size+' · ':'')+(rank?'อันดับ #'+rank+'/'+alive.length:'—'))+'  ·  💀 '+player.kills,bx0+12,pad+50);
+  if(!STG){ctx.font='600 13px Mitr,sans-serif';ctx.textAlign='right';ctx.fillText('🪙 '+prof.coins,bx0+bw-8,pad+26);ctx.textAlign='left'}
+  let l2x=bx0+12;
+  if(OM){const y=pad+37;ctx.fillStyle=OM.col+'40';roundRect(l2x,y,omW,18,9);ctx.fill();ctx.strokeStyle=OM.col;ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle='#fff';ctx.font='600 12px Mitr,sans-serif';ctx.fillText(OM.n,l2x+7,y+13.5);l2x+=omW+6}
+  ctx.fillStyle='#cfd6ff';ctx.font='14px Mitr,sans-serif';ctx.fillText(l2,l2x,pad+50);
   let py=pad+74;
   const CH=LS?22:26,CF=LS?'12px Mitr,sans-serif':'13px Mitr,sans-serif';
   const chip=(txt,col,frac)=>{ctx.font=CF;const cw=Math.max(160,textW(txt)+18),cx=pad;ctx.fillStyle='rgba(15,19,48,.7)';roundRect(cx,py,cw,CH,8);ctx.fill();if(frac>0){ctx.fillStyle=col;roundRect(cx,py,cw*Math.min(1,frac),CH,8);ctx.globalAlpha=.32;ctx.fill();ctx.globalAlpha=1}
@@ -3237,7 +3242,7 @@ function netMsg(m){
       NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';if(!NET.ffa)stations=[stations[0],stations[2]];   // 2v2 เหลือ 2 สถานี อยู่ตรงข้ามกัน (เจ้าของสั่ง 12 พ.ย. 12:08)
       mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;NET.diff=m.diff||'normal';loadBest();resetPlayBtn();resetItems()}
       OBST=(m.rocks||[]).map(a=>({k:'rock',x:a[0],y:a[1],r:a[2],sd:a[3]}));if(OBST.length)try{obPreload(1)}catch(e){}   // 🔴 Hard: หิน (ชน = ตาย)
-      {const cm=$('coopMode'),od=NET.ffa&&OMODE[NET.diff];if(cm){cm.textContent=od?od.ic+' '+od.n:'';cm.style.borderColor=od?od.col:'';cm.classList.toggle('hidden',!od)}}
+      {const cm=$('coopMode'),od=NET.ffa&&OMODE[NET.diff];if(cm){cm.textContent=od?od.ic+' '+od.n:'';cm.style.borderColor=od?od.col:'';cm.classList.add('hidden')}}
       NET.bots=new Map((m.bots||[]).map(b=>[b.id,b]));for(const b of NET.bots.values())sprWarm(b.skin,b.loco,b.wag);
       if(m.mode==='vs')for(const sk of VS_BOT_SKINS)for(const lc of['classic','diesel','bullet'])sprWarm(sk,lc,'gem');   // 2v2: บอททีม/นักล่าใช้สีตายตัว → เตรียมตั้งแต่อยู่ห้องรอ
       sprWarm(GOLD_SKIN,myLook().loco,myLook().wag);bossActive=null;bossTimer=D().boss;roundCoins=0;roundRP=0;easyMiss=0;
