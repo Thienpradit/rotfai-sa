@@ -48,10 +48,28 @@ body.sideL #advBar{}
 #coopMode{align-self:center;border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font-size:12px;font-weight:700;border-radius:12px;padding:5px 9px;white-space:nowrap}
 .easyMiss{background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.45);border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.6;color:#dfffea}
 .easyGo{margin-top:6px;border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4da3ff,#2b6fd6);cursor:pointer}
-.omodes{display:flex;gap:10px}
-.omode{flex:1;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);border-radius:14px;padding:12px 4px 9px;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
-.omode.on{box-shadow:0 0 0 3px color-mix(in srgb,var(--c) 45%,transparent)}
-.omode b{font-size:18px;color:var(--c)}.omode small{font-size:12px;opacity:.85}
+.omodes{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.omode{position:relative;overflow:hidden;border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 24%,#101828) 0%,#0e1522 78%);border-radius:16px;padding:13px 6px 10px;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;transition:transform .12s,box-shadow .12s;-webkit-tap-highlight-color:transparent}
+.omode::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--c);box-shadow:0 0 14px var(--c)}
+.omode:hover{transform:translateY(-2px);box-shadow:0 6px 18px color-mix(in srgb,var(--c) 30%,transparent)}.omode:active{transform:scale(.96)}
+.omode.on{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 40%,transparent),0 6px 18px color-mix(in srgb,var(--c) 25%,transparent)}
+.omode .pips{display:flex;gap:3px;align-items:flex-end;height:15px}.omode .pips i{width:6px;border-radius:2px;background:rgba(255,255,255,.16)}
+.omode .pips i:nth-child(1){height:6px}.omode .pips i:nth-child(2){height:10px}.omode .pips i:nth-child(3){height:15px}.omode .pips i.f{background:var(--c);box-shadow:0 0 6px var(--c)}
+.omode b{font-size:21px;font-weight:900;color:var(--c);letter-spacing:.5px;line-height:1;text-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent)}
+.omode .ot{font-size:12.5px;font-weight:800;line-height:1.15}
+.omode .od{font-size:11px;opacity:.75;line-height:1.3;min-height:2.6em}
+.omode .rw{font-size:11.5px;font-weight:800;border-radius:99px;padding:3px 10px;white-space:nowrap}
+.omode .rw.no{background:rgba(255,255,255,.08);color:#aab4c4;border:1px dashed rgba(255,255,255,.22)}
+.omode .rw.x1{background:rgba(255,200,60,.13);color:#ffd45e;border:1px solid rgba(255,200,60,.4)}
+.omode .rw.x13{background:linear-gradient(90deg,#ffcc33,#ff9a2e);color:#3a2100;box-shadow:0 0 12px rgba(255,180,50,.45)}
+.omode small{margin-top:auto;font-size:11px;opacity:.8;display:flex;align-items:center;gap:4px}
+.omode small .dot{width:7px;height:7px;border-radius:50%;background:#556}.omode small .dot.live{background:#3ddc84;box-shadow:0 0 6px #3ddc84;animation:odot 1.6s infinite}
+@keyframes odot{50%{opacity:.35}}
+.onote{margin-top:11px;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(255,200,60,.08);border:1px solid rgba(255,200,60,.22);font-size:12px;line-height:1.4;text-align:left}
+.onote .oc{font-size:22px;flex:none}.onote b{color:#ffd45e}.onote .om{opacity:.7;font-size:11px}
+.onote button{margin-left:auto;flex:none;font:inherit;font-size:11.5px;font-weight:800;color:#ffd45e;background:none;border:1px solid rgba(255,200,60,.45);border-radius:99px;padding:4px 10px;cursor:pointer}
+@media (max-height:440px){.omode{padding:10px 5px 8px;gap:4px}.omode .od{min-height:0}.onote{margin-top:8px;padding:7px 10px}}
+@media (max-width:380px){.onote .om{display:none}.onote{font-size:11px;gap:8px;padding:8px 10px}.onote .oc{font-size:18px}.omode b{font-size:18px}.omode .rw{padding:3px 7px;font-size:10.5px}.omode .od{font-size:10.5px}}
 #coopBar button{border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font:inherit;font-size:13px;border-radius:12px;padding:6px 10px;cursor:pointer}
 .btn.gray{background:#3a4470;color:#cfd6ff;box-shadow:0 4px 0 #262d52}
 .btn:disabled{opacity:.45}
@@ -402,7 +420,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
       <div class="skins" id="skins"></div>
     </div>
     <div class="lbl" style="margin-top:12px">เลือกโหมด</div>
-    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>🟢 Easy · 🔵 Normal · 🔴 Hard · เจอผู้เล่นจริง สูงสุด 40 ขบวน</small></button>
+    <button class="btn play" id="playInf"><span class="bt">🌍 เล่นออนไลน์</span><small>🟢 Easy · 🔵 Normal · 🔴 Hard</small></button>
     <button class="btn team play" id="playOnline"><span class="bt">🌐 2v2 กับเพื่อน</span><small>สร้างห้องแข่งทีม · คนไม่ครบเติมบอทให้</small></button>
     <button class="btn adv play" id="playAdv"><span class="bt">🗺️ ผจญภัย (เล่นคนเดียว)</span><small id="advSub">30 ด่าน · ❤️ 3 ชีวิต · สิ่งกีดขวาง · ไม่นับสถิติ/แรงก์</small></button>
     <div id="rankMenu"></div>
@@ -2550,9 +2568,15 @@ $('playInf').onclick=()=>{audioInit();ONLINE_N=null;openSheet('🌍 เลือ
   fetch('/online',{cache:'no-store'}).then(r=>r.json()).then(j=>{ONLINE_N=j;if(sheetRender===renderModePick&&!$('sheet').classList.contains('hidden'))renderModePick($('sheetBody'))}).catch(()=>{})};
 // 🌍 เลือกโหมดโลกออนไลน์ + จำนวนคนที่กำลังเล่นแต่ละโหมด (GET /online)
 let ONLINE_N=null;
-function renderModePick(b){   // 3 ปุ่มเรียงกัน + จำนวนคนเล่นใต้ปุ่ม (เจ้าของสั่ง 14 พ.ย. 09:00: ไม่ต้องอธิบายเยอะ)
-  b.innerHTML='<div class="omodes">'+['easy','normal','hard'].map(k=>{const o=OMODE[k],n=ONLINE_N?ONLINE_N[k]|0:null;return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><b>${o.n}</b><small>${n===null?'👥 …':'👥 '+n+' คน'}</small></button>`}).join('')+'</div>';
-  b.querySelectorAll('.omode').forEach(e=>e.onclick=()=>{OD=e.dataset.k;try{localStorage.setItem('trainOD',OD)}catch(er){}$('sheet').classList.add('hidden');playEndless()});}
+function renderModePick(b){   // 3 ปุ่มเรียงกัน + จำนวนคนเล่น + รายละเอียดสั้น ๆ (เจ้าของสั่ง 14 พ.ย. 09:14 ออกแบบใหม่)
+  const INFO={easy:{p:1,t:'ฝึกซ้อม',d:'บอทไม่ค่อยไล่<br>เล่นสบาย ๆ',rw:'no',rt:'ไม่มีรางวัล'},
+    normal:{p:2,t:'มาตรฐาน',d:'ได้เหรียญ แรงก์<br>และภารกิจ',rw:'x1',rt:'🪙 รางวัลปกติ'},
+    hard:{p:3,t:'ท้าทาย',d:'บอทโหด + มีหิน<br>ชนหิน = ตาย',rw:'x13',rt:'🪙 รางวัล ×1.3'}};
+  b.innerHTML='<div class="omodes">'+['easy','normal','hard'].map(k=>{const o=OMODE[k],I=INFO[k],n=ONLINE_N?ONLINE_N[k]|0:null;
+    return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><span class="pips">${[1,2,3].map(i=>`<i${i<=I.p?' class="f"':''}></i>`).join('')}</span><b>${o.n}</b><span class="ot">${I.t}</span><span class="od">${I.d}</span><span class="rw ${I.rw}">${I.rt}</span><small><span class="dot${n?' live':''}"></span>${n===null?'…':n} คน</small></button>`}).join('')+'</div>'+
+    '<div class="onote"><span class="oc">🪙</span><span>เหรียญที่ได้ เอาไว้<b>ซื้อของในร้านค้า</b><br><span class="om">หัวจักร · ตู้ · สี · ควัน · หวูด · ฉายา</span></span><button id="oShop">🛒 ร้านค้า</button></div>';
+  b.querySelectorAll('.omode').forEach(e=>e.onclick=()=>{OD=e.dataset.k;try{localStorage.setItem('trainOD',OD)}catch(er){}$('sheet').classList.add('hidden');playEndless()});
+  const sb=b.querySelector('#oShop');if(sb)sb.onclick=()=>{try{openShop()}catch(er){$('sheet').classList.add('hidden')}};}
 $('playAdv').onclick=()=>{audioInit();openStages()};if(!ADV_ON)$('playAdv').classList.add('hidden');
 // ---------- เล่นกับบอท (ออฟไลน์) — เอาปุ่มออกจากหน้าแรกแล้ว (เจ้าของสั่ง 7 พ.ย. 18:45) เก็บโค้ดไว้เผื่อใช้ ----------
 function renderBotSheet(b){
