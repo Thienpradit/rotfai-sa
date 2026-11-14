@@ -130,6 +130,16 @@ function clearBots(room) { room.deadBots = 0; const had = room.bots.size; botsim
 function setHost(room, p) { for (const q of room.players.values()) q.host = q === p; lobby(room); }
 // ---------- ชวนผู้เล่น / พร้อม / นับถอยหลัง 2v2 (เจ้าของสั่ง 12 พ.ย. 13:11) ----------
 // ผู้เล่นที่ชวนได้ = คนในโลกออนไลน์ (ffa) ทุกโลก + คนอยู่หน้าแรก/เล่นผจญภัยที่ต่อ ws แบบ idle ไว้ (หน้าแรกตั้งแต่ 12 พ.ย. 21:21)
+// ประกาศคนเข้าโหมด Normal/Hard ให้ทุกคนที่ออนไลน์ (ทุกโลก + 2v2 + หน้าแรก) · คนในโลกเดียวกันได้ "เข้ามาในโลกนี้แล้ว" อยู่แล้ว → ไม่ส่งซ้ำ
+// ชื่อเดียวกันประกาศได้ 1 ครั้ง/นาที (กันออก-เข้ารัว ๆ)
+const GJ_CD = 60000, gjLast = new Map();
+function announceJoin(me, room, ws) {
+  const now = Date.now(), k = me.name.toLowerCase();
+  if (now - (gjLast.get(k) || 0) < GJ_CD) return;
+  if (gjLast.size > 1000) gjLast.clear(); gjLast.set(k, now);
+  const skip = new Set([...room.players.values()].map(p => p.ws)), msg = JSON.stringify({ t: 'gj', name: me.name, d: room.diff });
+  for (const w of wss.clients) if (!skip.has(w) && w.readyState === 1) w.send(msg);
+}
 const idle = new Map();   // ws → {name}
 const VS_CD = +process.env.VS_CD_MS || 30000, INVITE_CD = 15000;
 function availCount() { let n = idle.size; for (const r of rooms.values()) if (r.ffa) n += r.players.size; return n; }
@@ -213,6 +223,7 @@ wss.on('connection', (ws, req) => {
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room), rocks: room.rocks });
       if (resetAt) send(ws, { t: 'reset', s: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) });
       lobby(room);
+      if (ffa && d !== 'easy') announceJoin(me, room, ws);   // ใครเข้าโหมด Normal/Hard → ทุกคนที่ออนไลน์เห็น (14 พ.ย.)
       return;
     }
     switch (m.t) {

@@ -49,30 +49,29 @@ body.sideL #advBar{}
 .easyMiss{background:rgba(61,220,132,.1);border:1px solid rgba(61,220,132,.45);border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.5;color:#dfffea;display:flex;flex-direction:column;align-items:center;gap:3px}
 .easyMiss .el{white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.easyMiss .el.a{opacity:.85}.easyMiss .el.b b{color:#ffd45e}
 .easyGo{margin-top:6px;border:0;border-radius:10px;padding:7px 12px;font:inherit;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#4da3ff,#2b6fd6);cursor:pointer}
-.omodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.omode{position:relative;display:flex;flex-direction:column;border:0;padding:0;border-radius:14px;background:#f7f0e1;color:#2b2418;font:inherit;cursor:pointer;text-align:center;box-shadow:0 8px 20px rgba(0,0,0,.35);transition:transform .12s,box-shadow .12s;-webkit-tap-highlight-color:transparent}
-.omode:hover{transform:translateY(-2px)}.omode:active{transform:scale(.96)}
-.omode.on{box-shadow:0 0 0 3px var(--c),0 0 18px color-mix(in srgb,var(--c) 55%,transparent),0 8px 20px rgba(0,0,0,.35)}
-.omode .th{background:var(--c);color:#fff;padding:12px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:1px;border-radius:14px 14px 0 0}
-.omode .th b{font-size:24px;font-weight:600;line-height:1.1;text-shadow:0 2px 0 rgba(0,0,0,.18)}
-.omode .tb{padding:10px 6px 9px;display:flex;flex-direction:column;align-items:center;gap:7px}
-.omode .ot{font-size:15px;font-weight:600}
-.omode .wg{display:flex;gap:4px}.omode .wg svg{width:22px;height:14px}
-.omode .rw{font-size:12px;font-weight:600;border:2px solid;border-radius:8px;padding:1px 9px;transform:rotate(-4deg);white-space:nowrap}
-.omode .rw.no{color:#8a8170;border-style:dashed}.omode .rw.x1{color:var(--c)}.omode .rw.x13{color:#d08a00}
-.omode .pf{position:relative;height:0;border-top:2px dashed #cdbf9f;margin:0 10px}
-.omode .pf::before,.omode .pf::after{content:'';position:absolute;top:-8px;width:14px;height:14px;border-radius:50%;background:#1a1f3d}
-.omode .pf::before{left:-17px}.omode .pf::after{right:-17px}
-.omode .tf{padding:9px 6px 11px;display:flex;justify-content:center}
-.opill{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:3px 6px;padding:5px 10px 5px 6px;border-radius:999px;background:#1b2340;color:#e9fff1;font-size:12.5px;line-height:1.1}
+.omodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.omode{position:relative;overflow:hidden;border:1.5px solid color-mix(in srgb,var(--c) 50%,transparent);background:linear-gradient(180deg,color-mix(in srgb,var(--c) 24%,#101828) 0%,#0e1522 78%);border-radius:16px;padding:13px 6px 10px;color:#fff;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;transition:transform .12s,box-shadow .12s;-webkit-tap-highlight-color:transparent}
+.omode::before{content:'';position:absolute;left:0;right:0;top:0;height:4px;background:var(--c);box-shadow:0 0 14px var(--c)}
+.omode:hover{transform:translateY(-2px);box-shadow:0 6px 18px color-mix(in srgb,var(--c) 30%,transparent)}.omode:active{transform:scale(.96)}
+.omode.on{border-color:var(--c);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 40%,transparent),0 6px 18px color-mix(in srgb,var(--c) 25%,transparent)}
+.omode .pips{display:flex;gap:3px;align-items:flex-end;height:15px}.omode .pips i{width:6px;border-radius:2px;background:rgba(255,255,255,.16)}
+.omode .pips i:nth-child(1){height:6px}.omode .pips i:nth-child(2){height:10px}.omode .pips i:nth-child(3){height:15px}.omode .pips i.f{background:var(--c);box-shadow:0 0 6px var(--c)}
+.omode b{font-size:21px;font-weight:900;color:var(--c);letter-spacing:.5px;line-height:1;text-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent)}
+.omode .rw{font-size:11.5px;font-weight:800;border-radius:99px;padding:3px 10px;white-space:nowrap}
+.omode .rw.no{background:rgba(255,255,255,.08);color:#aab4c4;border:1px dashed rgba(255,255,255,.22)}
+.omode .rw.x1{background:rgba(255,200,60,.13);color:#ffd45e;border:1px solid rgba(255,200,60,.4)}
+.omode .rw.x13{background:linear-gradient(90deg,#ffcc33,#ff9a2e);color:#3a2100;box-shadow:0 0 12px rgba(255,180,50,.45)}
+@media (max-height:440px){.omode{padding:10px 5px 8px;gap:4px}}
+@media (max-width:380px){.omode b{font-size:18px}.omode .rw{padding:3px 7px;font-size:10.5px}}
+.omode{min-width:0}.omode .tf{margin-top:auto;padding-top:2px}
+.opill{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:3px 6px;padding:4px 10px 4px 5px;border-radius:999px;background:rgba(0,0,0,.35);color:#e9fff1;font-size:12px;line-height:1.1}
 .opill .oi{position:relative;flex:none;display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#3ddc84;color:#0b2a17}
 .opill .oi::after{content:'';position:absolute;right:-2px;top:-2px;width:8px;height:8px;border-radius:50%;background:#b8ffd3;border:2px solid #0b2a17}
 .opill.live .oi::after{animation:odot 1.6s infinite}
 .opill.zero .oi{background:#59607a;color:#1b2340}.opill.zero .oi::after{display:none}
-.opill b{font-size:15px}.opill .ol{opacity:.8}
+.omode .opill b{font-size:15px;font-weight:600;color:#fff;letter-spacing:0;line-height:1.1;text-shadow:none}.opill .ol{opacity:.85}
 @keyframes odot{50%{opacity:.25}}
-@media (max-height:440px){.omode .th{padding:7px 6px 6px}.omode .th b{font-size:22px}.omode .tb{padding:7px 6px 6px;gap:5px}.omode .tf{padding:7px 6px 8px}}
-@media (max-width:400px){.omodes{gap:7px}.omode .th b{font-size:20px}.omode .ot{font-size:13px}.omode .wg svg{width:18px;height:12px}.omode .rw{font-size:10.5px;padding:1px 6px}.omode .pf{margin:0 7px}.omode .pf::before{left:-14px}.omode .pf::after{right:-14px}.opill{flex-wrap:wrap;gap:3px 5px;padding:4px 8px;border-radius:12px}.opill .ol{width:100%;font-size:11px}}
+@media (max-width:400px){.opill{padding:4px 8px;border-radius:12px}.opill .ol{width:100%;font-size:11px}}
 #coopBar button{border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font:inherit;font-size:13px;border-radius:12px;padding:6px 10px;cursor:pointer}
 .btn.gray{background:#3a4470;color:#cfd6ff;box-shadow:0 4px 0 #262d52}
 .btn:disabled{opacity:.45}
@@ -141,6 +140,8 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(94p
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
 #resetBar{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;width:min(92vw,440px);box-sizing:border-box;padding:8px 12px;border-radius:12px;background:linear-gradient(#ff8c42,#e0601a);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:left}
 #resetBar.hidden{display:none}#resetBar span{flex:1;min-width:0}#resetBar small{font-weight:400;font-size:11.5px;opacity:.92}#resetBar b{font-size:18px;color:#fff3a8}#resetBar button{flex:none;border:0;border-radius:9px;padding:6px 10px;background:#fff;color:#c24a00;font:700 12.5px Mitr,sans-serif;cursor:pointer}
+#gjTip{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));z-index:95;transform:translate(-50%,-140%);max-width:92vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:7px 16px;border-radius:999px;background:rgba(16,22,52,.94);border:2px solid var(--c,#4da3ff);box-shadow:0 0 16px color-mix(in srgb,var(--c,#4da3ff) 45%,transparent);color:#fff;font-size:14px;font-weight:600;pointer-events:none;opacity:0;transition:transform .35s,opacity .35s}
+#gjTip.show{transform:translate(-50%,0);opacity:1}
 #invTip{position:fixed;left:50%;bottom:calc(118px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:26;width:min(340px,92vw);background:rgba(16,22,52,.94);border:2px solid #4da3ff;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.45);font-family:Mitr,sans-serif;animation:kbyIn .3s ease}
 #invTip.hidden{display:none}#invTip .it1{font-size:15px;color:#fff}#invTip .it1 b{color:#ffd23f}#invTip .it2{font-size:12px;color:#aeb6e8;margin:2px 0 8px}
 #invTip .ib{display:flex;gap:8px}#invTip button{font:600 15px Mitr,sans-serif;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}#invYes{flex:1;background:#ffd23f;color:#2a1a00}#invNo{background:#2d355f;color:#cfd5ff}
@@ -473,7 +474,8 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 <div id="pauseOv" class="hidden"><div class="pbox"><h2 id="pTitle">⏸ หยุดชั่วคราว</h2><div class="help" id="pInfo"></div>
   <button class="btn play" id="pResume">▶ เล่นต่อ</button><button class="btn alt" id="pRetry">🔄 เริ่มด่านนี้ใหม่</button><button class="btn alt" id="pQuit">🚪 ออกจากด่าน</button></div></div>
 <div id="coopBar" class="hidden"><span id="coopMode" class="hidden"></span><button id="coopInv">📤 ชวนเพื่อน</button><button id="coopExit">🚪 ออก</button></div>
-<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="invTip" class="hidden"><div class="it1">📨 <b></b> ชวนคุณเล่น ⚔️ 2v2</div><div class="it2"></div><div class="ib"><button id="invYes">⚔️ เข้าร่วม</button><button id="invNo">✕</button></div><div class="bar"></div></div><div id="kby" class="hidden"><div class="h">💀 คุณโดนกำจัดโดย</div><div class="n"></div><div class="tt"></div><div><div class="say"></div></div><div class="cd"></div></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
+<div id="ann"></div><div id="bossWarn">☠ บอสยักษ์มาแล้ว ☠</div><div id="bossDown"></div><div id="gjTip"></div>
+<div id="invTip" class="hidden"><div class="it1">📨 <b></b> ชวนคุณเล่น ⚔️ 2v2</div><div class="it2"></div><div class="ib"><button id="invYes">⚔️ เข้าร่วม</button><button id="invNo">✕</button></div><div class="bar"></div></div><div id="kby" class="hidden"><div class="h">💀 คุณโดนกำจัดโดย</div><div class="n"></div><div class="tt"></div><div><div class="say"></div></div><div class="cd"></div></div><div id="killBadge" class="hidden"><img alt=""><div><div class="kt"></div><div class="ks"></div></div></div><div id="resetBar" class="hidden"><span id="resetTxt"></span><button id="resetNow">โหลดใหม่ตอนนี้</button></div>
 <div id="safeProbe" style="position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)"></div>
 
 <script>
@@ -2572,14 +2574,12 @@ $('playInf').onclick=()=>{audioInit();ONLINE_N=null;openSheet('🌍 เลือ
   fetch('/online',{cache:'no-store'}).then(r=>r.json()).then(j=>{ONLINE_N=j;if(sheetRender===renderModePick&&!$('sheet').classList.contains('hidden'))renderModePick($('sheetBody'))}).catch(()=>{})};
 // 🌍 เลือกโหมดโลกออนไลน์ + จำนวนคนที่กำลังเล่นแต่ละโหมด (GET /online)
 let ONLINE_N=null;
-function renderModePick(b){   // ตั๋วรถไฟ 3 ใบ (แบบ A จากงานออกแบบ "หน้าเลือกโหมดออนไลน์ 3 แบบ" · เจ้าของเลือก 14 พ.ย.)
-  const INFO={easy:{p:1,t:'ฝึกซ้อม',rw:'no',rt:'ไม่มีรางวัล'},normal:{p:2,t:'มาตรฐาน',rw:'x1',rt:'รางวัล ×1'},hard:{p:3,t:'ท้าทาย',rw:'x13',rt:'รางวัล ×1.3'}};
-  const WG=(f,c)=>`<svg viewBox="0 0 22 14" aria-hidden="true"><rect x="1" y="1" width="20" height="9" rx="2" fill="${f?c:'none'}" stroke="${f?c:'#8a7f6a'}" stroke-width="1.5"/><circle cx="6" cy="12" r="1.8" fill="${f?c:'#8a7f6a'}"/><circle cx="16" cy="12" r="1.8" fill="${f?c:'#8a7f6a'}"/></svg>`;
+function renderModePick(b){   // การ์ด 3 โหมด (ขีดความยาก + ชื่อ + ป้ายรางวัล + ป้ายคนออนไลน์) · เจ้าของสั่ง 14 พ.ย. 09:50: กลับแบบการ์ดเดิม ไม่เอาตั๋ว ไม่มีคำไทยใต้ชื่อ
+  const INFO={easy:{p:1,rw:'no',rt:'ไม่มีรางวัล'},normal:{p:2,rw:'x1',rt:'🪙 รางวัลปกติ'},hard:{p:3,rw:'x13',rt:'🪙 รางวัล ×1.3'}};
   const PS='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
   b.innerHTML='<div class="omodes">'+['easy','normal','hard'].map(k=>{const o=OMODE[k],I=INFO[k],n=ONLINE_N?ONLINE_N[k]|0:null;
-    return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><span class="th"><b>${o.n}</b></span>`+
-      `<span class="tb"><span class="ot">${I.t}</span><span class="wg">${[0,1,2].map(i=>WG(i<I.p,o.col)).join('')}</span><span class="rw ${I.rw}">${I.rt}</span></span>`+
-      `<span class="pf"></span><span class="tf"><span class="opill${n?' live':n===0?' zero':''}"><span class="oi">${PS}</span><b>${n===null?'…':n}</b><span class="ol">ออนไลน์</span></span></span></button>`}).join('')+'</div>';
+    return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><span class="pips">${[1,2,3].map(i=>`<i${i<=I.p?' class="f"':''}></i>`).join('')}</span><b>${o.n}</b><span class="rw ${I.rw}">${I.rt}</span>`+
+      `<span class="tf"><span class="opill${n?' live':n===0?' zero':''}"><span class="oi">${PS}</span><b>${n===null?'…':n}</b><span class="ol">ออนไลน์</span></span></span></button>`}).join('')+'</div>';
   b.querySelectorAll('.omode').forEach(e=>e.onclick=()=>{OD=e.dataset.k;try{localStorage.setItem('trainOD',OD)}catch(er){}$('sheet').classList.add('hidden');playEndless()});}
 $('playAdv').onclick=()=>{audioInit();openStages()};if(!ADV_ON)$('playAdv').classList.add('hidden');
 // ---------- เล่นกับบอท (ออฟไลน์) — เอาปุ่มออกจากหน้าแรกแล้ว (เจ้าของสั่ง 7 พ.ย. 18:45) เก็บโค้ดไว้เผื่อใช้ ----------
@@ -3166,6 +3166,7 @@ function netMsg(m){
       if(NET.ffa&&state==='play'){for(const p of NET.players.values())if(!old.has(p.id)&&p.id!==NET.id)announce('🚂 '+p.name+' เข้ามาในโลกนี้แล้ว!');
         for(const p of old.values())if(!NET.players.has(p.id))announce('👋 '+p.name+' ออกไปแล้ว')}break}
     case'inv':showInvite(m);break;
+    case'gj':gjShow(m);break;
     case'invd':{const e=$('invMsg');if(e)e.textContent=m.wait?'⏳ ส่งคำชวนได้อีกครั้งใน '+m.wait+' วิ':m.n?'📨 ส่งคำชวนถึง '+m.n+' คนแล้ว · รอเขากดเข้าร่วม':'ตอนนี้ไม่มีใครออนไลน์ให้ชวน';break}
     case'binfo':for(const b of m.b){NET.bots.set(b.id,b);sprWarm(b.skin,b.loco,b.wag);if(b.boss){bossWarn();sfx('siren')}}break;
     case'bclr':worms=worms.filter(w=>!w.isBot);NET.bots.clear();bossActive=null;bossTimer=D().boss;break;
@@ -3231,7 +3232,11 @@ let PRES=null,invTimer=0,INV_CODE='';
 function presOpen(){presClose();if(NET||document.hidden||!/^https?:/.test(location.protocol))return;   // อยู่หน้าเมนู/ผจญภัย = รอรับคำชวน 2v2 (หน้าเมนูด้วย ตั้งแต่ 12 พ.ย. 21:21)
 try{const ws=new WebSocket(netURL(''));PRES=ws;
   ws.onopen=()=>{try{ws.send(JSON.stringify({t:'idle',name:playerName()}))}catch(e){}};
-  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='inv')showInvite(m)};ws.onclose=()=>{if(PRES===ws)PRES=null}}catch(e){}}
+  ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}if(m.t==='inv')showInvite(m);else if(m.t==='gj')gjShow(m)};ws.onclose=()=>{if(PRES===ws)PRES=null}}catch(e){}}
+// ใครเข้าโหมด Normal/Hard → ประกาศให้ทุกคน (เซิร์ฟเวอร์ส่ง gj) · ในเกม = แถบข้อความบนจอ · หน้าแรก = ป้าย #gjTip บนสุด
+let gjT=0;function gjShow(m){const o=OMODE[m.d];if(!o)return;const nm=String(m.name||'ผู้เล่น').replace(/[<>&"]/g,'').slice(0,14),txt=o.ic+' '+nm+' เข้าโหมด '+o.n+' แล้ว!';
+  if(state==='play'||state==='dead'){killFeed.push({txt,c:o.col,until:performance.now()+4500,kf:1});if(killFeed.length>3)killFeed.shift();return}
+  const el=$('gjTip');if(!el)return;el.textContent=txt;el.style.setProperty('--c',o.col);el.classList.remove('show');void el.offsetWidth;el.classList.add('show');clearTimeout(gjT);gjT=setTimeout(()=>el.classList.remove('show'),4200)}
 function presClose(){if(PRES){const w=PRES;PRES=null;try{w.close()}catch(e){}}}
 function showInvite(m){if(NET&&!NET.ffa)return;const el=$('invTip'),esc=t=>String(t||'').replace(/[<>&]/g,'');INV_CODE=String(m.code||'');
   const mini=state==='play'||state==='dead';el.classList.toggle('mini',mini);   // กำลังเล่น = การ์ดเล็กชิดขวา
