@@ -4,7 +4,20 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { WebSocketServer } = require('ws');
-const { handleApi, tokenUser, addPlay } = require('./accounts');
+const { handleApi, tokenUser, addPlay, setServerPerf } = require('./accounts');
+// ---------- 📈 ความลื่นฝั่งเซิร์ฟเวอร์ (14 พ.ย.): เวลาที่ใช้ต่อ tick + tick มาช้ากว่ากำหนดเท่าไหร่ + event loop สะดุด · ผู้ดูแลดูได้ในหน้า 🛡️ ----------
+const { monitorEventLoopDelay } = require('perf_hooks');
+const ELD = monitorEventLoopDelay({ resolution: 10 }); ELD.enable();
+const SP = { buf: [], i: 0, lastT: 0, cpu0: process.cpuUsage(), cpuT0: Date.now(), hist: [] };   // buf: [ms ที่ใช้, ms ที่มาช้า] ล่าสุด 6000 tick (~5 นาที)
+function spRec(dur, lag) { if (SP.buf.length < 6000) SP.buf.push([dur, lag]); else SP.buf[SP.i] = [dur, lag]; SP.i = (SP.i + 1) % 6000; }
+function spSum() { const d = SP.buf.map(x => x[0]).sort((a, b) => a - b), l = SP.buf.map(x => x[1]).sort((a, b) => a - b), n = d.length, q = (a, x) => n ? +a[Math.min(n - 1, Math.floor(n * x))].toFixed(1) : 0;
+  const c = process.cpuUsage(SP.cpu0), el = (Date.now() - SP.cpuT0) || 1;
+  let bots = 0, pl = 0; for (const r of rooms.values()) { bots += r.bots ? r.bots.size : 0; pl += r.players.size; }
+  return { ticks: n, tick: { avg: n ? +(d.reduce((a, b) => a + b, 0) / n).toFixed(2) : 0, p99: q(d, .99), max: q(d, 1) }, late: { p50: q(l, .5), p99: q(l, .99), max: q(l, 1), over50: l.filter(x => x > 50).length, over100: l.filter(x => x > 100).length },
+    loop: { p99: +(ELD.percentile(99) / 1e6).toFixed(1), max: +(ELD.max / 1e6).toFixed(1) }, cpu: +((c.user + c.system) / 1000 / el * 100).toFixed(1), rss: Math.round(process.memoryUsage().rss / 1048576), rooms: rooms.size, bots, players: pl, up: Math.round(process.uptime()), hist: SP.hist.slice(-36) }; }
+setInterval(() => { const s = spSum(); SP.hist.push({ t: Date.now(), cpu: s.cpu, tick: s.tick.p99, late: s.late.p99, max: s.late.max, loop: s.loop.max, pl: s.players }); if (SP.hist.length > 288) SP.hist.shift();   // ทุก 5 นาที เก็บไว้ 24 ชม.
+  SP.cpu0 = process.cpuUsage(); SP.cpuT0 = Date.now(); ELD.reset(); }, 300000).unref();
+setServerPerf(spSum);
 const botsim = require('./botsim');
 // กันเซิร์ฟเวอร์ล่มทั้งตัวเพราะ error จุดเดียว (12 พ.ย. 13:10 ล่มเพราะ farSpot) — log ไว้แล้วเล่นต่อ
 process.on('uncaughtException', e => console.error('uncaught', e && e.stack || e));   // บอทรันบนเซิร์ฟเวอร์
@@ -353,6 +366,7 @@ setInterval(() => {
 
 // ---------- game loop ----------
 setInterval(() => {
+  const t0 = performance.now(), lag = SP.lastT ? Math.max(0, t0 - SP.lastT - TICK * 1000) : 0; SP.lastT = t0;
   for (const room of rooms.values()) {
     if (room.phase !== 'play') continue;
     if (!room.ffa) room.timeLeft -= TICK;
@@ -382,6 +396,7 @@ setInterval(() => {
     for (const pl of room.players.values()) if (pl.ws.readyState === 1) pl.ws.send(pl.cz ? (sC || (sC = JSON.stringify({ t: 's', p: pc, T, tl, sc }))) : (sL || (sL = JSON.stringify({ t: 's', p, tl, sc }))));
     if (!room.ffa && room.timeLeft <= 0) endMatch(room);
   }
+  spRec(performance.now() - t0, lag);
 }, TICK * 1000);
 
 server.listen(PORT, () => console.log(`รถไฟซ่า server running → http://localhost:${PORT}`));

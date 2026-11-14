@@ -263,6 +263,11 @@ input.locked{opacity:.75;border-color:#7cfc9a}
 .gwhy{background:#1a1f4a;border:1px solid #ffd23f55;border-radius:12px;padding:10px;margin:8px 0;font-size:13.5px;line-height:1.7;text-align:left}
 .gcode{font-size:30px;font-weight:800;letter-spacing:3px;color:#ffd23f;background:#0b0f26;border:2px dashed #ffd23f;border-radius:12px;padding:10px;margin:8px 0;user-select:all}
 .gsteps{text-align:left;font-size:13.5px;line-height:1.7;background:#0f1330;border-radius:12px;padding:8px 12px}
+.ptab{width:100%;font-size:12px;text-align:center;border-collapse:collapse;margin:4px 0}.ptab th{color:#aab;font-weight:600;font-size:11px;padding:4px 3px;border-bottom:1px solid #2a3060}.ptab td{padding:5px 3px;border-bottom:1px solid #1d2248}
+.bugcat{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px}.bugcat div{padding:7px 11px;border-radius:999px;background:#1d2248;font-size:13px;cursor:pointer;border:1.5px solid transparent}.bugcat div.on{border-color:#ffd23f;background:#3a2f10;color:#ffe27a}
+#bugTxt{width:100%;min-height:96px;resize:vertical;border-radius:12px;border:1.5px solid #2f3770;background:#0d1020;color:#fff;font:inherit;font-size:14px;padding:10px;box-sizing:border-box}
+.bugshot{display:flex;align-items:center;gap:10px;margin:10px 0;font-size:13px;text-align:left;cursor:pointer}.bugshot img{width:96px;border-radius:8px;border:1px solid #2f3770}.bugshot input{width:20px;height:20px;flex:none}
+.bugok{font-size:15px;line-height:1.7;padding:14px 4px}
 .adrow{background:#0f1330;border-radius:12px;padding:8px 10px;margin:6px 0;text-align:left;font-size:12.5px;line-height:1.5;border-left:4px solid #556}
 .adrow.ok{border-color:#3ddc84}.adrow.win{border-color:#ffd23f}.adrow.dq{border-color:#ff9f43}.adrow.ban{border-color:#ff5e5e;opacity:.85}
 .adrow .ah{display:flex;gap:6px;align-items:center;font-size:14px}.adrow .ah b{flex:1}.adrow .fl{color:#ff9f43}.adrow .bt{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
@@ -410,7 +415,7 @@ body.sideL #snd.nofs{right:calc(60px + env(safe-area-inset-right))}
 
 <div id="menu" class="overlay">
   <div class="panel">
-    <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button> <button class="ibtn" id="setMenu" title="ตั้งค่า">⚙️</button></span></div>
+    <div class="topbar"><span class="coin" id="coinTop">🪙 0</span><button class="acct" id="acctBtn">👻 Guest</button><span><button class="ibtn fsb" id="fsMenu" title="เต็มจอ">⛶</button> <button class="ibtn" id="sndMenu">🔊</button> <button class="ibtn" id="bugMenu" title="แจ้งบั๊ก">🐞</button> <button class="ibtn" id="setMenu" title="ตั้งค่า">⚙️</button></span></div>
     <div class="fstip hidden" id="fsTip"><span id="fsTipTx"></span><button class="sbtn" id="fsTipGo">ดูวิธี</button><button class="fsx" id="fsTipX">✕</button></div>
     <h1>รถไฟซ่า</h1>
     <div class="sub">เก็บพลอยต่อขบวนให้ยาว ตัดหน้าคู่แข่งให้ชน!</div>
@@ -858,7 +863,7 @@ function showGemWin(g){g=g||GEM_ME;if(!g)return;const G=GEM_PRIZES[g.season];
     b.querySelector('#gwClaim').onclick=()=>{api('/api/claim',{}).then(()=>{g.claimed=g.claimed||Date.now();const st=b.querySelector('#gwSt');if(st)st.textContent='✓ แจ้งรับรางวัลแล้ว — ส่งชื่อ ที่อยู่ และเบอร์โทรในแชทได้เลย'}).catch(()=>{})};
     b.querySelector('#gwOk').onclick=()=>$('sheet').classList.add('hidden')});
   if(!g.review)sfx('gold')}
-function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);ADM_WIN=j&&j.winners||null;if(GEM_ME&&!gemShown){gemShown=true;setTimeout(()=>{if(state==='menu')showGemWin()},900)}
+function setGemMe(j){GEM_ME=j&&j.gem||null;IS_ADMIN=!!(j&&j.admin);ADM_WIN=j&&j.winners||null;if(IS_ADMIN&&j.newBugs){ADM_BUGS=j.newBugs;setTimeout(()=>{if(state==='menu')announce('🐞 มีรายงานบั๊กใหม่ '+j.newBugs+' เรื่อง · ดูในหน้า 🛡️ ผู้ดูแล')},2500)}if(GEM_ME&&!gemShown){gemShown=true;setTimeout(()=>{if(state==='menu')showGemWin()},900)}
   else if(ADM_WIN&&!gemShown){const w=ADM_WIN[ADM_WIN.length-1];let seen='';try{seen=localStorage.getItem('admWinSeen')||''}catch(e){}if(seen!==w.season){gemShown=true;setTimeout(()=>{if(state==='menu')showWinners(w,true)},900)}}}
 // ผู้ดูแล: จบฤดูกาลชิงพลอยแล้ว เปิดเกม → รายชื่อผู้ชนะ 1–3 ขึ้นเอง (ครั้งเดียวต่อฤดูกาลต่อเครื่อง · ดูซ้ำได้ใน 🛡️)
 let ADM_WIN=null;
@@ -876,7 +881,9 @@ function bannedOut(msg){try{localStorage.removeItem('rsAuth')}catch(e){}GEM_ME=n
 let admKey='';
 function openAdmin(){openSheet('🛡️ ผู้ดูแล — ตรวจผู้ชนะ',renderAdmin)}
 function renderAdmin(b){const keys=[...new Set([seasonKey(),...Object.keys(GEM_PRIZES)])].sort().reverse();if(!admKey)admKey=keys.includes(seasonKey())?seasonKey():keys[0];
-  b.innerHTML=`<div class="tabs" id="admTabs">${keys.map(k=>`<div class="tab${k===admKey?' on':''}" data-k="${k}">${seasonName(k)}${k===seasonKey()?' (ตอนนี้)':''}</div>`).join('')}</div>
+  const tabs=`<div class="tabs" id="admTabs">${keys.map(k=>`<div class="tab${k===admKey?' on':''}" data-k="${k}">${seasonName(k)}${k===seasonKey()?' (ตอนนี้)':''}</div>`).join('')}<div class="tab${admKey==='bugs'?' on':''}" data-k="bugs">🐞 บั๊ก${ADM_BUGS?' ('+ADM_BUGS+')':''}</div><div class="tab${admKey==='perf'?' on':''}" data-k="perf">📈 ความลื่น</div></div>`;
+  if(admKey==='bugs'||admKey==='perf'){b.innerHTML=tabs+'<div id="admList">กำลังโหลด...</div>';b.querySelectorAll('#admTabs .tab').forEach(t=>t.onclick=()=>{admKey=t.dataset.k;renderAdmin(b)});return admKey==='bugs'?loadBugs(b):loadPerf(b)}
+  b.innerHTML=tabs+`
     ${(ADM_WIN||[]).filter(w=>w.season===admKey).map(w=>`<div class="rnbox" style="margin:8px 0"><b>🏆 ผู้ชนะ (ตัดผลแล้ว)</b>${winnersHTML(w)}</div>`).join('')}
     <div id="admList">กำลังโหลด...</div>`;
   b.querySelectorAll('#admTabs .tab').forEach(t=>t.onclick=()=>{admKey=t.dataset.k;renderAdmin(b)});
@@ -895,6 +902,33 @@ async function loadAdmin(b){const el=b.querySelector('#admList');let j;try{j=awa
     if(a==='ban'&&!bt.dataset.c){bt.dataset.c=1;const box=document.createElement('div');box.innerHTML=`<input placeholder="เหตุผล เช่น แก้ RP / ใช้โปรแกรมช่วย" maxlength="80" style="margin-top:6px">`;bt.parentNode.after(box);bt.textContent='ยืนยันแบน '+n;return}
     bt.disabled=true;try{if(a==='ban'||a==='unban'){const inp=bt.closest('.adrow').querySelector('input');await api('/api/admin/ban',{name:n,why:inp&&inp.value||'โกง',unban:a==='unban'});announce(a==='ban'?'🚫 แบน '+n+' แล้ว':'✅ ปลดแบน '+n+' แล้ว')}
       else{await api('/api/admin/allow',{name:n,key:admKey,v:a==='allow'});announce(a==='allow'?'👍 ให้สิทธิ์ '+n+' แล้ว':'ยกเลิกให้สิทธิ์ '+n)}loadAdmin(b)}catch(e){announce('❌ '+e.message);bt.disabled=false}})}
+// 🛡️ แท็บ 🐞 บั๊ก: รายงานจากผู้เล่น (ล่าสุดก่อน) · แตะ ✅ = แก้แล้ว · ดูรูปหน้าจอได้
+let ADM_BUGS=0;const BUG_CAT={lag:'🐢 กระตุก/ช้า',crash:'💥 ค้าง/เด้งออก',control:'🎮 บังคับไม่ได้',coins:'🪙 เหรียญ/ของหาย',account:'👤 บัญชี',online:'🌐 ออนไลน์/ห้อง',other:'❓ อื่น ๆ'};
+const fmtDT=t=>new Date(t).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Bangkok'});
+async function loadBugs(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/bugs?n=80')}catch(e){el.textContent='❌ '+e.message;return}
+  ADM_BUGS=j.bugs.filter(x=>!x.done).length;
+  el.innerHTML=j.bugs.length?`<div class="help" style="margin:2px 0 6px">ยังไม่แก้ ${ADM_BUGS} · ทั้งหมด ${j.bugs.length} เรื่อง (ล่าสุดก่อน)</div>`+j.bugs.map(x=>{const i=x.info||{},p=i.perf||{},d=i.dev||{};
+    return`<div class="adrow ${x.done?'ok':'dq'}"><div class="ah"><span class="chip">#${x.id}</span><b>${escH(BUG_CAT[x.cat]||x.cat)}</b><span class="chip">${fmtDT(x.at)}</span></div>
+      <div style="white-space:pre-wrap;font-size:13.5px;margin:4px 0">${escH(x.text||'')}</div>
+      <div style="color:#aab">👤 ${escH(x.name||'Guest')} · 📱 ${escH([d.os,d.osv,d.model,d.br].filter(Boolean).join(' '))} ${d.w||''}×${d.h||''} · กราฟิก ${escH(d.gfx||'')}(${d.q??''}) · v ${escH(d.v||'')}</div>
+      <div style="color:#aab">🎮 ${escH(i.where||'')}${p.sec?` · ⏱ ${p.sec} วิ · FPS ${p.fps} · เฟรมช้า >100ms ${p.s100m}/นาที · เน็ตขาดช่วงสุด ${p.gMax}ms (>150ms ${p.g150m}/นาที) · ช้ากว่าปกติสุด ${p.lMax}ms`:''}</div>
+      ${(i.errs||[]).length?`<div class="fl">⚠️ error: ${i.errs.map(escH).join(' | ')}</div>`:''}
+      <div class="bt">${x.hasShot?`<button data-s="${x.id}">🖼️ ดูภาพหน้าจอ</button>`:''}<button class="${x.done?'':'g'}" data-d="${x.id}" data-v="${x.done?0:1}">${x.done?'↩️ ยังไม่แก้':'✅ แก้แล้ว'}</button></div><div class="shot"></div></div>`}).join(''):'<div class="help">ยังไม่มีรายงาน 🎉</div>';
+  el.querySelectorAll('button[data-d]').forEach(bt=>bt.onclick=async()=>{bt.disabled=true;try{await api('/api/admin/bugdone',{id:+bt.dataset.d,done:bt.dataset.v==='1'});loadBugs(b)}catch(e){announce('❌ '+e.message);bt.disabled=false}});
+  el.querySelectorAll('button[data-s]').forEach(bt=>bt.onclick=async()=>{bt.disabled=true;try{const x=await api('/api/admin/bug?id='+bt.dataset.s);const box=bt.closest('.adrow').querySelector('.shot');box.innerHTML=x.shot?`<img src="${x.shot}" style="width:100%;border-radius:8px;margin-top:6px">`:'(ไม่มีรูป)'}catch(e){announce('❌ '+e.message);bt.disabled=false}})}
+// 🛡️ แท็บ 📈 ความลื่น: สรุปจากเครื่องผู้เล่นจริง (ส่งเองตอนจบเกมออนไลน์) + เซิร์ฟเวอร์
+async function loadPerf(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/perf?n=1500')}catch(e){el.textContent='❌ '+e.message;return}
+  const med=a=>{a=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y);return a.length?a[a.length>>1]:'-'},pct=(a,f)=>a.length?Math.round(100*a.filter(f).length/a.length)+'%':'-';
+  const since=Date.now()-7*864e5,R=j.rows.filter(r=>+new Date(r.at)>since),grp={};for(const r of R){const k=(r.os||'?')+(r.os==='android'||r.os==='ios'?'':' (คอม)');(grp[k]=grp[k]||[]).push(r)}
+  const row=(k,a)=>`<tr><td style="text-align:left">${escH(k)}</td><td>${a.length}</td><td>${med(a.map(r=>r.fps))}</td><td>${pct(a,r=>r.s100m>3)}</td><td>${med(a.map(r=>r.gMax))}</td><td>${pct(a,r=>r.g150m>1)}</td><td>${pct(a,r=>r.q<2)}</td></tr>`;
+  const sv=j.server;
+  el.innerHTML=`<div class="help" style="margin:2px 0 8px">ข้อมูลจากเครื่องผู้เล่นจริง 7 วันล่าสุด (${R.length} เกม · ส่งเองตอนจบเกมออนไลน์ที่เล่นเกิน 20 วิ)</div>
+    <table class="ptab"><tr><th style="text-align:left">เครื่อง</th><th>เกม</th><th>FPS กลาง</th><th>จอกระตุกบ่อย*</th><th>เน็ตขาดช่วงสุด (ms กลาง)</th><th>เน็ตสะดุดบ่อย**</th><th>ลดกราฟิกเอง</th></tr>
+    ${Object.entries(grp).sort((a,b)=>b[1].length-a[1].length).map(([k,a])=>row(k,a)).join('')}${R.length?row('รวม',R):''}</table>
+    <div class="help">* เฟรมช้าเกิน 100ms มากกว่า 3 ครั้ง/นาที · ** ข้อมูลจากเซิร์ฟเวอร์ขาดช่วงเกิน 150ms มากกว่า 1 ครั้ง/นาที</div>
+    ${sv?`<div class="rnbox" style="margin-top:10px;text-align:left;font-size:12.5px;line-height:1.7"><b>🖥️ เซิร์ฟเวอร์ (5 นาทีล่าสุด)</b><br>CPU ${sv.cpu}% · RAM ${sv.rss} MB · ห้อง ${sv.rooms} · คน ${sv.players} · บอท ${sv.bots} · เปิดมา ${Math.round(sv.up/60)} นาที<br>
+      คำนวณต่อรอบ เฉลี่ย ${sv.tick.avg} ms · p99 ${sv.tick.p99} · สูงสุด ${sv.tick.max} ms<br>รอบมาช้ากว่ากำหนด p99 ${sv.late.p99} · สูงสุด ${sv.late.max} ms · เกิน 50ms ${sv.late.over50} ครั้ง · เกิน 100ms ${sv.late.over100} ครั้ง (จาก ${sv.ticks})<br>
+      ${sv.hist&&sv.hist.length?'ย้อนหลัง (ทุก 5 นาที): '+sv.hist.slice(-12).map(h=>`<span title="${fmtDT(h.t)}">${Math.round(h.max)}</span>`).join(' · ')+' ms (รอบช้าสุด)':''}</div>`:''}`}
 // หน้า 🎁 รางวัลจบเดือน: รายละเอียดการแจก + อันดับตอนนี้พร้อมรางวัลของแต่ละคน
 function openPrizes(){openSheet('🎁 รางวัลจบเดือน',b=>{
   b.innerHTML=`${GEM_ME?`<button class="btn" id="pzGem" style="background:linear-gradient(#ffd23f,#e0a800);color:#3a2a00">${GEM_ME.review?'🔎 ผลรางวัลอัญมณีของคุณกำลังตรวจสอบ':'🎉 คุณได้รางวัลอัญมณี! ดูวิธีรับรางวัล'}</button>`:''}${gemShowcaseHTML(true)}<div class="help" style="color:#ffd23f;margin:2px 0 8px">🗓️ ฤดูกาล ${seasonName(seasonKey())} · จบสิ้นเดือน (เที่ยงคืนเวลาไทย) · เหลืออีก ${seasonDaysLeft()} วัน</div><div id="pzBody">กำลังโหลด...</div>
@@ -1716,7 +1750,7 @@ $('bomb').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagatio
 $('horn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();honk()});
 bb.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();input.boost=true;bb.classList.add('on')});
 ['pointerup','pointercancel','pointerleave'].forEach(t=>bb.addEventListener(t,()=>{input.boost=false;bb.classList.remove('on')}));
-addEventListener('keydown',e=>{if(document.activeElement&&document.activeElement.tagName==='INPUT')return;if(e.code==='Space'){input.keyB=true;e.preventDefault()}if(e.code==='KeyB')useBomb();if(e.code==='KeyH')honk();if(e.code==='KeyM')setSnd(!SND.on);if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=true;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=true});
+addEventListener('keydown',e=>{if(document.activeElement&&/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName))return;if(e.code==='Space'){input.keyB=true;e.preventDefault()}if(e.code==='KeyB')useBomb();if(e.code==='KeyH')honk();if(e.code==='KeyM')setSnd(!SND.on);if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=true;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=true});
 addEventListener('keyup',e=>{if(e.code==='Space')input.keyB=false;if(e.code==='ArrowLeft'||e.code==='KeyA')input.keyL=false;if(e.code==='ArrowRight'||e.code==='KeyD')input.keyR=false});
 $('snd').onclick=$('sndMenu').onclick=()=>{audioInit();setSnd(!SND.on)};
 // ===== ตั้งค่า: ปุ่มควบคุมซ้าย/ขวา (localStorage trainSide) · ซ้าย = กลับด้าน HUD ทั้งหมด (ตารางอันดับไปซ้าย มินิแมป/สถานะไปขวา) =====
@@ -1734,13 +1768,43 @@ function openSettings(){openSheet('⚙️ ตั้งค่า',b=>{
   <div class="seg wrap" id="segMus">${TRACKS.map(k=>`<div data-v="${k}" class="${MUS.track===k?'on':''}">${THEMES[k].name}<small>${THEMES[k].sub}</small></div>`).join('')}<div data-v="off" class="${MUS.track==='off'?'on':''}">🔕 ปิดเพลง<small>เหลือแค่เสียงเอฟเฟกต์</small></div></div>
 
   <div class="help">ใช้นิ้วที่ไม่ได้กดปุ่มลากตรงไหนก็ได้บนจอเพื่อเลี้ยว · ถ้าเครื่องกระตุก ลองเลือกกราฟิก "อัตโนมัติ" หรือ "ประหยัด"</div>
+  <button class="btn gray" id="setBug">🐞 แจ้งบั๊ก / ปัญหา</button>
   <button class="btn" id="setDone">เสร็จแล้ว</button>`;
+  $('setBug').onclick=()=>openBug(BUG_SHOT_PEND);
   b.querySelectorAll('#segSide div').forEach(d=>d.onclick=()=>{setSide(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segGfx div').forEach(d=>d.onclick=()=>{setGfx(d.dataset.v);sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segSnd div').forEach(d=>d.onclick=()=>{audioInit();setSnd(d.dataset.v==='1');sheetRender&&sheetRender(b)});
   b.querySelectorAll('#segMus div').forEach(d=>d.onclick=()=>{audioInit();setMus(d.dataset.v);sheetRender&&sheetRender(b)});
   $('setDone').onclick=()=>$('sheet').classList.add('hidden')})}
-$('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();openSettings()};
+$('setMenu').onclick=$('setGame').onclick=e=>{e.stopPropagation();BUG_SHOT_PEND=state==='play'||state==='dead'?grabShot():null;openSettings()};
+// ---------- 🐞 แจ้งบั๊ก (14 พ.ย.): ปุ่ม 🐞 หน้าแรก + ใน ⚙️ ตั้งค่า (ในเกมก็กดได้) → เลือกเรื่อง + เล่า + แนบภาพหน้าจอเกม + ข้อมูลเครื่อง/ความลื่นอัตโนมัติ → ผู้ดูแลดูในหน้า 🛡️ แท็บ 🐞 ----------
+let BUG_SHOT_PEND=null,bugCat='',bugLast=0;const ERRS=[];
+addEventListener('error',e=>{ERRS.push(String(e.message||e.error||'').slice(0,90)+(e.lineno?' @'+e.lineno:''));if(ERRS.length>5)ERRS.shift()});
+addEventListener('unhandledrejection',e=>{ERRS.push('promise: '+String(e.reason&&e.reason.message||e.reason).slice(0,80));if(ERRS.length>5)ERRS.shift()});
+function grabShot(){try{const W=Math.min(560,cv.width),H=Math.round(cv.height*W/cv.width),c=document.createElement('canvas');c.width=W;c.height=H;c.getContext('2d').drawImage(cv,0,0,W,H);   // ย่อให้เล็ก (ส่งไม่เกิน ~90KB)
+  for(const q of [.6,.45,.3]){const u=c.toDataURL('image/jpeg',q);if(u.length<88000)return u}}catch(e){}return null}   // Safari บางรุ่นห้ามอ่านภาพ canvas → ไม่แนบรูป
+function bugWhere(){const m=NET?(NET.ffa?'🌍 โลกออนไลน์ '+(NET.diff||'normal')+' ('+(NET.room||'')+')':'⚔️ 2v2 ห้อง '+(NET.room||'')+' · '+(NET.phase||'')):mode==='stage'?'🗺️ ผจญภัย':state==='menu'?'หน้าแรก':'ออฟไลน์ '+mode;
+  return m+' · '+state+(player&&player.alive?' · ยาว '+Math.round(player.mass):'')}
+function openBug(shot){openSheet('🐞 แจ้งบั๊ก / ปัญหา',b=>{
+  b.innerHTML=`<div class="help" style="margin:0 0 6px;text-align:left">เจออะไรแปลก ๆ บอกเราได้เลย ทีมงานอ่านทุกเรื่องครับ 🙏</div>
+    <div class="lbl">เรื่องอะไร</div><div class="bugcat" id="bugCat">${Object.entries(BUG_CAT).map(([k,v])=>`<div data-k="${k}" class="${bugCat===k?'on':''}">${v}</div>`).join('')}</div>
+    <div class="lbl">เล่าให้ฟังหน่อย</div><textarea id="bugTxt" maxlength="1000" placeholder="เช่น เล่นโลกออนไลน์ Normal แล้วรถไฟคนอื่นกระตุกทุก ๆ 10 วิ / ซื้อของแล้วเหรียญหาย / กดปุ่มนี้แล้วเกมค้าง"></textarea>
+    ${shot?`<label class="bugshot"><input type="checkbox" id="bugShotOn" checked><img src="${shot}"><span>แนบภาพหน้าจอเกม<br><small style="color:#aab">ตอนที่กด ⚙️</small></span></label>`:''}
+    <div class="help" style="text-align:left">📎 ส่งไปด้วยอัตโนมัติ: รุ่นเครื่อง/เบราว์เซอร์ ขนาดจอ ความลื่นของเกม (FPS · เน็ต) โหมดที่เล่น และชื่อบัญชี — ไม่มีรหัสผ่านหรือข้อมูลส่วนตัว</div>
+    <div id="bugErr" class="help" style="color:#ff9b9b"></div>
+    <button class="btn" id="bugSend">📨 ส่งรายงาน</button><button class="btn gray" id="bugX">ยกเลิก</button>`;
+  b.querySelectorAll('#bugCat div').forEach(d=>d.onclick=()=>{bugCat=d.dataset.k;b.querySelectorAll('#bugCat div').forEach(x=>x.classList.toggle('on',x===d))});
+  b.querySelector('#bugX').onclick=()=>$('sheet').classList.add('hidden');
+  b.querySelector('#bugSend').onclick=async()=>{const bt=b.querySelector('#bugSend'),er=b.querySelector('#bugErr'),text=b.querySelector('#bugTxt').value.trim();
+    if(!bugCat){er.textContent='เลือกเรื่องก่อนนะครับ';return}if(text.length<3&&bugCat==='other'){er.textContent='เล่าสั้น ๆ ว่าเกิดอะไรขึ้นก่อนนะครับ';return}
+    if(Date.now()-bugLast<20000){er.textContent='เพิ่งส่งไป รอสักครู่นะครับ';return}
+    bt.disabled=true;bt.textContent='กำลังส่ง...';er.textContent='';
+    const sb=b.querySelector('#bugShotOn'),body={cat:bugCat,text,name:ACCT.name||$('name').value||'',shot:shot&&(!sb||sb.checked)?shot:null,
+      info:{dev:devInfo(),perf:PERF.summary(),where:bugWhere(),frames:PERF.ring.slice(-60),errs:ERRS.slice(),net:NET?{ws:NET.ws?NET.ws.readyState:-1,pl:NET.players?NET.players.size:0}:null,acct:ACCT.mode}};
+    try{const j=await api('/api/bug',body);bugLast=Date.now();bugCat='';
+      b.innerHTML=`<div class="bugok">✅ ส่งแล้ว ขอบคุณมากครับ!<br><small style="color:#aab">รายงาน #${j.id} · ทีมงานจะรีบดูให้</small></div><button class="btn" id="bugOk">กลับไปเล่น</button>`;b.querySelector('#bugOk').onclick=()=>$('sheet').classList.add('hidden')}
+    catch(e){bt.disabled=false;bt.textContent='📨 ส่งรายงาน';er.textContent='❌ '+e.message}}})}
+$('bugMenu').onclick=e=>{e.stopPropagation();openBug(null)};
 // ---------- เต็มหน้าจอ: ปุ่ม ⛶ + เข้าเต็มจออัตโนมัติเมื่อกดเริ่มเล่น ----------
 const FS_OK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 const isFS=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
@@ -1837,6 +1901,7 @@ function step(f,dt){
   buildFoodGrid();
   if(input.keyL)input.angle-=.07*f;if(input.keyR)input.angle+=.07*f;
   for(const w of worms){if(!w.alive)continue;if(w.isP){w.target=input.angle;w.boost=input.boost||input.keyB}else if(!w.isRemote)aiThink(w,f)}
+  if(NET)interpTick(dt);
   for(const w of worms){if(!w.alive)continue;if(w.isRemote)netUpdate(w,dt);else w.update(f,dt)}
   buildBodyGrid();
   // collisions
@@ -2534,6 +2599,7 @@ function startGame(m){hideKby();LAST_KILLER=null;
 }
 function finish(timeUp,quit,noPen){
   if(state==='over')return;
+  if(NET&&NET.ffa)perfSend('ffa-'+(NET.diff||'normal'));
   const alive=worms.filter(w=>w.alive).sort((a,b)=>b.mass-a.mass);
   const score=Math.floor(timeUp?player.mass:player.maxMass),rk=alive.indexOf(player)+1;
   state='over';bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');input.boost=false;bb.classList.remove('on');
@@ -2618,7 +2684,8 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:34,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:35,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง']},
   {id:33,d:'14 พ.ย. 2026',t:'🌍 โลกออนไลน์ 3 โหมด',l:['กด 🌍 เล่นออนไลน์ แล้วเลือกโหมดได้ · ปุ่มบอกด้วยว่าแต่ละโหมดมีคนเล่นกี่คน','🟢 <b>Easy</b> ฝึกเล่น บอทอ่อน — ไม่ได้เหรียญ แรงก์ ภารกิจ','🔵 <b>Normal</b> แบบเดิม','🔴 <b>Hard</b> บอทโหดไล่ตัดหน้าเก่ง + 🪨 หินกลางสนาม ชนแล้วตาย — ได้เหรียญและแรงก์ <b>×1.3</b>']},
   {id:32,d:'13 พ.ย. 2026',t:'🔥 ควันเปลวไฟ & 🍃 ควันใบไม้โฉมใหม่',l:['🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
   {id:31,d:'13 พ.ย. 2026',t:'🧲 หัวจักรในร้านดูดพลอยไกลขึ้น 30%',l:['หัวจักรทุกหัวที่ซื้อจากร้าน เก็บพลอยและเพชรขาวได้ไกลขึ้นอีก <b>30%</b>','ดีเซล +20 · กระสุน +39 · รถราง +59 · ใต้ดิน +78 · ดาวหาง +104','ใครมีหัวจักรอยู่แล้วได้ทันที ไม่ต้องซื้อใหม่']},
@@ -3107,7 +3174,7 @@ function renderOnlineJoin(b){
 }
 function netURL(s){const proto=location.protocol==='https:'?'wss://':'ws://';if(!s)return proto+location.host+'/ws';if(/^wss?:\/\//.test(s))return s;if(/^https?:\/\//.test(s))return s.replace(/^http/,'ws').replace(/\/$/,'')+'/ws';return proto+s.replace(/\/$/,'')+'/ws'}
 function netStatus(t){const e=$('netStatus');if(e)e.textContent=t}
-function netConnect(room,srv,nmode){presClose();hideInvite();const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];document.body.classList.remove('stageOn');
+function netConnect(room,srv,nmode){PERF.reset();presClose();hideInvite();const ffa=nmode==='ffa';STAGE=null;STAGE_D=null;STAGE_RUN=false;OBST=[];MUDS=[];document.body.classList.remove('stageOn');
   if(NET)netLeave(true);
   let ws;netStatus('กำลังเชื่อมต่อ...');
   const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกดเข้าห้องอีกครั้ง');NET=null};
@@ -3170,7 +3237,7 @@ function netMsg(m){
     case'start':{netPlayers(m.players);NET.phase='play';NET.lastEnd=null;NET.soloAt=0;NET.soloSent=0;NET.cdEnd=0;NET.inLobbySent=false;NET.misSnap=(prof.daily&&prof.daily.m||[]).map(x=>x.p);NET.timeLeft=m.timeLeft;resetItems();roundCoins=0;roundRP=0;easyMiss=0;NET.vsT={A:0,B:0};NET.bots.clear();setTimeout(()=>{if(vsGame()&&state==='play')announce('⚠️ 2v2 ไม่นับความยาวเข้าสถิติ')},2600);
       worms=[];const sp=m.spawns[NET.id];netSpawnMe(sp);$('sheet').classList.add('hidden');announce('⚔️ เริ่มแข่ง! '+TEAM_NAME[NET.me.team]+' สู้ ๆ');break}
     case's':{   // แบบย่อ (cz): id บอทสั้น + เวลาเป็นส่วนต่างจาก T
-      NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
+      PERF.sgap(m.T);NET.timeLeft=m.tl;NET.score=m.sc;const seen=new Set();
       for(const a of m.p){let[id,x,y,an,ms,fl,ts,hp]=a;if(m.T){if(id<0)id=id-1e8+1;ts=m.T+(ts||0)}if(id===NET.id)continue;seen.add(id);const bi=id<0?NET.bots.get(id):null;
         const info=bi||NET.players.get(id);if(!info)continue;
         let w=worms.find(o=>o.netId===id);const alive=!!(fl&4);
@@ -3307,7 +3374,26 @@ function netSpawnMe(sp){hideKby();LAST_KILLER=null;
   $('snd').classList.remove('hidden');$('setGame').classList.remove('hidden');$('fsGame')&&$('fsGame').classList.remove('hidden');lastBtn='';updBtns();
 }
 // ---- การเคลื่อนไหวของรถไฟคนอื่นให้ลื่น: เก็บสถานะพร้อมเวลาของเครื่องผู้ส่ง แล้ววาดย้อนหลัง INTERP ms โดยเลื่อนระหว่างสองสถานะ ----
-const INTERP=130;
+// INTERP ปรับเองตามความแกว่งของเน็ต (14 พ.ย.): เน็ตนิ่ง ~110ms · มีกระตุก (ข้อมูลมาช้าเป็นช่วง ๆ) ขยายได้ถึง 220ms · เกินกว่านั้นเดาต่อตามทิศ/ความเร็ว/การเลี้ยว (EXTRA_MAX) แล้วค่อย ๆ ปรับเข้าที่ (ไม่กระโดด)
+let INTERP=130,NJ=0,NJ_T=0;const INTERP_MIN=110,INTERP_MAX=220,EXTRA_MAX=320;
+function netJit(L){const n=performance.now();NJ*=Math.pow(.72,(n-NJ_T)/1000);NJ_T=n;if(L>NJ)NJ=L}   // ค่าช้าสุดที่ค่อย ๆ ลดลง (ลดเหลือ ~ครึ่งใน 2 วิ)
+function interpTick(dt){const n=performance.now();NJ*=Math.pow(.72,(n-NJ_T)/1000);NJ_T=n;const tg=Math.max(INTERP_MIN,Math.min(INTERP_MAX,95+NJ*.9));INTERP+=(tg-INTERP)*Math.min(1,dt*(tg>INTERP?3:.4))}   // ขยายเร็ว หดช้า (ไม่ให้เวลากระตุก)
+// ---------- 📈 วัดความลื่นระหว่างเล่น (14 พ.ย.): เฟรมช้า / ข้อมูลเน็ตมาช้า / ต้องเดาตำแหน่งคนอื่น → แนบไปกับ 🐞 แจ้งบั๊ก และส่งสรุปให้เซิร์ฟเวอร์ตอนจบเกมออนไลน์ (ผู้ดูแลดูใน 🛡️) ----------
+const PERF={
+  reset(){Object.assign(this,{t0:performance.now(),fr:0,sum:0,s50:0,s100:0,s250:0,max:0,gN:0,gMax:0,g150:0,g300:0,lN:0,l100:0,lMax:0,ext:0,lastS:0,ring:[],off:undefined})},
+  frame(d){if(state!=='play'||document.hidden)return;this.fr++;this.sum+=d;if(d>50)this.s50++;if(d>100)this.s100++;if(d>250)this.s250++;if(d>this.max&&d<3000)this.max=d;this.ring.push(Math.round(d));if(this.ring.length>600)this.ring.shift()},
+  sgap(T){const n=performance.now();if(this.lastS&&!document.hidden){const g=n-this.lastS;this.gN++;if(g>this.gMax&&g<5000)this.gMax=g;if(g>150)this.g150++;if(g>300)this.g300++}this.lastS=n;
+    if(T){const o=Date.now()-T;this.off=this.off===undefined||o<this.off?o:this.off+(o-this.off)*.01;const L=o-this.off;this.lN++;if(L>100)this.l100++;if(L>this.lMax&&L<5000)this.lMax=L}},   // L = ข้อมูลชุดนี้มาช้ากว่าปกติกี่ ms
+  summary(){const sec=(performance.now()-this.t0)/1000,min=Math.max(.1,this.fr*(this.sum/Math.max(1,this.fr))/60000),r=this.ring.slice().sort((a,b)=>a-b),q=x=>r.length?r[Math.min(r.length-1,Math.floor(r.length*x))]:0;
+    return{sec:Math.round(sec),fps:this.fr?Math.round(1000*this.fr/this.sum):0,p95:q(.95),max:Math.round(this.max),s50m:+(this.s50/min).toFixed(1),s100m:+(this.s100/min).toFixed(1),s250:this.s250,
+      gMax:Math.round(this.gMax),g150m:+(this.g150/min).toFixed(1),g300:this.g300,l100m:+(this.l100/min).toFixed(1),lMax:Math.round(this.lMax),ext:this.ext,ip:Math.round(INTERP)}}};
+PERF.reset();
+function devInfo(){const u=navigator.userAgent,os=/iPhone|iPad|iPod/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?'ios':/Android/.test(u)?'android':/Windows/.test(u)?'win':/Mac/.test(u)?'mac':'other';
+  const br=/FBAN|FBAV/.test(u)?'fb':/Line\//.test(u)?'line':/CriOS|Chrome\//.test(u)&&!/Edg/.test(u)?'chrome':/Edg/.test(u)?'edge':/Firefox|FxiOS/.test(u)?'firefox':/Safari/.test(u)?'safari':'other';
+  const m=u.match(/Android [\d.]+; ([^;)]+)/);return{os,br,model:m?m[1].slice(0,30):'',osv:(u.match(/(?:OS |Android |Windows NT )([\d_.]+)/)||[])[1]||'',w:Math.round(VW),h:Math.round(VH),dpr:+(devicePixelRatio||1).toFixed(2),cores:navigator.hardwareConcurrency||0,mem:navigator.deviceMemory||0,
+    q:QUAL,gfx:GFX,st:IS_STANDALONE()?1:0,v:String(APP_VER).slice(0,10)}}
+function perfSend(mode){try{const s=PERF.summary();if(s.sec<20||!s.fr&&!s.fps){PERF.reset();return}
+  fetch('/api/perf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...s,...devInfo(),mode:mode||'',n:worms.filter(w=>w.alive).length}),keepalive:true}).catch(()=>{})}catch(e){}PERF.reset()}
 function crashOk(k,h){   // เครื่องอื่นบอกว่าเราเอาหัวชนเขา → ยอมตายเฉพาะเมื่อบนจอเราเห็นเขาจริงและหัวเราอยู่ใกล้ตัวเขา
   if(!k||!k.alive||!k.pts||!k.pts.length||pvpFresh(k))return false;
   const lim=(player.r()+k.r()+CRASH_TOL)**2;for(let i=0;i<k.pts.length;i+=2){const q=k.pts[i];if((q.x-h.x)**2+(q.y-h.y)**2<lim)return true}
@@ -3316,16 +3402,27 @@ function netSnap(w,x,y,a,m,ts){
   const now=Date.now();ts=+ts||now;const s=w.snaps||(w.snaps=[]);
   if(s.length&&ts<=s[s.length-1].t)return;                       // ซ้ำหรือมาช้ากว่าอันล่าสุด ข้าม
   const off=now-ts;w.off=w.off===undefined||off<w.off?off:w.off+(off-w.off)*.02;   // ประมาณเวลาต่างระหว่างเครื่อง (ใช้ค่าที่เร็วสุด)
+  if((w.snN=(w.snN||0)+1)>4)netJit(off-w.off);   // มาช้ากว่าปกติกี่ ms (ข้ามช่วงแรกที่ยังประมาณเวลาไม่นิ่ง)
   s.push({t:ts,x,y,a,m});if(s.length>30)s.shift();
 }
 function netUpdate(w,dt){
   const s=w.snaps;if(!s||!s.length){w.follow();return}
   const rt=Date.now()-w.off-INTERP;while(s.length>2&&s[1].t<=rt)s.shift();
   let x,y,a,m;const A=s[0],B=s[1];
-  if(B&&rt>=A.t){let k=Math.min(1.25,(rt-A.t)/Math.max(1,B.t-A.t));   // เลยสถานะล่าสุดได้นิดหน่อย (เดาต่อ) ถ้าข้อมูลมาช้า
-    if((B.x-A.x)**2+(B.y-A.y)**2>300*300)k=k<1?0:1;   // วาร์ป (อุโมงค์/เกิดใหม่) ห้ามเลื่อนข้ามแมป
-    x=A.x+(B.x-A.x)*k;y=A.y+(B.y-A.y)*k;let d=B.a-A.a;d=Math.atan2(Math.sin(d),Math.cos(d));a=A.a+d*Math.min(1,k);m=A.m+(B.m-A.m)*Math.min(1,k)}
+  if(B&&rt>=A.t){const T=Math.max(1,B.t-A.t);let k=(rt-A.t)/T;let d=B.a-A.a;d=Math.atan2(Math.sin(d),Math.cos(d));
+    if((B.x-A.x)**2+(B.y-A.y)**2>300*300){k=k<1?0:1;x=A.x+(B.x-A.x)*k;y=A.y+(B.y-A.y)*k;a=k?B.a:A.a;m=k?B.m:A.m}   // วาร์ป (อุโมงค์/เกิดใหม่) ห้ามเลื่อนข้ามแมป
+    else if(k<=1){x=A.x+(B.x-A.x)*k;y=A.y+(B.y-A.y)*k;a=A.a+d*k;m=A.m+(B.m-A.m)*k}
+    else{   // ข้อมูลมาช้า → เดาต่อจากสถานะล่าสุด: ความเร็วเท่าเดิม เลี้ยวเท่าเดิม (รถไฟวิ่งโค้งสม่ำเสมอ เดาได้แม่นกว่าเส้นตรง) สูงสุด EXTRA_MAX
+      const e=Math.min(rt-B.t,EXTRA_MAX),v=Math.hypot(B.x-A.x,B.y-A.y)/T,om=Math.max(-.006,Math.min(.006,d/T));
+      if(Math.abs(om)<1e-5){x=B.x+Math.cos(B.a)*v*e;y=B.y+Math.sin(B.a)*v*e}else{const R=v/om;x=B.x+R*(Math.sin(B.a+om*e)-Math.sin(B.a));y=B.y-R*(Math.cos(B.a+om*e)-Math.cos(B.a))}
+      a=B.a+om*e;m=B.m;if(PERF)PERF.ext++}}
   else{x=A.x;y=A.y;a=A.a;m=A.m}
+  // เดาผิดไปนิด → ค่อย ๆ ไหลเข้าที่ใน ~0.15 วิ แทนการกระโดด
+  w.ex=w.ex||0;w.ey=w.ey||0;
+  if(w.rlx!==undefined){const sc=dt/Math.max(.004,w.mvdt||dt),jx=w.rlx+w.mvx*sc-x,jy=w.rly+w.mvy*sc-y,jd=jx*jx+jy*jy;   // ตำแหน่งเป้าหมายกระโดดผิดจังหวะ (เดาต่อผิด/ข้อมูลใหม่มา) → เก็บเป็นส่วนต่างไว้แล้วค่อย ๆ หาย
+    if(jd>9&&jd<140*140){w.ex+=jx;w.ey+=jy;const el=Math.hypot(w.ex,w.ey);if(el>140){w.ex*=140/el;w.ey*=140/el}}else if(jd>=140*140){w.ex=w.ey=0}}
+  w.mvx=w.rlx===undefined?0:x-w.rlx;w.mvy=w.rly===undefined?0:y-w.rly;w.mvdt=dt;w.rlx=x;w.rly=y;
+  const kd=Math.exp(-dt/.12);w.ex*=kd;w.ey*=kd;x+=w.ex;y+=w.ey;
   const h=w.pts[0],dx=x-h.x,dy=y-h.y;
   if(dx*dx+dy*dy>300*300){let ent=null;for(const p of portals){const q=portals[p.pair];if(Math.hypot(h.x-p.x,h.y-p.y)<170&&Math.hypot(x-q.x,y-q.y)<260){ent=p;break}}
     if(ent){tunStart(w,ent);h.x=x;h.y=y}   // ลอดอุโมงค์ → ค่อย ๆ โผล่เหมือนเครื่องเจ้าของ
@@ -3344,7 +3441,7 @@ function netTick(dt){
     if(NET.q.eat.length){o.eat=NET.q.eat;NET.q.eat=[]}netSend(o)}
 }
 function netEnd(m){
-  NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
+  perfSend('vs');NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;
   const rw={len:0,kill:0,kills:0,win:win?50:0,draw:m.winner==='draw',ok:!!player};
   if(player){rw.len=Math.floor(player.maxMass/10);rw.kills=player.kills;rw.kill=player.kills*5;addCoins(rw.len+rw.kill+rw.win);if(win||m.winner==='draw')addRP(gameRP(0,player.kills,win?15:0,1));else addRP(Math.min(0,player.kills*2-vsLoss(rankOf(prof.rp).t)));   /* 2v2: RP = กำจัด×2 + ชนะ 15 · เสมอ = กำจัด×2 · ทีมแพ้ = กำจัด×2 − (5+3×ขั้น) ไม่เกิน 0 (เจ้าของสั่ง 13 พ.ย. 20:1x · เดิมแพ้ 0) · ไม่คิดความยาว */track('games');track('vsGames');if(win)track('teamWin');saveProf()}
   player=null;worms=[];bb.classList.add('hidden');$('bomb').classList.add('hidden');$('horn').classList.add('hidden');
@@ -3399,7 +3496,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)presClose()
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&canPause()&&!PAUSED)setPause(true)});
 function loop(t){
   requestAnimationFrame(loop);
-  fpsWatch(t-last);const dt=Math.min((t-last)/1000,.05);last=t;frame++;
+  fpsWatch(t-last);PERF.frame(t-last);const dt=Math.min((t-last)/1000,.05);last=t;frame++;
   if(!PAUSED)step(dt*60,dt);sprPump();render();
   profT+=dt;if(profT>(ACCT.mode==='acct'?20:4)){profT=0;if(profDirty)saveProf()}
 }

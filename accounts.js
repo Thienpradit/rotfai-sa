@@ -7,6 +7,7 @@ const path = require('path');
 const DB_URL = process.env.DATABASE_URL || '';
 const SECRET = process.env.TOKEN_SECRET || crypto.createHash('sha256').update('rotfai:' + (DB_URL || 'dev-secret')).digest('hex');
 const MAX_DATA = 40 * 1024;
+const BUG_KEEP = 500, PERF_KEEP = 3000, BUG_SHOT = 90 * 1024;   // 🐞 แจ้งบั๊ก (เก็บล่าสุด 500 เรื่อง · รูปไม่เกิน 90KB) · 📈 ความลื่นจากเครื่องผู้เล่น (ล่าสุด 3000 เกม)
 const RENAME_COST = 20000;   // เปลี่ยนชื่อ (เจ้าของสั่ง 11 พ.ย. 2026) — ต้องตรงกับ RENAME_COST ใน public/index.html
 const AC = require('./anticheat');
 
@@ -17,6 +18,8 @@ function fileStore(note) {
   let db = {}; try { db = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) {}
   const SFILE = path.join(__dirname, 'data', 'seasons.json'); let seasons = {}; try { seasons = JSON.parse(fs.readFileSync(SFILE, 'utf8')); } catch (e) {}
   let t = null; const flush = () => { clearTimeout(t); t = setTimeout(() => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db)); }, 300); };
+  const BFILE = path.join(__dirname, 'data', 'bugs.json'); let bugs = { n: 0, list: [], perf: [] }; try { bugs = { n: 0, list: [], perf: [], ...JSON.parse(fs.readFileSync(BFILE, 'utf8')) }; } catch (e) {}
+  let bt = null; const bflush = () => { clearTimeout(bt); bt = setTimeout(() => { fs.mkdirSync(path.dirname(BFILE), { recursive: true }); fs.writeFileSync(BFILE, JSON.stringify(bugs)); }, 300); };
   console.log('accounts: ' + note);
   return {
     kind: 'file', note, ready: Promise.resolve(),
@@ -34,6 +37,12 @@ function fileStore(note) {
       const i = me ? all.findIndex(u => u.lname === me) : -1;
       return { top: all.slice(0, n).map(({ lname, ...u }) => u), me: i >= 0 ? { pos: i + 1, val: all[i].val } : null, n: all.length }; },
     async getSeason(k) { return seasons[k] || null; },
+    async addBug(b) { const id = ++bugs.n; bugs.list.push({ id, at: new Date().toISOString(), done: false, ...b }); if (bugs.list.length > BUG_KEEP) bugs.list.splice(0, bugs.list.length - BUG_KEEP); bflush(); return id; },
+    async listBugs(n) { return bugs.list.slice(-n).reverse().map(({ shot, ...b }) => ({ ...b, hasShot: !!shot })); },
+    async getBug(id) { return bugs.list.find(b => b.id === id) || null; },
+    async setBug(id, done) { const b = bugs.list.find(x => x.id === id); if (b) { b.done = !!done; bflush(); } },
+    async addPerf(r) { bugs.perf.push({ at: new Date().toISOString(), ...r }); if (bugs.perf.length > PERF_KEEP) bugs.perf.splice(0, bugs.perf.length - PERF_KEEP); bflush(); },
+    async perfRows(n) { return bugs.perf.slice(-n); },
     async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
     async cleanAdminOwned() { const fixed = []; for (const u of Object.values(db)) { if (adminPolluted((u.data || {}).owned)) { u.data = cleanOwnedData(u.data); fixed.push(u.name); }
         const r = restoreOwned(u.lname, u.data); if (r) { u.data = r; fixed.push('+' + u.name); } } if (fixed.length) flush(); return fixed; },
@@ -65,6 +74,8 @@ if (DB_URL) {
     .then(() => pool.query('ALTER TABLE players ADD COLUMN IF NOT EXISTS audit JSONB'))
     .then(() => pool.query(`CREATE TABLE IF NOT EXISTS seasons (key TEXT PRIMARY KEY, n INTEGER NOT NULL, ranks JSONB NOT NULL, created TIMESTAMPTZ NOT NULL DEFAULT now())`))
     .then(() => pool.query('ALTER TABLE seasons ADD COLUMN IF NOT EXISTS top JSONB'))
+    .then(() => pool.query(`CREATE TABLE IF NOT EXISTS bugs (id SERIAL PRIMARY KEY, at TIMESTAMPTZ NOT NULL DEFAULT now(), lname TEXT, name TEXT, cat TEXT, text TEXT, info JSONB, shot TEXT, done BOOLEAN NOT NULL DEFAULT false)`))
+    .then(() => pool.query(`CREATE TABLE IF NOT EXISTS perf (id SERIAL PRIMARY KEY, at TIMESTAMPTZ NOT NULL DEFAULT now(), info JSONB NOT NULL)`))
     .then(() => { console.log('accounts: using Postgres (' + describeUrl(url) + ')'); })
     .catch(e => {   // ต่อฐานข้อมูลไม่ได้ → ไม่ให้เซิร์ฟเวอร์ล่ม ใช้ไฟล์ชั่วคราวแทน
       console.error('accounts: database error ' + e.message + ' | ' + describeUrl(url));
@@ -100,6 +111,16 @@ if (DB_URL) {
       for (const u of r.rows) { let d = u.data, ch = false; if (adminPolluted((d || {}).owned)) { d = cleanOwnedData(d); ch = true; fixed.push(u.name); }
         const rs = restoreOwned(u.lname, d); if (rs) { d = rs; ch = true; fixed.push('+' + u.name); }
         if (ch) await pool.query('UPDATE players SET data=$2 WHERE lname=$1', [u.lname, d]); } return fixed; },
+    async addBug(b) { await ready; if (store !== dbStore) return store.addBug(b);
+      const r = await pool.query('INSERT INTO bugs (lname,name,cat,text,info,shot) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [b.lname || null, b.name || null, b.cat, b.text, JSON.stringify(b.info || {}), b.shot || null]);
+      pool.query('DELETE FROM bugs WHERE id <= $1', [r.rows[0].id - BUG_KEEP]).catch(() => {}); return r.rows[0].id; },
+    async listBugs(n) { await ready; if (store !== dbStore) return store.listBugs(n);
+      const r = await pool.query('SELECT id, at, lname, name, cat, text, info, done, (shot IS NOT NULL) AS "hasShot" FROM bugs ORDER BY id DESC LIMIT $1', [n]); return r.rows; },
+    async getBug(id) { await ready; if (store !== dbStore) return store.getBug(id); const r = await pool.query('SELECT * FROM bugs WHERE id=$1', [id]); return r.rows[0] || null; },
+    async setBug(id, done) { await ready; if (store !== dbStore) return store.setBug(id, done); await pool.query('UPDATE bugs SET done=$2 WHERE id=$1', [id, !!done]); },
+    async addPerf(x) { await ready; if (store !== dbStore) return store.addPerf(x);
+      const r = await pool.query('INSERT INTO perf (info) VALUES ($1) RETURNING id', [JSON.stringify(x)]); if (r.rows[0].id % 50 === 0) pool.query('DELETE FROM perf WHERE id <= $1', [r.rows[0].id - PERF_KEEP]).catch(() => {}); },
+    async perfRows(n) { await ready; if (store !== dbStore) return store.perfRows(n); const r = await pool.query('SELECT at, info FROM perf ORDER BY id DESC LIMIT $1', [n]); return r.rows.reverse().map(x => ({ at: x.at, ...x.info })); },
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks, top, created AS at FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
@@ -158,10 +179,21 @@ async function authUser(req) {
   const want = Buffer.from(sign(u.lname, u.salt)), got = Buffer.from(sig);
   return want.length === got.length && crypto.timingSafeEqual(want, got) ? u : null;
 }
-function readBody(req) {
-  return new Promise(ok => { let b = ''; req.on('data', c => { b += c; if (b.length > MAX_DATA + 4096) { b = ''; req.destroy(); } });
+function readBody(req, max = MAX_DATA + 4096) {
+  return new Promise(ok => { let b = ''; req.on('data', c => { b += c; if (b.length > max) { b = ''; req.destroy(); } });
     req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { ok({}); } }); req.on('error', () => ok({})); });
 }
+const ipOf = req => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+const spamMap = new Map();   // กันส่งถี่: ต่อ IP ต่อชนิด ไม่เกิน n ครั้ง / 10 นาที
+function spam(req, kind, n) { const k = kind + ':' + ipOf(req), now = Date.now(), t = (spamMap.get(k) || []).filter(x => now - x < 600000); t.push(now); spamMap.set(k, t); if (spamMap.size > 5000) spamMap.clear(); return t.length > n; }
+const BUG_CATS = ['lag', 'crash', 'control', 'coins', 'account', 'online', 'other'];
+// ข้อมูลเครื่อง/ความลื่นที่แนบมา: เก็บเฉพาะตัวเลข/ข้อความสั้น ลึกไม่เกิน 2 ชั้น
+function cleanInfo(o, d = 0) { const r = {}; if (!o || typeof o !== 'object' || Array.isArray(o)) return r; let n = 0;
+  for (const [k, v] of Object.entries(o)) { if (++n > 40) break; const kk = String(k).slice(0, 24);
+    if (typeof v === 'number' && isFinite(v)) r[kk] = Math.round(v * 100) / 100; else if (typeof v === 'boolean') r[kk] = v;
+    else if (typeof v === 'string') r[kk] = v.replace(/[<>]/g, '').slice(0, 200); else if (Array.isArray(v) && d < 1) r[kk] = v.slice(0, 30).map(x => typeof x === 'number' ? Math.round(x) : String(x).slice(0, 40));
+    else if (v && typeof v === 'object' && d < 1) r[kk] = cleanInfo(v, d + 1); } return r; }
+let SERVER_PERF = null; const setServerPerf = fn => { SERVER_PERF = fn; };
 const tries = new Map();   // กันเดารหัสผ่าน: ต่อ IP ไม่เกิน 30 ครั้ง / 10 นาที
 function limited(req) {
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim(), now = Date.now();
@@ -303,17 +335,33 @@ async function handleApi(req, res, p) {
       const u = nm ? await store.get(nm) : null; if (!u) return out(404, { err: 'ไม่พบผู้เล่นคนนี้' });
       return out(200, pubProfile(u));
     }
+    if (p === '/api/bug' && req.method === 'POST') {   // 🐞 แจ้งบั๊ก (Guest ก็ส่งได้)
+      if (spam(req, 'bug', 6)) return out(429, { err: 'ส่งถี่เกินไป รอสักครู่แล้วลองใหม่' });
+      const b = await readBody(req, BUG_SHOT + 16384), u = req.headers.authorization ? await authUser(req).catch(() => null) : null;
+      const text = String(b.text || '').replace(/[\u0000-\u0008\u000b-\u001f]/g, '').trim().slice(0, 1000), cat = BUG_CATS.includes(b.cat) ? b.cat : 'other';
+      if (text.length < 3 && cat === 'other') return out(400, { err: 'เล่าปัญหาสั้น ๆ ก่อนส่งนะครับ' });
+      let shot = typeof b.shot === 'string' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.shot) && b.shot.length <= BUG_SHOT ? b.shot : null;
+      const info = cleanInfo(b.info); info.ip = ipOf(req).replace(/\d+$/, 'x');
+      const id = await store.addBug({ lname: u ? u.lname : null, name: u ? u.name : cleanName(b.name).slice(0, 20) || null, cat, text, info, shot });
+      console.log(`bug #${id} [${cat}] ${u ? u.name : 'guest'}: ${text.slice(0, 120)}`); return out(200, { ok: true, id }); }
+    if (p === '/api/perf' && req.method === 'POST') {   // 📈 ความลื่นจากเครื่องผู้เล่น (ส่งเองตอนจบเกมออนไลน์)
+      if (spam(req, 'perf', 40)) return out(429, { err: 'slow down' });
+      const b = await readBody(req, 4096); await store.addPerf(cleanInfo(b)); return out(200, { ok: true }); }
     if (accountsDown()) return out(503, { err: 'ระบบบัญชีปิดปรับปรุงชั่วคราว (ยังไม่ได้ต่อฐานข้อมูล) เล่นแบบ Guest ไปก่อนได้' });
     if (req.method === 'GET' && p === '/api/me') {
       const u = await authUser(req); if (!u) return out(401, { err: 'กรุณาเข้าสู่ระบบใหม่' });
       if (u.ban) return out(403, { err: BAN_MSG(u.ban), banned: true });
-      return out(200, { name: u.name, data: withAdmin(u, AC.seedOnline(u.data)), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined) });
+      return out(200, { name: u.name, data: withAdmin(u, AC.seedOnline(u.data)), prize: await prizeOf(u), gem: await gemOf(u).catch(() => null), admin: isAdmin(u) || undefined, winners: await winnersFor(u).catch(() => undefined), newBugs: isAdmin(u) ? (await store.listBugs(200).catch(() => [])).filter(b => !b.done).length : undefined });
     }
     if (p.startsWith('/api/admin/')) {   // ผู้ดูแล (ADMINS) เท่านั้น
       const u = await authUser(req); if (!isAdmin(u)) return out(403, { err: 'เฉพาะผู้ดูแล' });
       const q = new URL(req.url, 'http://x').searchParams;
       if (p === '/api/admin/review') { const key = /^\d{4}-\d{2}$/.test(q.get('key') || '') ? q.get('key') : AC.seasonKey();
         return out(200, { key, live: key >= AC.seasonKey(), gems: GEM_SEASONS[key] || 0, partial: auditPartial(key) ? AUDIT_SINCE : '', seasons: Object.keys(GEM_SEASONS), rows: (await reviewList(key, true)).map(({ l, ...r }) => r) }); }
+      if (p === '/api/admin/bugs') return out(200, { bugs: await store.listBugs(Math.min(200, +q.get('n') || 60)) });
+      if (p === '/api/admin/bug') { const b = await store.getBug(+q.get('id') | 0); return b ? out(200, b) : out(404, { err: 'ไม่พบ' }); }
+      if (p === '/api/admin/perf') return out(200, { rows: await store.perfRows(Math.min(3000, +q.get('n') || 1500)), server: SERVER_PERF ? SERVER_PERF() : null });
+      if (p === '/api/admin/bugdone' && req.method === 'POST') { const b = await readBody(req); await store.setBug(+b.id | 0, !!b.done); return out(200, { ok: true }); }
       if (p === '/api/admin/claim') { const code = String(q.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         for (const k of Object.keys(GEM_SEASONS)) { if (k >= AC.seasonKey()) continue; const r = (await reviewList(k, true)).find(x => x.code.replace('-', '') === code);
           if (r) return out(200, { ok: true, season: k, place: r.place, name: r.name, rp: r.rp }); }
@@ -403,4 +451,4 @@ async function handleApi(req, res, p) {
     return out(503, { err: 'ระบบบัญชีมีปัญหาชั่วคราว ลองใหม่อีกครั้ง' });
   }
 }
-module.exports = { handleApi, storeKind: () => store.kind, tokenUser, addPlay, reviewOf };
+module.exports = { handleApi, storeKind: () => store.kind, tokenUser, addPlay, reviewOf, setServerPerf };
