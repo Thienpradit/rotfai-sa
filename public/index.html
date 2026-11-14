@@ -160,8 +160,7 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(94p
 @keyframes gjShine{from{background-position:100% 0}to{background-position:-160% 0}}
 @keyframes gjSpark2{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(0) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(-80px) scale(1)}}
 @keyframes gjSpark{0%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(0) scale(.4)}25%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) rotate(var(--a)) translateY(-150px) scale(1.2)}}
-body.vsOn #gjBig.ingame{top:auto;bottom:calc(10px + env(safe-area-inset-bottom))}
-@media (max-aspect-ratio:1/1){#gjBig.ingame,body.vsOn #gjBig.ingame{top:auto;bottom:calc(150px + env(safe-area-inset-bottom));max-width:86vw}#gjBig.ingame .gjn{font-size:24px}}   /* มือถือแนวตั้ง: รถไฟอยู่กลางจอ HUD อยู่บน → ขึ้นเหนือปุ่มล่าง */
+@media (max-aspect-ratio:1/1){#gjBig.ingame{max-width:86vw}#gjBig.ingame .gjn{font-size:24px}}   /* ทุกแบบอยู่บนสุดกลางจอ (เจ้าของสั่ง 14 พ.ย. 12:09) */
 #invTip{position:fixed;left:50%;bottom:calc(118px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:26;width:min(340px,92vw);background:rgba(16,22,52,.94);border:2px solid #4da3ff;border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.45);font-family:Mitr,sans-serif;animation:kbyIn .3s ease}
 #invTip.hidden{display:none}#invTip .it1{font-size:15px;color:#fff}#invTip .it1 b{color:#ffd23f}#invTip .it2{font-size:12px;color:#aeb6e8;margin:2px 0 8px}
 #invTip .ib{display:flex;gap:8px}#invTip button{font:600 15px Mitr,sans-serif;border:0;border-radius:10px;padding:8px 10px;cursor:pointer}#invYes{flex:1;background:#ffd23f;color:#2a1a00}#invNo{background:#2d355f;color:#cfd5ff}
