@@ -58,7 +58,6 @@ body.sideL #advBar{}
 .omode .pips i:nth-child(1){height:6px}.omode .pips i:nth-child(2){height:10px}.omode .pips i:nth-child(3){height:15px}.omode .pips i.f{background:var(--c);box-shadow:0 0 6px var(--c)}
 .omode b{font-size:21px;font-weight:900;color:var(--c);letter-spacing:.5px;line-height:1;text-shadow:0 0 12px color-mix(in srgb,var(--c) 45%,transparent)}
 .omode .ot{font-size:12.5px;font-weight:800;line-height:1.15}
-.omode .od{font-size:11px;opacity:.75;line-height:1.3;min-height:2.6em}
 .omode .rw{font-size:11.5px;font-weight:800;border-radius:99px;padding:3px 10px;white-space:nowrap}
 .omode .rw.no{background:rgba(255,255,255,.08);color:#aab4c4;border:1px dashed rgba(255,255,255,.22)}
 .omode .rw.x1{background:rgba(255,200,60,.13);color:#ffd45e;border:1px solid rgba(255,200,60,.4)}
@@ -66,11 +65,12 @@ body.sideL #advBar{}
 .omode small{margin-top:auto;font-size:11px;opacity:.8;display:flex;align-items:center;gap:4px}
 .omode small .dot{width:7px;height:7px;border-radius:50%;background:#556}.omode small .dot.live{background:#3ddc84;box-shadow:0 0 6px #3ddc84;animation:odot 1.6s infinite}
 @keyframes odot{50%{opacity:.35}}
-.onote{margin-top:11px;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:rgba(255,200,60,.08);border:1px solid rgba(255,200,60,.22);font-size:12px;line-height:1.4;text-align:left}
-.onote .oc{font-size:22px;flex:none}.onote b{color:#ffd45e}.onote .om{opacity:.7;font-size:11px}
+.onote{margin-top:11px;display:flex;flex-direction:column;gap:2px;padding:4px 12px;border-radius:12px;background:rgba(255,200,60,.08);border:1px solid rgba(255,200,60,.22);font-size:12.5px;line-height:1.35;text-align:left}
+.onote .orow{display:flex;align-items:center;gap:10px;padding:6px 0}.onote .orow+.orow{border-top:1px dashed rgba(255,200,60,.2)}
+.onote .oc{font-size:21px;flex:none;width:24px;text-align:center}.onote .otx{display:flex;flex-direction:column}.onote b{color:#ffd45e}.onote .om{opacity:.7;font-size:11px}
 .onote button{margin-left:auto;flex:none;font:inherit;font-size:11.5px;font-weight:800;color:#ffd45e;background:none;border:1px solid rgba(255,200,60,.45);border-radius:99px;padding:4px 10px;cursor:pointer}
-@media (max-height:440px){.omode{padding:10px 5px 8px;gap:4px}.omode .od{min-height:0}.onote{margin-top:8px;padding:7px 10px}}
-@media (max-width:380px){.onote .om{display:none}.onote{font-size:11px;gap:8px;padding:8px 10px}.onote .oc{font-size:18px}.omode b{font-size:18px}.omode .rw{padding:3px 7px;font-size:10.5px}.omode .od{font-size:10.5px}}
+@media (max-height:440px){.omode{padding:10px 5px 8px;gap:4px}.onote{margin-top:8px;padding:2px 10px}.onote .orow{padding:4px 0}}
+@media (max-width:380px){.onote{font-size:11.5px;padding:3px 10px}.onote .orow{gap:8px}.onote button{font-size:15px;padding:5px 9px}.onote .bl{display:none}.onote .oc{font-size:18px}.omode b{font-size:18px}.omode .rw{padding:3px 7px;font-size:10.5px}}
 #coopBar button{border:2px solid #3a4590;background:rgba(15,19,48,.85);color:#fff;font:inherit;font-size:13px;border-radius:12px;padding:6px 10px;cursor:pointer}
 .btn.gray{background:#3a4470;color:#cfd6ff;box-shadow:0 4px 0 #262d52}
 .btn:disabled{opacity:.45}
@@ -2545,7 +2545,7 @@ function finish(timeUp,quit,noPen){
   $('sLen').textContent=score;$('sKill').textContent=player.kills;
   $('sRank').textContent=(timeUp||NET)&&rk?'#'+rk:'-';
   $('sBest').textContent=best;$('sDiff').textContent=D().label;$('rankOver').innerHTML=rankHTML(roundRP);$('guestOver').classList.toggle('hidden',ACCT.mode!=='guest');
-  $('coinEarn').innerHTML=noReward()?`<div class="easyMiss"><div class="el a">🟢 Easy = ฝึกเล่น ไม่ได้เหรียญ แรงก์ ภารกิจ สถิติ</div><div class="el b">💡 ถ้าเล่น 🔵 Normal รอบนี้ได้ <b>+${easyMiss} 🪙</b>${easyRP>0?` · <b>+${easyRP} RP</b>`:''}</div><button class="easyGo" id="easyGo">🔵 ไปเล่น Normal รับรางวัลจริง ›</button></div>`
+  $('coinEarn').innerHTML=noReward()?`<div class="easyMiss"><div class="el b">💡 ถ้าเล่น 🔵 Normal รอบนี้จะได้ <b>+${easyMiss} 🪙</b>${easyRP>0?` · <b>+${easyRP} RP</b>`:''}</div><button class="easyGo" id="easyGo">🔵 ไปเล่น Normal รับรางวัลจริง ›</button></div>`
     :'รอบนี้ได้ +'+roundCoins+' 🪙  (รวม '+prof.coins+' 🪙)'+(onDiff()==='hard'?' · 🔴 Hard ×1.3':'');
   fitLines('#coinEarn .easyMiss .el',10);{const eg=$('easyGo');if(eg)eg.onclick=()=>{OD='normal';try{localStorage.setItem('trainOD',OD)}catch(e){}toMenu();setTimeout(()=>playEndless(),80)}}
   $('again').textContent='เล่นอีกครั้ง';if(mode==='stage')stageOver();
@@ -2571,14 +2571,14 @@ $('playInf').onclick=()=>{audioInit();ONLINE_N=null;openSheet('🌍 เลือ
 // 🌍 เลือกโหมดโลกออนไลน์ + จำนวนคนที่กำลังเล่นแต่ละโหมด (GET /online)
 let ONLINE_N=null;
 function renderModePick(b){   // 3 ปุ่มเรียงกัน + จำนวนคนเล่น + รายละเอียดสั้น ๆ (เจ้าของสั่ง 14 พ.ย. 09:14 ออกแบบใหม่)
-  const INFO={easy:{p:1,t:'ฝึกซ้อม',d:'บอทไม่ค่อยไล่<br>เล่นสบาย ๆ',rw:'no',rt:'ไม่มีรางวัล'},
-    normal:{p:2,t:'มาตรฐาน',d:'ได้เหรียญ แรงก์<br>และภารกิจ',rw:'x1',rt:'🪙 รางวัลปกติ'},
-    hard:{p:3,t:'ท้าทาย',d:'บอทโหด + มีหิน<br>ชนหิน = ตาย',rw:'x13',rt:'🪙 รางวัล ×1.3'}};
+  const INFO={easy:{p:1,t:'ฝึกซ้อม',rw:'no',rt:'ไม่มีรางวัล'},normal:{p:2,t:'มาตรฐาน',rw:'x1',rt:'🪙 รางวัลปกติ'},hard:{p:3,t:'ท้าทาย',rw:'x13',rt:'🪙 รางวัล ×1.3'}};
   b.innerHTML='<div class="omodes">'+['easy','normal','hard'].map(k=>{const o=OMODE[k],I=INFO[k],n=ONLINE_N?ONLINE_N[k]|0:null;
-    return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><span class="pips">${[1,2,3].map(i=>`<i${i<=I.p?' class="f"':''}></i>`).join('')}</span><b>${o.n}</b><span class="ot">${I.t}</span><span class="od">${I.d}</span><span class="rw ${I.rw}">${I.rt}</span><small><span class="dot${n?' live':''}"></span>${n===null?'…':n} คน</small></button>`}).join('')+'</div>'+
-    '<div class="onote"><span class="oc">🪙</span><span>เหรียญที่ได้ เอาไว้<b>ซื้อของในร้านค้า</b><br><span class="om">หัวจักร · ตู้ · สี · ควัน · หวูด · ฉายา</span></span><button id="oShop">🛒 ร้านค้า</button></div>';
+    return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><span class="pips">${[1,2,3].map(i=>`<i${i<=I.p?' class="f"':''}></i>`).join('')}</span><b>${o.n}</b><span class="ot">${I.t}</span><span class="rw ${I.rw}">${I.rt}</span><small><span class="dot${n?' live':''}"></span>${n===null?'…':n} คน</small></button>`}).join('')+'</div>'+
+    '<div class="onote"><div class="orow"><span class="oc">🪙</span><span class="otx"><span><b>เหรียญ</b> เอาไว้ซื้อของในร้านค้า</span><span class="om">หัวจักร ตู้ สี ควัน หวูด ฉายา</span></span><button id="oShop">🛒<span class="bl"> ร้านค้า</span></button></div>'+
+    '<div class="orow"><span class="oc">🏅</span><span class="otx"><span><b>แรงก์</b> ได้เหรียญโบนัสทุกสิ้นเดือน</span><span class="om">ตามอันดับ · ที่ 1 2 3 อาจมีรางวัลพิเศษ</span></span><button id="oPrize">🎁<span class="bl"> รางวัล</span></button></div></div>';
   b.querySelectorAll('.omode').forEach(e=>e.onclick=()=>{OD=e.dataset.k;try{localStorage.setItem('trainOD',OD)}catch(er){}$('sheet').classList.add('hidden');playEndless()});
-  const sb=b.querySelector('#oShop');if(sb)sb.onclick=()=>{try{openShop()}catch(er){$('sheet').classList.add('hidden')}};}
+  const sb=b.querySelector('#oShop');if(sb)sb.onclick=()=>{try{openShop()}catch(er){$('sheet').classList.add('hidden')}};
+  const pb=b.querySelector('#oPrize');if(pb)pb.onclick=()=>{try{openPrizes()}catch(er){$('sheet').classList.add('hidden')}};}
 $('playAdv').onclick=()=>{audioInit();openStages()};if(!ADV_ON)$('playAdv').classList.add('hidden');
 // ---------- เล่นกับบอท (ออฟไลน์) — เอาปุ่มออกจากหน้าแรกแล้ว (เจ้าของสั่ง 7 พ.ย. 18:45) เก็บโค้ดไว้เผื่อใช้ ----------
 function renderBotSheet(b){
