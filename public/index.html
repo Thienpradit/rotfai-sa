@@ -2575,7 +2575,7 @@ $('playInf').onclick=()=>{audioInit();ONLINE_N=null;openSheet('🌍 เลือ
 // 🌍 เลือกโหมดโลกออนไลน์ + จำนวนคนที่กำลังเล่นแต่ละโหมด (GET /online)
 let ONLINE_N=null;
 function renderModePick(b){   // การ์ด 3 โหมด (ขีดความยาก + ชื่อ + ป้ายรางวัล + ป้ายคนออนไลน์) · เจ้าของสั่ง 14 พ.ย. 09:50: กลับแบบการ์ดเดิม ไม่เอาตั๋ว ไม่มีคำไทยใต้ชื่อ
-  const INFO={easy:{p:1,rw:'no',rt:'ไม่มีรางวัล'},normal:{p:2,rw:'x1',rt:'🪙 รางวัลปกติ'},hard:{p:3,rw:'x13',rt:'🪙 รางวัล ×1.3'}};
+  const INFO={easy:{p:1,rw:'no',rt:'โหมดฝึกหัด'},normal:{p:2,rw:'x1',rt:'🪙 รางวัลปกติ'},hard:{p:3,rw:'x13',rt:'🪙 รางวัล ×1.3'}};
   const PS='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>';
   b.innerHTML='<div class="omodes">'+['easy','normal','hard'].map(k=>{const o=OMODE[k],I=INFO[k],n=ONLINE_N?ONLINE_N[k]|0:null;
     return`<button class="omode${OD===k?' on':''}" data-k="${k}" style="--c:${o.col}"><span class="pips">${[1,2,3].map(i=>`<i${i<=I.p?' class="f"':''}></i>`).join('')}</span><b>${o.n}</b><span class="rw ${I.rw}">${I.rt}</span>`+
