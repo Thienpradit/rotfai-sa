@@ -150,8 +150,9 @@ function announceJoin(me, room, ws) {
   const now = Date.now(), k = me.name.toLowerCase();
   if (now - (gjLast.get(k) || 0) < GJ_CD) return;
   if (gjLast.size > 1000) gjLast.clear(); gjLast.set(k, now);
-  const skip = new Set([...room.players.values()].map(p => p.ws)), msg = JSON.stringify({ t: 'gj', name: me.name, d: room.diff });
-  for (const w of wss.clients) if (!skip.has(w) && w.readyState === 1) w.send(msg);
+  // ประกาศเฉพาะคนที่กำลังเล่นโหมดเดียวกัน (ทุกโลกของโหมดนั้น รวมโลกเดียวกัน) · หน้าแรก/โหมดอื่น/2v2 ไม่เห็น (เจ้าของสั่ง 14 พ.ย. 12:01)
+  const msg = JSON.stringify({ t: 'gj', name: me.name, d: room.diff });
+  for (const r of rooms.values()) if (r.ffa && r.diff === room.diff) for (const p of r.players.values()) if (p !== me && p.ws.readyState === 1) p.ws.send(msg);
 }
 const idle = new Map();   // ws → {name}
 const VS_CD = +process.env.VS_CD_MS || 30000, INVITE_CD = 15000;
