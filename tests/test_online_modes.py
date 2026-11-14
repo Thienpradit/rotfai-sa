@@ -23,7 +23,7 @@ async def main():
             await e.click('#playInf');await e.wait_for_timeout(600)
             cards=await e.eval_on_selector_all('.omode','els=>els.map(x=>[x.dataset.k,x.innerText])')
             check([c[0] for c in cards]==['easy','normal','hard'],'มี 3 โหมด '+str([c[0] for c in cards]))
-            check(all('คน' in c[1] for c in cards),'แต่ละโหมดบอกจำนวนคนเล่น')
+            check(all('ออนไลน์' in c[1] for c in cards),'แต่ละโหมดบอกจำนวนคนออนไลน์')
             await e.screenshot(path=SHOTS+'/omode_pick.png')
             # --- Easy ---
             await e.click('.omode[data-k=easy]');await e.wait_for_timeout(2500)
