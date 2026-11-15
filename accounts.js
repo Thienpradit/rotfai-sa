@@ -415,11 +415,11 @@ async function handleApi(req, res, p) {
       return out(200, { ok: true }); }
     if (p === '/api/save') {
       const raw = cleanData(body.data); if (raw === null) return out(400, { err: 'ข้อมูลใหญ่เกินไป' });
-      const pz = await prizeOf(u), { data, fixed } = AC.validate(withAdmin(u, u.data || {}), stripSent(u, raw), Date.now(), pz ? pz.coins : 0);
+      const pz = await prizeOf(u), { data, fixed, stale } = AC.validate(withAdmin(u, u.data || {}), stripSent(u, raw), Date.now(), pz ? pz.coins : 0);
       await store.save(u.lname, keepReal(u, data), rpOf(data));
       if (fixed) bumpAudit(u.lname, a => { a.fix++; });
       const resync = !isAdmin(u) && adminPolluted(raw.owned);   // หน้าเว็บเก่าส่งของผู้ดูแลมา → ส่งของจริงกลับไปให้เครื่องปรับ
-      return out(200, fixed || resync ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0 } } : { ok: true });
+      return out(200, fixed || resync ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0, ...(stale ? { st: data.st, ach: data.ach } : {}) } } : { ok: true });   // stale = เครื่องถือข้อมูลค้าง/ว่าง → ส่งสถิติ+เหรียญตราจริงกลับไปด้วย
     }
     if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });

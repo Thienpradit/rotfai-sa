@@ -112,12 +112,18 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
     if (need > srv.cb) { coins = Math.max(0, oc - spent + extra + Math.floor(srv.cb)); srv.cb = 0; fixed = true; } else srv.cb -= need; }
   // RP (ลดลงได้เสมอ เช่น โดนหัก / ขึ้นฤดูกาลใหม่)
   const orp = num(old.rp); let rp = Math.min(1e7, num(nu.rp));
+  // ข้อมูลเก่า/ว่างทับของจริง (15 พ.ย. GemReaper สถิติ/RP/เหรียญตรากลายเป็น 0): จำนวนเกมที่ส่งมาน้อยกว่าที่บันทึกไว้ = เครื่องนั้นถือข้อมูลค้างหรือโปรไฟล์ว่าง
+  //   → ไม่ยอมให้ RP/เหรียญ/เหรียญตราลดตาม (ขึ้นฤดูกาลใหม่ยังลด RP ได้ตามปกติ) · สถิติทุกตัวนับขึ้นอย่างเดียวอยู่แล้ว (ด้านล่างใช้ค่ามากสุด)
+  const stale = !reg && (+((old.st || {}).games) || 0) > (+((nu.st || {}).games) || 0), newSzn = !!(nu.season && old.season && nu.season > old.season);
+  if (stale && !newSzn && rp < orp) { rp = orp; fixed = true; }
   // ฤดูกาลที่แรงก์เริ่มใหม่จาก 0 (RANK_ZERO ต้องตรงกับ index.html): บันทึกแรกที่ขึ้นฤดูกาลนี้ → RP ไม่เกิน 200 (เผื่อเกมแรกของเดือน) · เครื่องเก่าที่ยังหารครึ่ง → โดนปรับ
   if (RANK_ZERO.includes(seasonKey(now)) && nu.season === seasonKey(now) && old.season && old.season < nu.season && rp > 200) { rp = 200; fixed = true; }
   if (rp > orp) { const g = rp - orp; if (g > srv.rb) { rp = orp + Math.floor(srv.rb); srv.rb = 0; fixed = true; } else srv.rb -= g; }
   // สถิติ: ต้องเป็นตัวเลข · ความยาวสูงสุด (ใช้ในตารางอันดับ) เพิ่มได้ไม่เกิน 300 + 40/วินาที (ลงทะเบียนครั้งแรกไม่เกิน 3,000)
   const st = {}, ist = nu.st && typeof nu.st === 'object' ? nu.st : {};
   for (const k of Object.keys(ist).slice(0, 60)) { const v = +ist[k]; st[k] = Number.isFinite(v) ? Math.max(0, Math.min(1e7, v)) : 0; }
+  // สถิตินับขึ้นอย่างเดียว (กำจัด เกม บอส ยาวสุด …) → ไม่ให้ลดจากที่บันทึกไว้
+  { const ost0 = old.st && typeof old.st === 'object' ? old.st : {}; for (const k of Object.keys(ost0).slice(0, 60)) { const v = +ost0[k]; if (Number.isFinite(v) && v > (st[k] || 0)) st[k] = Math.min(1e7, v); } }
   const oml = +((old.st || {}).maxLen) || 0, mlCap = reg ? 3000 : oml + 300 + 40 * Math.min(el, 600);
   if ((st.maxLen || 0) > Math.max(oml, mlCap)) { st.maxLen = Math.floor(Math.max(oml, mlCap)); fixed = true; }
   // สถิติออนไลน์: RP ออนไลน์เพิ่มได้ไม่เกิน RP ที่เพิ่มจริง (และไม่เกิน RP ทั้งหมด) · กำจัด/ยาวสุดออนไลน์ไม่เกินของรวม · เครื่องเก่าที่ไม่ส่งค่า → ใช้ค่าเดิม
@@ -135,7 +141,10 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   const DEF = { loco: 'classic', wagon: 'gem', smoke: 'normal', kfx: 'none', horn: 'classic', title: '' }, eq = { ...DEF, ...(nu.eq && typeof nu.eq === 'object' ? nu.eq : {}) };
   for (const c of Object.keys(DEF)) { const v = String(eq[c] || ''); if (v === DEF[c]) continue;
     const ok = c === 'title' && v.startsWith('a:') ? paid.has(v.slice(2)) : owned[c].includes(v); if (!ok) eq[c] = DEF[c]; }
-  return { data: { ...nu, coins, rp, owned, st, eq, _srv: srv }, fixed };
+  let ach = nu.ach && typeof nu.ach === 'object' ? nu.ach : {};
+  if (stale) { if (coins < num(old.coins) - spent) { coins = Math.max(0, num(old.coins) - spent); fixed = true; }
+    const oa = old.ach && typeof old.ach === 'object' ? old.ach : {}; if (Object.keys(oa).some(k => !(k in ach))) { ach = { ...oa, ...ach }; fixed = true; } }
+  return { data: { ...nu, coins, rp, owned, st, eq, ach, _srv: srv }, fixed, stale };
 }
 
 // ---------- สถิติออนไลน์ (ตารางอันดับนับเฉพาะโหมดออนไลน์ — เจ้าของสั่ง 7 พ.ย. 18:45 เอาโหมดเล่นกับบอทออก) ----------

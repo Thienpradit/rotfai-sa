@@ -87,3 +87,14 @@ console.log('anticheat OK — 18 cases');
   assert.deepStrictEqual([r.data.onrp, r.data.st.okills, r.data.st.omaxLen], [1029, 13, 950]);
   r = AC.validate(o, { ...o, rp: 500, onrp: 500, season: '2026-12' }, T, 0); assert.strictEqual(r.data.onrp, 500); }
 console.log('online stats OK');
+
+// 19) (15 พ.ย.) เครื่องถือข้อมูลค้าง/โปรไฟล์ว่างส่งมาทับ → สถิติ/RP/เหรียญ/เหรียญตราไม่หาย · ขึ้นฤดูกาลใหม่ RP ยังลดได้ · เล่นปกติ RP ลดได้ (โดนหัก)
+{ const T = Date.now();
+  const o = { coins: 31426, rp: 2495, onrp: 2495, onv: 2, season: '2026-11', st: { kills: 2400, okills: 2343, games: 700, maxLen: 1740, omaxLen: 1740, boss: 20 }, owned: { loco: ['classic', 'diesel'] }, ach: { k1: 1, len1: 2 }, _srv: { cb: 0, rb: 0, t: T - 60000, paid: ['k1', 'len1'], claims: [] } };
+  const blank = { coins: 0, rp: 0, owned: {}, ach: {}, st: {}, season: '2026-11', daily: {} };
+  let r = AC.validate(o, blank, T); assert(r.fixed && r.stale);
+  assert.deepStrictEqual([r.data.coins, r.data.rp, r.data.st.kills, r.data.st.games, r.data.st.okills, r.data.st.maxLen, Object.keys(r.data.ach).length, r.data.owned.loco.includes('diesel')], [31426, 2495, 2400, 700, 2343, 1740, 2, true]);
+  r = AC.validate(o, { ...o, rp: 2479, onrp: 2479, st: { ...o.st, games: 701 } }, T); assert(!r.stale); assert.strictEqual(r.data.rp, 2479);   // ตายสั้นโดนหัก = ลดได้
+  r = AC.validate(o, { ...o, rp: 1247, season: '2026-12' }, T); assert.strictEqual(r.data.rp, 1247);
+  r = AC.validate(o, { ...o, st: { ...o.st, kills: 5, games: 700 } }, T); assert.strictEqual(r.data.st.kills, 2400); }
+console.log('anticheat OK — 19 cases (ข้อมูลค้างไม่ทับของจริง)');

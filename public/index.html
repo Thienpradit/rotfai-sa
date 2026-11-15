@@ -699,7 +699,7 @@ function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;
 function applyFix(d,sent){sent=sent||{coins:prof.coins,rp:prof.rp,onrp:prof.onrp||0};
   // เดิมเขียนทับด้วยค่าที่ส่งไปก่อนหน้า → เหรียญ/RP ที่ได้ระหว่างรอคำตอบ (เช่น จบเกมพอดี) หาย · ตอนนี้ = ค่าเซิร์ฟเวอร์ + ส่วนที่ได้เพิ่มหลังส่ง
   const dc=prof.coins-sent.coins,dr=prof.rp-sent.rp,dor=(prof.onrp||0)-sent.onrp;
-  prof.coins=Math.max(0,(+d.coins||0)+dc);prof.rp=Math.max(0,(+d.rp||0)+dr);if(d.onrp!==undefined)prof.onrp=Math.min(prof.rp,Math.max(0,(+d.onrp||0)+dor));if(dc||dr)profDirty=true;if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;prof=normProf(prof);
+  prof.coins=Math.max(0,(+d.coins||0)+dc);prof.rp=Math.max(0,(+d.rp||0)+dr);if(d.onrp!==undefined)prof.onrp=Math.min(prof.rp,Math.max(0,(+d.onrp||0)+dor));if(dc||dr)profDirty=true;if(d.owned)prof.owned=d.owned;if(d.maxLen!==undefined&&(prof.st.maxLen||0)>d.maxLen)prof.st.maxLen=d.maxLen;if(d.st&&typeof d.st==='object')for(const k in d.st){const v=+d.st[k];if(Number.isFinite(v)&&v>(prof.st[k]||0))prof.st[k]=v}if(d.ach&&typeof d.ach==='object')for(const k in d.ach)if(!prof.ach[k])prof.ach[k]=d.ach[k];prof=normProf(prof);
   if(player)player.rk=myRank();showBest();announce('⚠️ ข้อมูลเหรียญ/แรงก์ไม่ตรงกับเซิร์ฟเวอร์ ปรับให้ตรงแล้ว')}
 // ภารกิจที่เลิกใช้ (รางรถไฟเอาออก 11 พ.ย.) — เก็บไว้ให้ภารกิจที่รับรางวัลไปแล้ววันนี้ยังแสดงได้ · ที่ยังไม่รับ → สุ่มข้อใหม่แทนที่ช่องเดิม
 const MRETIRED=[{id:'rail',ev:'railSec',lo:6,hi:20,mul:10,txt:n=>`วิ่งบนราง ${n} วินาที`,ru:1}];
