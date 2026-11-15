@@ -98,3 +98,8 @@ console.log('online stats OK');
   r = AC.validate(o, { ...o, rp: 1247, season: '2026-12' }, T); assert.strictEqual(r.data.rp, 1247);
   r = AC.validate(o, { ...o, st: { ...o.st, kills: 5, games: 700 } }, T); assert.strictEqual(r.data.st.kills, 2400); }
 console.log('anticheat OK — 19 cases (ข้อมูลค้างไม่ทับของจริง)');
+// 20) RP ลดทีเดียวเกิน 300 ในฤดูกาลเดียวกัน = ข้อมูลค้าง → ไม่ลด
+{ const T = Date.now(), o = { coins: 0, rp: 2495, onrp: 2495, onv: 2, season: '2026-11', st: { games: 10 }, owned: {}, ach: {}, _srv: { cb: 0, rb: 0, t: T - 1000, paid: [], claims: [] } };
+  let r = AC.validate(o, { ...o, rp: 0, onrp: 0, st: { games: 11 } }, T); assert(r.fixed); assert.strictEqual(r.data.rp, 2495);
+  r = AC.validate(o, { ...o, rp: 2400, onrp: 2400, st: { games: 12 } }, T); assert.strictEqual(r.data.rp, 2400); }
+console.log('anticheat OK — 20 cases');

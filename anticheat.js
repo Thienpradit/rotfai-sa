@@ -70,6 +70,7 @@ function dayOk(k, now) {   // วันที่ของภารกิจร�
 const num = v => Math.max(0, Math.floor(+v || 0));
 
 // old = ข้อมูลที่เซิร์ฟเวอร์มี (null = ลงทะเบียนใหม่), nu = ข้อมูลที่เครื่องส่งมา → { data, fixed }
+const RP_DROP_MAX = 300;
 function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหรียญรางวัลจบฤดูกาลที่เซิร์ฟเวอร์คำนวณจากอันดับ (ถ้าข้อมูลนี้ขึ้นฤดูกาลใหม่)
   const reg = !old; old = old || { coins: 0, rp: 0, owned: {}, ach: {} };
   const o0 = old._srv;
@@ -114,8 +115,10 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   const orp = num(old.rp); let rp = Math.min(1e7, num(nu.rp));
   // ข้อมูลเก่า/ว่างทับของจริง (15 พ.ย. GemReaper สถิติ/RP/เหรียญตรากลายเป็น 0): จำนวนเกมที่ส่งมาน้อยกว่าที่บันทึกไว้ = เครื่องนั้นถือข้อมูลค้างหรือโปรไฟล์ว่าง
   //   → ไม่ยอมให้ RP/เหรียญ/เหรียญตราลดตาม (ขึ้นฤดูกาลใหม่ยังลด RP ได้ตามปกติ) · สถิติทุกตัวนับขึ้นอย่างเดียวอยู่แล้ว (ด้านล่างใช้ค่ามากสุด)
-  const stale = !reg && (+((old.st || {}).games) || 0) > (+((nu.st || {}).games) || 0), newSzn = !!(nu.season && old.season && nu.season > old.season);
+  const stale = !reg && (+((old.st || {}).games) || 0) > (+((nu.st || {}).games) || 0), newSzn = !!(nu.season && (!old.season || nu.season > old.season));
   if (stale && !newSzn && rp < orp) { rp = orp; fixed = true; }
+  // ฤดูกาลเดียวกัน RP ลดทีเดียวเกิน RP_DROP_MAX = ไม่ใช่โดนหักจริง (หักต่อเกมสูงสุด ~48) → ข้อมูลค้าง/ว่าง ไม่ให้ลด
+  if (!newSzn && !reg && orp - rp > RP_DROP_MAX) { rp = orp; fixed = true; }
   // ฤดูกาลที่แรงก์เริ่มใหม่จาก 0 (RANK_ZERO ต้องตรงกับ index.html): บันทึกแรกที่ขึ้นฤดูกาลนี้ → RP ไม่เกิน 200 (เผื่อเกมแรกของเดือน) · เครื่องเก่าที่ยังหารครึ่ง → โดนปรับ
   if (RANK_ZERO.includes(seasonKey(now)) && nu.season === seasonKey(now) && old.season && old.season < nu.season && rp > 200) { rp = 200; fixed = true; }
   if (rp > orp) { const g = rp - orp; if (g > srv.rb) { rp = orp + Math.floor(srv.rb); srv.rb = 0; fixed = true; } else srv.rb -= g; }

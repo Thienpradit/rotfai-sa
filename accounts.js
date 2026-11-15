@@ -43,9 +43,17 @@ function fileStore(note) {
     async setBug(id, done) { const b = bugs.list.find(x => x.id === id); if (b) { b.done = !!done; bflush(); } },
     async addPerf(r) { bugs.perf.push({ at: new Date().toISOString(), ...r }); if (bugs.perf.length > PERF_KEEP) bugs.perf.splice(0, bugs.perf.length - PERF_KEEP); bflush(); },
     async perfRows(n) { return bugs.perf.slice(-n); },
+    // 💾 สำรองข้อมูล (ไฟล์ data/backups/<เวลา>.json.gz)
+    async allPlayers() { return Object.values(db).map(u => ({ ...u })); },
+    async addBackup(buf, n) { const dir = path.join(__dirname, 'data', 'backups'); fs.mkdirSync(dir, { recursive: true }); const at = Date.now(); fs.writeFileSync(path.join(dir, at + '-' + n + '.json.gz'), buf); return { id: at, at, n, size: buf.length }; },
+    async listBackups() { const dir = path.join(__dirname, 'data', 'backups'); let f = []; try { f = fs.readdirSync(dir).filter(x => /^\d+-\d+\.json\.gz$/.test(x)); } catch (e) {}
+      return f.map(x => { const [at, n] = x.split('.')[0].split('-').map(Number); return { id: at, at, n, size: fs.statSync(path.join(dir, x)).size }; }).sort((a, b) => b.id - a.id); },
+    async getBackup(id) { const dir = path.join(__dirname, 'data', 'backups'); try { const f = fs.readdirSync(dir).find(x => x.startsWith(String(+id > 0 ? +id : 'x') + '-')); return f ? fs.readFileSync(path.join(dir, f)) : null; } catch (e) { return null; } },
+    async dropBackups(ids) { const dir = path.join(__dirname, 'data', 'backups'); let f = []; try { f = fs.readdirSync(dir); } catch (e) {} for (const id of ids) for (const x of f.filter(x => x.startsWith(id + '-'))) try { fs.unlinkSync(path.join(dir, x)); } catch (e) {} },
     async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
     async cleanAdminOwned() { const fixed = []; for (const u of Object.values(db)) { if (adminPolluted((u.data || {}).owned)) { u.data = cleanOwnedData(u.data); fixed.push(u.name); }
-        const r = restoreOwned(u.lname, u.data); if (r) { u.data = r; fixed.push('+' + u.name); } } if (fixed.length) flush(); return fixed; },
+        const r = restoreOwned(u.lname, u.data); if (r) { u.data = r; fixed.push('+' + u.name); }
+        const r2 = restoreStats(u.lname, u.data); if (r2) { u.data = r2; u.rp = rpOf(r2); fixed.push('+stats ' + u.name); } } if (fixed.length) flush(); return fixed; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const all = Object.values(db).filter(u => !u.ban && (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
@@ -75,6 +83,7 @@ if (DB_URL) {
     .then(() => pool.query(`CREATE TABLE IF NOT EXISTS seasons (key TEXT PRIMARY KEY, n INTEGER NOT NULL, ranks JSONB NOT NULL, created TIMESTAMPTZ NOT NULL DEFAULT now())`))
     .then(() => pool.query('ALTER TABLE seasons ADD COLUMN IF NOT EXISTS top JSONB'))
     .then(() => pool.query(`CREATE TABLE IF NOT EXISTS bugs (id SERIAL PRIMARY KEY, at TIMESTAMPTZ NOT NULL DEFAULT now(), lname TEXT, name TEXT, cat TEXT, text TEXT, info JSONB, shot TEXT, done BOOLEAN NOT NULL DEFAULT false)`))
+    .then(() => pool.query(`CREATE TABLE IF NOT EXISTS backups (id SERIAL PRIMARY KEY, at TIMESTAMPTZ NOT NULL DEFAULT now(), n INTEGER NOT NULL, size INTEGER NOT NULL, blob BYTEA NOT NULL)`))
     .then(() => pool.query(`CREATE TABLE IF NOT EXISTS perf (id SERIAL PRIMARY KEY, at TIMESTAMPTZ NOT NULL DEFAULT now(), info JSONB NOT NULL)`))
     .then(() => { console.log('accounts: using Postgres (' + describeUrl(url) + ')'); })
     .catch(e => {   // ต่อฐานข้อมูลไม่ได้ → ไม่ให้เซิร์ฟเวอร์ล่ม ใช้ไฟล์ชั่วคราวแทน
@@ -107,10 +116,11 @@ if (DB_URL) {
     async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
       const r = await pool.query("SELECT lname, data FROM players WHERE COALESCE(data->>'onv','') <> '2'"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND COALESCE(data->>'onv','') <> '2'", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
     async cleanAdminOwned() { await ready; if (store !== dbStore) return store.cleanAdminOwned(); const fixed = [];
-      const r = await pool.query("SELECT lname, name, data FROM players WHERE data ? 'owned' OR lname = ANY($1)", [OWN_RESTORE.map(x => x[0])]);
+      const r = await pool.query("SELECT lname, name, data FROM players WHERE data ? 'owned' OR lname = ANY($1)", [[...OWN_RESTORE.map(x => x[0]), ...STAT_RESTORE.map(x => x[0])]]);
       for (const u of r.rows) { let d = u.data, ch = false; if (adminPolluted((d || {}).owned)) { d = cleanOwnedData(d); ch = true; fixed.push(u.name); }
         const rs = restoreOwned(u.lname, d); if (rs) { d = rs; ch = true; fixed.push('+' + u.name); }
-        if (ch) await pool.query('UPDATE players SET data=$2 WHERE lname=$1', [u.lname, d]); } return fixed; },
+        const r2 = restoreStats(u.lname, d); if (r2) { d = r2; ch = true; fixed.push('+stats ' + u.name); }
+        if (ch) await pool.query('UPDATE players SET data=$2, rp=$3 WHERE lname=$1', [u.lname, d, rpOf(d)]); } return fixed; },
     async addBug(b) { await ready; if (store !== dbStore) return store.addBug(b);
       const r = await pool.query('INSERT INTO bugs (lname,name,cat,text,info,shot) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [b.lname || null, b.name || null, b.cat, b.text, JSON.stringify(b.info || {}), b.shot || null]);
       pool.query('DELETE FROM bugs WHERE id <= $1', [r.rows[0].id - BUG_KEEP]).catch(() => {}); return r.rows[0].id; },
@@ -121,6 +131,12 @@ if (DB_URL) {
     async addPerf(x) { await ready; if (store !== dbStore) return store.addPerf(x);
       const r = await pool.query('INSERT INTO perf (info) VALUES ($1) RETURNING id', [JSON.stringify(x)]); if (r.rows[0].id % 50 === 0) pool.query('DELETE FROM perf WHERE id <= $1', [r.rows[0].id - PERF_KEEP]).catch(() => {}); },
     async perfRows(n) { await ready; if (store !== dbStore) return store.perfRows(n); const r = await pool.query('SELECT at, info FROM perf ORDER BY id DESC LIMIT $1', [n]); return r.rows.reverse().map(x => ({ at: x.at, ...x.info })); },
+    async allPlayers() { await ready; if (store !== dbStore) return store.allPlayers(); return (await pool.query('SELECT * FROM players')).rows; },
+    async addBackup(buf, n) { await ready; if (store !== dbStore) return store.addBackup(buf, n);
+      const r = await pool.query('INSERT INTO backups (n,size,blob) VALUES ($1,$2,$3) RETURNING id, at', [n, buf.length, buf]); return { id: r.rows[0].id, at: +r.rows[0].at, n, size: buf.length }; },
+    async listBackups() { await ready; if (store !== dbStore) return store.listBackups(); return (await pool.query('SELECT id, at, n, size FROM backups ORDER BY id DESC')).rows.map(x => ({ ...x, at: +x.at })); },
+    async getBackup(id) { await ready; if (store !== dbStore) return store.getBackup(id); const r = await pool.query('SELECT blob FROM backups WHERE id=$1', [+id | 0]); return r.rows[0] ? r.rows[0].blob : null; },
+    async dropBackups(ids) { await ready; if (store !== dbStore) return store.dropBackups(ids); if (ids.length) await pool.query('DELETE FROM backups WHERE id = ANY($1)', [ids]); },
     async getSeason(k) { await ready; if (store !== dbStore) return store.getSeason(k); const r = await pool.query('SELECT n, ranks, top, created AS at FROM seasons WHERE key=$1', [k]); return r.rows[0] || null; },
     async snapSeason(k) { await ready; if (store !== dbStore) return store.snapSeason(k);   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const have = await this.getSeason(k); if (have) return have;
@@ -211,6 +227,26 @@ function ensureSnap() { const cur = AC.seasonKey(); if (snapFor === cur || accou
     .catch(e => console.error('season snapshot error', e.message)).finally(() => { snapping = null; });
   return snapping; }
 setInterval(ensureSnap, 5 * 60 * 1000).unref(); setTimeout(ensureSnap, 3000).unref();
+
+// ---------- 💾 สำรองข้อมูลผู้เล่นทุกชั่วโมง (เจ้าของสั่ง 15 พ.ย. 23:08 หลัง GemReaper สถิติหาย) ----------
+// ทั้งตาราง players (รวมรหัสผ่านที่แฮชแล้ว) บีบอัด gzip เก็บในตาราง backups / ไฟล์ data/backups · เก็บรายชั่วโมง 48 ชม. + วันละชุด 30 วัน
+// ผู้ดูแลดู/คืนข้อมูลรายคนได้ในหน้า 🛡️ แท็บ 💾 สำรอง · คืนข้อมูล = สำรองชุดปัจจุบันไว้ก่อนเสมอ
+const zlib = require('zlib');
+const BACKUP_MS = Math.max(5000, +process.env.BACKUP_MS || 3600e3), BACKUP_KEEP_H = 48, BACKUP_KEEP_D = 30;
+const bkDay = t => new Date(t + 7 * 3600e3).toISOString().slice(0, 10);
+async function backupNow(why) { const rows = await store.allPlayers(), buf = zlib.gzipSync(JSON.stringify({ v: 1, at: Date.now(), why: why || '', rows }));
+  const b = await store.addBackup(buf, rows.length); await pruneBackups();
+  console.log(`backup #${b.id}: ${rows.length} players, ${Math.round(buf.length / 1024)} KB${why ? ' (' + why + ')' : ''}`); return b; }
+async function pruneBackups() { const L = await store.listBackups(), now = Date.now(), days = new Set(), drop = [];
+  for (const b of L) { const age = now - b.at; if (age <= BACKUP_KEEP_H * 3600e3) continue; const d = bkDay(b.at);
+    if (age <= BACKUP_KEEP_D * 86400e3 && !days.has(d)) { days.add(d); continue; } drop.push(b.id); }   // L เรียงใหม่ → เก่า: เก็บชุดล่าสุดของแต่ละวัน
+  if (drop.length) await store.dropBackups(drop); }
+async function readBackup(id) { const buf = await store.getBackup(id); if (!buf) return null; try { return JSON.parse(zlib.gunzipSync(buf).toString('utf8')); } catch (e) { return null; } }
+let bkBusy = false;
+async function backupTick() { if (bkBusy || accountsDown()) return; bkBusy = true;
+  try { const L = await store.listBackups(); if (!L[0] || Date.now() - L[0].at >= BACKUP_MS * 0.8) await backupNow(); } catch (e) { console.error('backup error', e.message); } finally { bkBusy = false; } }
+setTimeout(backupTick, Math.min(60e3, BACKUP_MS)).unref(); setInterval(backupTick, Math.min(BACKUP_MS, 10 * 60e3)).unref();
+const sumOf = row => { const d = (row && row.data) || {}, st = d.st || {}; return row ? { name: row.name, rp: +d.rp || 0, coins: +d.coins || 0, kills: +st.kills || 0, games: +st.games || 0, maxLen: +st.maxLen || 0, boss: +st.boss || 0, ach: Object.keys(d.ach || {}).length, owned: Object.values(d.owned || {}).reduce((n, a) => n + (Array.isArray(a) ? a.length : 0), 0), season: d.season || '' } : null; };
 // ตัดผลตรงเที่ยงคืนเวลาไทย (00:00:01) ไม่ต้องรอรอบ 5 นาที — ตั้งเวลาใหม่ทุกวัน
 (function atBkkMidnight() { const DAY = 864e5, BKK = 7 * 36e5, now = Date.now(); const ms = DAY - ((now + BKK) % DAY) + 1000;
   setTimeout(() => { ensureSnap(); atBkkMidnight(); }, ms).unref(); })();
@@ -304,6 +340,15 @@ function restoreOwned(l, d) { let ch = false; d = { ...(d || {}) };
   for (const [ll, c, id, key] of OWN_RESTORE) { if (ll !== l || (d.restored || []).includes(key)) continue;
     const o = { ...(d.owned || {}) }; o[c] = [...new Set([...(Array.isArray(o[c]) ? o[c] : []), id])]; d.owned = o; d.restored = [...(d.restored || []), key]; ch = true; }
   return ch ? d : null; }
+// คืนสถิติ/RP/เหรียญที่หายเพราะมีเครื่องส่งโปรไฟล์ว่างมาทับ (เจ้าของสั่ง 15 พ.ย. 23:08 "คืนเท่าที่รู้") · ใช้ค่ามากสุด ไม่ลดของที่มีอยู่ · ครั้งเดียวต่อ key (data.restored)
+//   st.games +1 → เครื่องที่ยังถือข้อมูลว่างค้างอยู่จะถูกนับเป็นข้อมูลเก่า (anticheat stale) ส่งมาทับไม่ได้
+const STAT_RESTORE = [['gemreaper', 's1', { rp: 2495, coins: 31426, st: { kills: 2343, okills: 2343, maxLen: 1740, omaxLen: 1740 } }]];
+function restoreStats(l, d) { let ch = false; d = { ...(d || {}) };
+  for (const [ll, key, v] of STAT_RESTORE) { if (ll !== l || (d.restored || []).includes(key)) continue;
+    d.rp = Math.max(+d.rp || 0, v.rp || 0); d.onrp = Math.max(+d.onrp || 0, d.rp); d.coins = Math.max(+d.coins || 0, v.coins || 0);
+    const st = { ...(d.st || {}) }; for (const k of Object.keys(v.st || {})) st[k] = Math.max(+st[k] || 0, v.st[k]); st.games = (+st.games || 0) + 1; d.st = st;
+    d.restored = [...(d.restored || []), key]; ch = true; console.log(`stats restored for ${l} (${key}): rp ${d.rp} coins ${d.coins}`); }
+  return ch ? d : null; }
 const cleanOwnedData = d => (d && adminPolluted(d.owned)) ? { ...d, owned: realOwned(d), ownFix: Date.now() } : d;
 // ข้อมูลที่เครื่องส่งมา: ถ้า owned ติดของผู้ดูแลมา (หน้าเว็บเก่าที่ยังเปิดค้าง) → ใช้ของที่บัญชีมีจริง ไม่นับเป็นการซื้อ (ไม่หักเหรียญ)
 const stripSent = (u, raw) => (!isAdmin(u) && raw && adminPolluted(raw.owned)) ? { ...raw, owned: realOwned(u.data) } : raw;
@@ -361,6 +406,11 @@ async function handleApi(req, res, p) {
       if (p === '/api/admin/bugs') return out(200, { bugs: await store.listBugs(Math.min(200, +q.get('n') || 60)) });
       if (p === '/api/admin/bug') { const b = await store.getBug(+q.get('id') | 0); return b ? out(200, b) : out(404, { err: 'ไม่พบ' }); }
       if (p === '/api/admin/perf') return out(200, { rows: await store.perfRows(Math.min(3000, +q.get('n') || 1500)), server: SERVER_PERF ? SERVER_PERF() : null });
+      if (p === '/api/admin/backups') return out(200, { list: await store.listBackups(), every: BACKUP_MS, keepH: BACKUP_KEEP_H, keepD: BACKUP_KEEP_D });
+      if (p === '/api/admin/backup') { const B = await readBackup(q.get('id')); if (!B) return out(404, { err: 'ไม่พบชุดสำรองนี้' });
+        const l = lower(cleanName(q.get('name') || '')), row = B.rows.find(r => r.lname === l), cur = await store.get(l);
+        return out(200, { at: B.at, n: B.rows.length, then: sumOf(row), now: sumOf(cur) }); }
+      if (p === '/api/admin/backupnow' && req.method === 'POST') { const bk = await backupNow('ผู้ดูแล ' + u.name + ' กดสำรอง'); return out(200, { ok: true, id: bk.id }); }
       if (p === '/api/admin/bugdone' && req.method === 'POST') { const b = await readBody(req); await store.setBug(+b.id | 0, !!b.done); return out(200, { ok: true }); }
       if (p === '/api/admin/claim') { const code = String(q.get('code') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         for (const k of Object.keys(GEM_SEASONS)) { if (k >= AC.seasonKey()) continue; const r = (await reviewList(k, true)).find(x => x.code.replace('-', '') === code);
@@ -368,6 +418,9 @@ async function handleApi(req, res, p) {
         return out(200, { ok: false }); }
       if (req.method === 'POST') { const b = await readBody(req), t = await store.get(lower(cleanName(b.name)));
         if (!t) return out(404, { err: 'ไม่พบผู้เล่นคนนี้' }); if (isAdmin(t) && p === '/api/admin/ban') return out(400, { err: 'แบนผู้ดูแลไม่ได้' });
+        if (p === '/api/admin/restore') { const B = await readBackup(b.id); const row = B && B.rows.find(r => r.lname === t.lname); if (!row) return out(404, { err: 'ชุดสำรองนี้ไม่มีข้อมูลของ ' + t.name });
+          await backupNow('ก่อนคืนข้อมูล ' + t.name); await store.save(t.lname, row.data, rpOf(row.data || {})); revCache.clear();
+          console.log(`admin ${u.name}: restore ${t.name} from backup #${b.id} (${new Date(B.at).toISOString()})`); return out(200, { ok: true, now: sumOf(await store.get(t.lname)) }); }
         if (p === '/api/admin/ban') { const why = b.unban ? null : String(b.why || 'โกง').slice(0, 80); await store.setBan(t.lname, why); revCache.clear();
           console.log(`admin ${u.name}: ${why ? 'ban' : 'unban'} ${t.name}${why ? ' — ' + why : ''}`); return out(200, { ok: true, name: t.name, ban: why }); }
         if (p === '/api/admin/allow') { const key = /^\d{4}-\d{2}$/.test(b.key || '') ? b.key : AC.seasonKey(), v = !!b.v;

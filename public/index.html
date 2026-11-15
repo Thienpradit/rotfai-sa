@@ -903,8 +903,8 @@ function bannedOut(msg){try{localStorage.removeItem('rsAuth')}catch(e){}GEM_ME=n
 let admKey='';
 function openAdmin(){openSheet('🛡️ ผู้ดูแล — ตรวจผู้ชนะ',renderAdmin)}
 function renderAdmin(b){const keys=[...new Set([seasonKey(),...Object.keys(GEM_PRIZES)])].sort().reverse();if(!admKey)admKey=keys.includes(seasonKey())?seasonKey():keys[0];
-  const tabs=`<div class="tabs" id="admTabs">${keys.map(k=>`<div class="tab${k===admKey?' on':''}" data-k="${k}">${seasonName(k)}${k===seasonKey()?' (ตอนนี้)':''}</div>`).join('')}<div class="tab${admKey==='bugs'?' on':''}" data-k="bugs">🐞 บั๊ก${ADM_BUGS?' ('+ADM_BUGS+')':''}</div><div class="tab${admKey==='perf'?' on':''}" data-k="perf">📈 ความลื่น</div></div>`;
-  if(admKey==='bugs'||admKey==='perf'){b.innerHTML=tabs+'<div id="admList">กำลังโหลด...</div>';b.querySelectorAll('#admTabs .tab').forEach(t=>t.onclick=()=>{admKey=t.dataset.k;renderAdmin(b)});return admKey==='bugs'?loadBugs(b):loadPerf(b)}
+  const tabs=`<div class="tabs" id="admTabs">${keys.map(k=>`<div class="tab${k===admKey?' on':''}" data-k="${k}">${seasonName(k)}${k===seasonKey()?' (ตอนนี้)':''}</div>`).join('')}<div class="tab${admKey==='bugs'?' on':''}" data-k="bugs">🐞 บั๊ก${ADM_BUGS?' ('+ADM_BUGS+')':''}</div><div class="tab${admKey==='perf'?' on':''}" data-k="perf">📈 ความลื่น</div><div class="tab${admKey==='bk'?' on':''}" data-k="bk">💾 สำรอง</div></div>`;
+  if(admKey==='bugs'||admKey==='perf'||admKey==='bk'){b.innerHTML=tabs+'<div id="admList">กำลังโหลด...</div>';b.querySelectorAll('#admTabs .tab').forEach(t=>t.onclick=()=>{admKey=t.dataset.k;renderAdmin(b)});return admKey==='bugs'?loadBugs(b):admKey==='bk'?loadBackups(b):loadPerf(b)}
   b.innerHTML=tabs+`
     ${(ADM_WIN||[]).filter(w=>w.season===admKey).map(w=>`<div class="rnbox" style="margin:8px 0"><b>🏆 ผู้ชนะ (ตัดผลแล้ว)</b>${winnersHTML(w)}</div>`).join('')}
     <div id="admList">กำลังโหลด...</div>`;
@@ -939,6 +939,24 @@ async function loadBugs(b){const el=b.querySelector('#admList');let j;try{j=awai
   el.querySelectorAll('button[data-d]').forEach(bt=>bt.onclick=async()=>{bt.disabled=true;try{await api('/api/admin/bugdone',{id:+bt.dataset.d,done:bt.dataset.v==='1'});loadBugs(b)}catch(e){announce('❌ '+e.message);bt.disabled=false}});
   el.querySelectorAll('button[data-s]').forEach(bt=>bt.onclick=async()=>{bt.disabled=true;try{const x=await api('/api/admin/bug?id='+bt.dataset.s);const box=bt.closest('.adrow').querySelector('.shot');box.innerHTML=x.shot?`<img src="${x.shot}" style="width:100%;border-radius:8px;margin-top:6px">`:'(ไม่มีรูป)'}catch(e){announce('❌ '+e.message);bt.disabled=false}})}
 // 🛡️ แท็บ 📈 ความลื่น: สรุปจากเครื่องผู้เล่นจริง (ส่งเองตอนจบเกมออนไลน์) + เซิร์ฟเวอร์
+// 💾 สำรองข้อมูลผู้เล่น (ทุกชั่วโมง · 15 พ.ย.): เลือกชุด + ชื่อผู้เล่น → ดูเทียบตอนนั้น/ตอนนี้ → คืนข้อมูล (แตะ 2 ครั้ง · เซิร์ฟเวอร์สำรองชุดปัจจุบันก่อนเสมอ)
+async function loadBackups(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/backups')}catch(e){el.textContent='❌ '+e.message;return}
+  const L=j.list||[],kb=n=>(n/1024).toFixed(0)+' KB';
+  el.innerHTML=`<div class="help" style="margin:2px 0 8px">💾 สำรองข้อมูลผู้เล่นทั้งหมดอัตโนมัติทุก ${Math.round(j.every/60000)} นาที · เก็บรายชั่วโมง ${j.keepH} ชม. + วันละชุด ${j.keepD} วัน · ตอนนี้มี ${L.length} ชุด</div>
+    <div class="rnbox" style="margin:0 0 8px"><b>♻️ ดู / คืนข้อมูลผู้เล่น</b>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input id="bkName" placeholder="ชื่อผู้เล่น" style="flex:1;min-width:120px"><select id="bkSel" style="flex:1;min-width:150px">${L.map(x=>`<option value="${x.id}">${fmtDT(x.at)}${x.n!=null?' · '+x.n+' คน':''} · ${kb(x.size)}</option>`).join('')}</select><button class="btn" id="bkLook">🔍 ดู</button></div>
+      <div id="bkOut" style="margin-top:6px"></div></div>
+    <button class="btn" id="bkNow">💾 สำรองตอนนี้เลย</button><span id="bkMsg" class="help" style="margin-left:6px"></span>`;
+  const out=el.querySelector('#bkOut'),row=(k,a,c)=>`<tr><td>${k}</td><td style="text-align:right">${a}</td><td style="text-align:right">${c}</td></tr>`;
+  el.querySelector('#bkNow').onclick=async()=>{const m=el.querySelector('#bkMsg');m.textContent='กำลังสำรอง...';try{await api('/api/admin/backupnow',{});loadBackups(b)}catch(e){m.textContent='❌ '+e.message}};
+  el.querySelector('#bkLook').onclick=async()=>{const nm=el.querySelector('#bkName').value.trim(),id=el.querySelector('#bkSel').value;if(!nm||!id){out.textContent='ใส่ชื่อผู้เล่นก่อน';return}
+    out.textContent='กำลังโหลด...';let r;try{r=await api('/api/admin/backup?id='+id+'&name='+encodeURIComponent(nm))}catch(e){out.textContent='❌ '+e.message;return}
+    const T=r.then,N=r.now,f=(o,k)=>o?(+o[k]).toLocaleString():'—';
+    if(!T){out.innerHTML=`ชุดนี้ (${fmtDT(r.at)}) ไม่มีข้อมูลของ "${escH(nm)}"`;return}
+    out.innerHTML=`<table class="cmp" style="width:100%"><tr><th></th><th>ชุดสำรอง<br>${fmtDT(r.at)}</th><th>ตอนนี้</th></tr>${[['🏅 RP','rp'],['🪙 เหรียญ','coins'],['💀 กำจัด','kills'],['🎮 เกม','games'],['🚂 ยาวสุด','maxLen'],['👑 ล้มบอส','boss'],['🎖️ เหรียญตรา','ach'],['🛒 ของที่มี','owned']].map(([n,k])=>row(n,f(T,k),f(N,k))).join('')}</table>
+      <button class="btn" id="bkGo" style="margin-top:6px">♻️ คืนข้อมูล ${escH(T.name)} จากชุดนี้</button><div class="help" id="bkGoMsg"></div>`;
+    let arm=false;out.querySelector('#bkGo').onclick=async()=>{const m=out.querySelector('#bkGoMsg');if(!arm){arm=true;m.textContent='⚠️ แตะอีกครั้งเพื่อยืนยัน — ข้อมูลตอนนี้จะถูกแทนด้วยชุดสำรอง (ระบบสำรองข้อมูลตอนนี้ไว้ให้ก่อน)';return}
+      m.textContent='กำลังคืนข้อมูล...';try{const x=await api('/api/admin/restore',{id:+id,name:T.name});m.textContent='✅ คืนข้อมูลแล้ว · RP '+x.now.rp.toLocaleString()+' · เหรียญ '+x.now.coins.toLocaleString()+' (ผู้เล่นปิดแล้วเปิดเกมใหม่จะเห็น)'}catch(e){m.textContent='❌ '+e.message}}};}
 async function loadPerf(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/perf?n=1500')}catch(e){el.textContent='❌ '+e.message;return}
   const med=a=>{a=a.filter(x=>x!=null&&isFinite(x)).sort((x,y)=>x-y);return a.length?a[a.length>>1]:'-'},pct=(a,f)=>a.length?Math.round(100*a.filter(f).length/a.length)+'%':'-';
   const since=Date.now()-7*864e5,R=j.rows.filter(r=>+new Date(r.at)>since),grp={};for(const r of R){const k=(r.os||'?')+(r.os==='android'||r.os==='ios'?'':' (คอม)');(grp[k]=grp[k]||[]).push(r)}
