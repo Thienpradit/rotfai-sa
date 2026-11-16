@@ -14,7 +14,7 @@
 <title>รถไฟซ่า</title>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;600&family=Chonburi&display=swap" rel="stylesheet">
 <style>
-html,body{margin:0;height:100%;overflow:hidden;background:#0d1020;font-family:'Mitr',system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#0d1020;font-family:'Mitr',system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 canvas{display:block;position:fixed;inset:0;width:100%;height:100%}
 .overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,10,25,.55);z-index:10}
 .hidden{display:none!important}
@@ -1779,10 +1779,29 @@ cv.addEventListener('auxclick',e=>{if(e.button===1)e.preventDefault()});   // �
 addEventListener('mouseup',e=>{if(e.button===0)input.boost=false});
 // จอยสติ๊กสัมผัส · แก้ "บังคับไม่ได้" (เจ้าของแจ้ง 12 พ.ย. 01:07): เดิมยกนิ้วบนปุ่ม (หยุด/ออก/เสียง ฯลฯ) แล้ว pointerup ไม่มาถึง canvas → input.joy ค้าง แตะใหม่ไม่ติด
 // ตอนนี้: จับ pointer ไว้กับ canvas (setPointerCapture) + ฟัง pointerup ทั้งหน้า + แตะใหม่บน canvas แทนจอยเก่าเสมอ
-cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;lastTouch=performance.now();
+cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'||(e.pointerType==='touch'&&'ontouchstart' in window))return;lastTouch=performance.now();
   if(!input.joy||input.joy.id!==e.pointerId){input.joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}}});
-cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')mouseAngle(e);else if(input.joy&&e.pointerId===input.joy.id){const j=input.joy;j.x=e.clientX;j.y=e.clientY;const dx=j.x-j.ox,dy=j.y-j.oy,d=Math.hypot(dx,dy);if(d>6)input.angle=Math.atan2(dy,dx);if(d>65){j.ox=j.x-dx/d*65;j.oy=j.y-dy/d*65}}});
+cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')mouseAngle(e);else if(input.joy&&e.pointerId===input.joy.id&&!(e.pointerType==='touch'&&'ontouchstart' in window)){const j=input.joy;j.x=e.clientX;j.y=e.clientY;const dx=j.x-j.ox,dy=j.y-j.oy,d=Math.hypot(dx,dy);if(d>6)input.angle=Math.atan2(dy,dx);if(d>65){j.ox=j.x-dx/d*65;j.oy=j.y-dy/d*65}}});
 const endP=e=>{if(e.pointerType==='mouse'){}else if(input.joy&&e.pointerId===input.joy.id)input.joy=null};
+// 📱 iPhone/iPad "บังคับไม่ได้" (ผู้เล่นแจ้งบั๊ก 14–15 พ.ย. ทุกเรื่องเป็น iOS Safari แนวนอน): Safari ยกเลิก pointer เอง (pointercancel) ตอนนิ้วค้างนิ่ง (กดค้าง = เมนูคัดลอก/แว่นขยาย)
+//   ตอนปัดขอบจอ (แถบ Safari โผล่ / ปัดย้อนกลับ) → input.joy หาย ขยับนิ้วต่อก็ไม่เลี้ยว จนกว่าจะยกนิ้วแตะใหม่
+//   แก้: เครื่องสัมผัสใช้ touch events (preventDefault กันท่าทางของ Safari) + ถ้าโดนยกเลิกแล้วนิ้วยังอยู่บนจอ ขยับครั้งถัดไปรับเป็นจอยใหม่ต่อทันที (ไม่ต้องยกนิ้ว)
+const TOUCH_EV='ontouchstart' in window;
+function joyAt(t){input.joy={id:'t'+t.identifier,ox:t.clientX,oy:t.clientY,x:t.clientX,y:t.clientY}}
+function joyMove(j,x,y){j.x=x;j.y=y;const dx=x-j.ox,dy=y-j.oy,d=Math.hypot(dx,dy);if(d>6)input.angle=Math.atan2(dy,dx);if(d>65){j.ox=x-dx/d*65;j.oy=y-dy/d*65}}
+if(TOUCH_EV){
+  cv.addEventListener('touchstart',e=>{lastTouch=performance.now();if(e.cancelable)e.preventDefault();const t=e.changedTouches[e.changedTouches.length-1];if(t)joyAt(t)},{passive:false});
+  document.addEventListener('touchmove',e=>{const onCv=e.target===cv;if(onCv&&e.cancelable)e.preventDefault();
+    const j=input.joy;let t=null;
+    if(j&&String(j.id)[0]==='t')for(const x of e.touches)if('t'+x.identifier===j.id){t=x;break}
+    if(t){joyMove(j,t.clientX,t.clientY);return}
+    if(onCv&&(state==='play'||state==='dead')){const c=e.changedTouches[0];if(c){joyAt(c);JOY_HEAL++}}   // จอยหาย (Safari ยกเลิก) แต่นิ้วยังลากอยู่บนจอ → รับต่อ
+  },{passive:false});
+  const tEnd=e=>{const j=input.joy;if(!j)return;for(const x of e.changedTouches)if('t'+x.identifier===j.id){input.joy=null;break}};
+  document.addEventListener('touchend',tEnd,{passive:true});document.addEventListener('touchcancel',tEnd,{passive:true});
+  ['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target===cv)e.preventDefault()},{passive:false}));   // กันซูมสองนิ้วบนสนาม (iOS)
+}
+let JOY_HEAL=0;
 cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',endP);addEventListener('pointerup',endP,true);addEventListener('pointercancel',endP,true);cv.addEventListener('lostpointercapture',endP);
 cv.addEventListener('contextmenu',e=>e.preventDefault());
 const bb=$('boost');
@@ -2730,8 +2749,9 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:35,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
-  {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง','🍃 ควันใบไม้ซื้อได้แล้วในร้านค้า แท็บ 💨 ควัน (22,000 🪙) ไม่ต้องรอร้านวันนี้']},
+  {id:35,d:'16 พ.ย. 2026',t:'📱 iPhone บังคับลื่นขึ้น',l:['แก้อาการ "บังคับไม่ได้" บน iPhone/iPad — นิ้วค้างนิ่งนาน ๆ หรือลากเลยขอบจอ รถไฟยังเลี้ยวตามนิ้วได้ ไม่ต้องยกนิ้วแตะใหม่','ขอบคุณทุกคนที่กด 🐞 แจ้งบั๊กมานะ!','🍃 ควันใบไม้ซื้อได้แล้วในร้านค้า แท็บ 💨 ควัน (22,000 🪙) ไม่ต้องรอร้านวันนี้']},
+  {id:36,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
+  {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง']},
   {id:33,d:'14 พ.ย. 2026',t:'🌍 โลกออนไลน์ 3 โหมด',l:['กด 🌍 เล่นออนไลน์ แล้วเลือกโหมดได้ · ปุ่มบอกด้วยว่าแต่ละโหมดมีคนเล่นกี่คน','🟢 <b>Easy</b> ฝึกเล่น บอทอ่อน — ไม่ได้เหรียญ แรงก์ ภารกิจ','🔵 <b>Normal</b> แบบเดิม','🔴 <b>Hard</b> บอทโหดไล่ตัดหน้าเก่ง + 🪨 หินกลางสนาม ชนแล้วตาย — ได้เหรียญและแรงก์ <b>×1.3</b>']},
   {id:32,d:'13 พ.ย. 2026',t:'🔥 ควันเปลวไฟ & 🍃 ควันใบไม้โฉมใหม่',l:['🔥 ควันเปลวไฟ: เป็นเปลวไฟลุกโชนจริง มีสะเก็ดไฟปลิว แล้วกลายเป็นควันดำ','🍃 ควันใบไม้: เป็นใบไม้จริง ๆ มีก้าน มีเส้นใบ หมุนคว้างปลิวตามลม','ควันทุกแบบลอยอยู่เหนือตัวรถไฟแล้ว ไม่จมอยู่ใต้ขบวน']},
   {id:31,d:'13 พ.ย. 2026',t:'🧲 หัวจักรในร้านดูดพลอยไกลขึ้น 30%',l:['หัวจักรทุกหัวที่ซื้อจากร้าน เก็บพลอยและเพชรขาวได้ไกลขึ้นอีก <b>30%</b>','ดีเซล +20 · กระสุน +39 · รถราง +59 · ใต้ดิน +78 · ดาวหาง +104','ใครมีหัวจักรอยู่แล้วได้ทันที ไม่ต้องซื้อใหม่']},
