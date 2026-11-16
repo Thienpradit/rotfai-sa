@@ -942,8 +942,10 @@ async function loadBugs(b){const el=b.querySelector('#admList');let j;try{j=awai
 // 💾 สำรองข้อมูลผู้เล่น (ทุกชั่วโมง · 15 พ.ย.): เลือกชุด + ชื่อผู้เล่น → ดูเทียบตอนนั้น/ตอนนี้ → คืนข้อมูล (แตะ 2 ครั้ง · เซิร์ฟเวอร์สำรองชุดปัจจุบันก่อนเสมอ)
 async function loadBackups(b){const el=b.querySelector('#admList');let j;try{j=await api('/api/admin/backups')}catch(e){el.textContent='❌ '+e.message;return}
   const L=j.list||[],kb=n=>(n/1024).toFixed(0)+' KB';
-  el.innerHTML=`<div class="help" style="margin:2px 0 8px">💾 สำรองข้อมูลผู้เล่นทั้งหมดอัตโนมัติทุก ${Math.round(j.every/60000)} นาที · เก็บรายชั่วโมง ${j.keepH} ชม. + วันละชุด ${j.keepD} วัน · ตอนนี้มี ${L.length} ชุด</div>
-    <div class="rnbox" style="margin:0 0 8px"><b>♻️ ดู / คืนข้อมูลผู้เล่น</b>
+  const last=L[0],ago=last?Math.max(0,Math.round((Date.now()-last.at)/60000)):0;
+  el.innerHTML=`<div class="rnbox" style="margin:2px 0 8px;text-align:left"><b>✅ ระบบสำรองข้อมูลผู้เล่น<u>ทุกคน</u>ให้เองอัตโนมัติ</b> — ไม่ต้องกดหรือใส่ชื่ออะไร
+      <div class="help" style="margin-top:4px">· สำรองทุก ${Math.round(j.every/60000)} นาที · เก็บของ ${j.keepH} ชม.ล่าสุดทุกชุด + วันละ 1 ชุดย้อนหลัง ${j.keepD} วัน<br>· ล่าสุด: ${last?fmtDT(last.at)+' ('+(ago<1?'เมื่อสักครู่':ago+' นาทีที่แล้ว')+')'+(last.n!=null?' · '+last.n+' คน':''):'ยังไม่มี'} · มีทั้งหมด ${L.length} ชุด</div></div>
+    <div class="rnbox" style="margin:0 0 8px"><b>♻️ ดู / คืนข้อมูลรายคน</b><div class="help" style="margin-top:2px">ใช้เฉพาะตอนมีผู้เล่นข้อมูลหาย — ใส่ชื่อคนนั้น เลือกชุดก่อนข้อมูลหาย แล้วกดดู</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input id="bkName" placeholder="ชื่อผู้เล่น" style="flex:1;min-width:120px"><select id="bkSel" style="flex:1;min-width:150px">${L.map(x=>`<option value="${x.id}">${fmtDT(x.at)}${x.n!=null?' · '+x.n+' คน':''} · ${kb(x.size)}</option>`).join('')}</select><button class="btn" id="bkLook">🔍 ดู</button></div>
       <div id="bkOut" style="margin-top:6px"></div></div>
     <button class="btn" id="bkNow">💾 สำรองตอนนี้เลย</button><span id="bkMsg" class="help" style="margin-left:6px"></span>`;
