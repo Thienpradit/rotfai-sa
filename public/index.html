@@ -135,6 +135,8 @@ body.stageOn #ann.low,body.stageOn #bossWarn,body.stageOn #bossDown{top:calc(94p
 #bossWarn{position:fixed;left:50%;top:calc(6px + env(safe-area-inset-top));transform:translateX(-50%);z-index:8;pointer-events:none;white-space:nowrap;
   font:800 clamp(18px,5.2vw,28px) Mitr,sans-serif;letter-spacing:2px;color:rgba(255,40,40,.78);text-shadow:0 0 10px rgba(255,0,0,.55),0 2px 0 rgba(60,0,0,.8);opacity:0}
 #bossWarn.go{animation:bossBlink 2.4s ease-out forwards}
+#netWarn{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top));transform:translateX(-50%);z-index:72;padding:7px 14px;border-radius:12px;background:rgba(200,40,40,.88);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.4);pointer-events:none;animation:nwBlink 1s ease-in-out infinite;white-space:nowrap}
+@keyframes nwBlink{50%{opacity:.6}}
 #resetBar{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top));transform:translateX(-50%);z-index:70;display:flex;align-items:center;gap:8px;width:min(92vw,440px);box-sizing:border-box;padding:8px 12px;border-radius:12px;background:linear-gradient(#ff8c42,#e0601a);color:#fff;font:600 14px/1.3 Mitr,system-ui,sans-serif;box-shadow:0 4px 18px rgba(0,0,0,.45);text-align:left}
 #resetBar.hidden{display:none}#resetBar span{flex:1;min-width:0}#resetBar small{font-weight:400;font-size:11.5px;opacity:.92}#resetBar b{font-size:18px;color:#fff3a8}#resetBar button{flex:none;border:0;border-radius:9px;padding:6px 10px;background:#fff;color:#c24a00;font:700 12.5px Mitr,sans-serif;cursor:pointer}
 #gjBig{position:fixed;left:50%;top:calc(15vh + env(safe-area-inset-top));z-index:96;pointer-events:none;transform:translateX(-50%);display:none;width:min(94vw,620px)}
@@ -2751,7 +2753,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:35,d:'16 พ.ย. 2026',t:'📱 iPhone บังคับลื่นขึ้น',l:['แก้อาการ "บังคับไม่ได้" บน iPhone/iPad — นิ้วค้างนิ่งนาน ๆ หรือลากเลยขอบจอ รถไฟยังเลี้ยวตามนิ้วได้ ไม่ต้องยกนิ้วแตะใหม่','ขอบคุณทุกคนที่กด 🐞 แจ้งบั๊กมานะ!','🍃 ควันใบไม้ซื้อได้แล้วในร้านค้า แท็บ 💨 ควัน (22,000 🪙) ไม่ต้องรอร้านวันนี้']},
+  {id:35,d:'17 พ.ย. 2026',t:'📱 iPhone บังคับลื่นขึ้น + 📶 เน็ตสะดุดไม่ค้าง',l:['แก้อาการ "บังคับไม่ได้" บน iPhone/iPad — นิ้วค้างนิ่งนาน ๆ หรือลากเลยขอบจอ รถไฟยังเลี้ยวตามนิ้วได้ ไม่ต้องยกนิ้วแตะใหม่','📶 เน็ตขาดช่วงระหว่างเล่น (รถไฟคนอื่นหยุดนิ่ง) เกมจะต่อใหม่ให้เองภายในไม่กี่วิ แล้วเล่นต่อได้เลย ขบวนเดิมไม่หาย · ระหว่างต่อใหม่ไม่ตายเพราะชนรถไฟที่ค้างบนจอ','ขอบคุณทุกคนที่กด 🐞 แจ้งบั๊กมานะ!','🍃 ควันใบไม้ซื้อได้แล้วในร้านค้า แท็บ 💨 ควัน (22,000 🪙) ไม่ต้องรอร้านวันนี้']},
   {id:36,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
   {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง']},
   {id:33,d:'14 พ.ย. 2026',t:'🌍 โลกออนไลน์ 3 โหมด',l:['กด 🌍 เล่นออนไลน์ แล้วเลือกโหมดได้ · ปุ่มบอกด้วยว่าแต่ละโหมดมีคนเล่นกี่คน','🟢 <b>Easy</b> ฝึกเล่น บอทอ่อน — ไม่ได้เหรียญ แรงก์ ภารกิจ','🔵 <b>Normal</b> แบบเดิม','🔴 <b>Hard</b> บอทโหดไล่ตัดหน้าเก่ง + 🪨 หินกลางสนาม ชนแล้วตาย — ได้เหรียญและแรงก์ <b>×1.3</b>']},
@@ -3207,7 +3209,9 @@ $('bAch').onclick=()=>openSheet('🏅 เหรียญตรา',b=>{
 //  ONLINE 2v2
 // =====================================================================
 let NET=null;
-function netSend(o){if(NET&&NET.ws&&NET.ws.readyState===1)NET.ws.send(JSON.stringify(o))}
+function netSend(o){if(!NET)return false;if(NET.ws&&NET.ws.readyState===1&&!NET.reconn){NET.ws.send(JSON.stringify(o));return true}
+  if(NET.reconn&&o.t!=='st'&&o.t!=='join'&&NET.pend.length<60)NET.pend.push(o);   // กำลังต่อใหม่ → เก็บไว้ส่งทีหลัง (ตาย/ขบวนขาด/เก็บของ)
+  return false}
 $('playOnline').onclick=()=>{audioInit();openSheet('🌐 ออนไลน์ 2v2',renderOnlineJoin)};
 // ---------- เล่นแบบไม่จำกัด = โลกออนไลน์ free-for-all (ต่อเซิร์ฟเวอร์ไม่ได้ → เล่นออฟไลน์กับบอท) ----------
 function playEndless(room){
@@ -3247,16 +3251,56 @@ function netConnect(room,srv,nmode){PERF.reset();presClose();hideInvite();const 
   let ws;netStatus('กำลังเชื่อมต่อ...');
   const fail=()=>{if(ffa){NET=null;endlessFallback();return}netStatus('❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองกดเข้าห้องอีกครั้ง');NET=null};
   try{ws=new WebSocket(netURL(srv))}catch(e){fail();return}
-  NET={ws,id:null,room,ffa,bots:new Map(),bseq:0,botT:0,players:new Map(),phase:'connecting',timeLeft:300,q:{eat:[]},sendT:0,respawnT:0,score:null,host:false,opened:false};
+  NET={ws,id:null,room,ffa,srv,bots:new Map(),bseq:0,botT:0,players:new Map(),phase:'connecting',timeLeft:300,q:{eat:[]},sendT:0,respawnT:0,score:null,host:false,opened:false,lastMsg:performance.now(),pend:[]};
   const me=NET;
   try{localStorage.setItem('wormName',playerName())}catch(e){}
   if(ffa)setTimeout(()=>{if(NET===me&&!me.opened){try{ws.close()}catch(e){}fail()}},7000);
   ws.onopen=()=>{me.opened=true;netSend({t:'join',cz:1,...(ACCT.mode==='acct'&&ACCT.token?{tok:ACCT.token}:{}),room,mode:ffa?'ffa':'vs',diff:ffa?OD:ONLINE_DIFF,name:playerName(),skin:curSkin(),...myLook(),rk:myRank()})};
   ws.onerror=()=>{if(!me.opened)fail()};
-  ws.onclose=()=>{if(NET!==me||RESET)return;if(!me.opened){fail();return}NET=null;if(state==='over'){worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()};
-  ws.onmessage=e=>{if(NET!==me)return;let m;try{m=JSON.parse(e.data)}catch(er){return}netMsg(m)};
+  ws.onclose=()=>{if(NET!==me||me.ws!==ws||RESET)return;if(!me.opened){fail();return}if(netCanResume(me)){netResume(me);return}netLost(me)};
+  ws.onmessage=e=>netRecv(me,ws,e);
 }
-function netLeave(silent){if(!NET)return;const n=NET;NET=null;try{n.ws.close()}catch(e){}worms=worms.filter(w=>!w.isRemote&&!w.isP&&!w.isBot);bossActive=null;$('coopBar').classList.add('hidden');if(!silent)toMenu()}
+// ===== 📶 เน็ตขาดช่วงระหว่างเล่น (เจ้าของแจ้ง 17 พ.ย.: "ค้าง เราขยับได้แต่เห็นตัวอื่นอยู่กับที่") =====
+// เดิม: มือถือสัญญาณหาย/เปลี่ยนเน็ต → สายเงียบไปเฉย ๆ ไม่มีใครบอกว่าหลุด → รถไฟคนอื่นหยุดค้างไปเรื่อย ๆ · หรือหลุดจริง = เด้งกลับหน้าแรก เสียขบวน
+// ตอนนี้: ข้อมูลไม่มาเกิน NET_STALL หรือสายหลุด → ต่อใหม่เองแล้วเล่นต่อในโลกเดิม ขบวนเดิม (เซิร์ฟเวอร์เก็บไว้ 15 วิ) · ระหว่างต่อใหม่เราเป็นผี+มีเกราะ ไม่ตายเพราะรถไฟที่ค้างบนจอ
+const NET_STALL=2500,NET_RESUME=14000;
+function netRecv(me,ws,e){if(NET!==me||me.ws!==ws)return;me.lastMsg=performance.now();let m;try{m=JSON.parse(e.data)}catch(er){return}
+  try{netMsg(m)}catch(er){try{ERRS.push(('netMsg '+m.t+': '+(er&&er.message||er)).slice(0,90));if(ERRS.length>5)ERRS.shift()}catch(x){}console.error(er)}}
+const netCanResume=me=>!!(me.rkey&&me.id&&(state==='play'||state==='dead')&&(me.ffa||me.phase==='play'));
+function netLost(me){if(NET!==me)return;netWarn(false);me.reconn=null;
+  if(state==='over'){NET=null;worms=worms.filter(w=>!w.isRemote&&!w.isBot);return}
+  if(me.ffa&&player&&player.alive&&state==='play'){try{finish(false,true,true)}catch(e){}   // หลุดแล้วต่อกลับไม่ได้ → สรุปผลแบบออกเอง (ได้เหรียญ/RP ไม่โดนหัก) แทนเด้งหน้าแรกเสียทุกอย่าง
+    NET=null;netBye(me.ws);worms=worms.filter(w=>!w.isRemote&&!w.isBot);announce('📶 การเชื่อมต่อหลุด · เก็บเหรียญให้แล้ว');return}
+  NET=null;netBye(me.ws);announce('การเชื่อมต่อหลุด กลับหน้าแรก');toMenu()}
+function netWarn(on,txt){let el=$('netWarn');if(!on){if(el)el.remove();return}
+  if(!el){el=document.createElement('div');el.id='netWarn';document.body.appendChild(el)}el.textContent=txt||'📶 สัญญาณเน็ตขาด · กำลังต่อใหม่…'}
+function netResume(me){if(NET!==me||me.reconn)return;me.reconn={t0:performance.now(),n:0};PERF.rc=(PERF.rc||0)+1;netWarn(true);
+  try{const o=me.ws;o.onclose=o.onmessage=o.onerror=null;o.close()}catch(e){}   // ปิดสายเก่าที่เงียบไปก่อน (เซิร์ฟเวอร์จะได้รู้ว่าหลุด แล้วเก็บขบวนไว้รอ)
+  netResumeTry(me)}
+function netResumeTry(me){if(NET!==me||!me.reconn)return;
+  if(performance.now()-me.reconn.t0>NET_RESUME){me.reconn=null;netLost(me);return}
+  me.reconn.n++;const old=me.ws;let ws;try{ws=new WebSocket(netURL(me.srv))}catch(e){setTimeout(()=>netResumeTry(me),1200);return}
+  me.ws=ws;try{old.onclose=old.onmessage=old.onerror=null;old.close()}catch(e){}
+  let done=false;const retry=()=>{if(done)return;done=true;if(NET===me&&me.ws===ws&&me.reconn)setTimeout(()=>netResumeTry(me),1000)};
+  const to=setTimeout(()=>{if(me.ws===ws&&me.reconn){try{ws.onclose=null;ws.close()}catch(e){}retry()}},4000);
+  ws.onopen=()=>{if(me.ws!==ws)return;ws.send(JSON.stringify({t:'join',cz:1,room:me.room,mode:me.ffa?'ffa':'vs',resume:{id:me.id,key:me.rkey}}))};
+  ws.onmessage=e=>{if(me.ws===ws)clearTimeout(to);netRecv(me,ws,e)};
+  ws.onerror=()=>{};
+  ws.onclose=()=>{clearTimeout(to);if(NET!==me||me.ws!==ws||RESET)return;if(me.reconn)retry();else if(netCanResume(me))netResume(me);else netLost(me)}}
+function netResumed(m){const me=NET;me.reconn=null;me.lastMsg=performance.now();netWarn(false);
+  netPlayers(m.players);me.phase=m.phase;me.timeLeft=m.timeLeft;
+  me.bots=new Map((m.bots||[]).map(b=>[b.id,b]));for(const b of me.bots.values())sprWarm(b.skin,b.loco,b.wag);
+  setFoods(m.foods);whites=m.whites.map(a=>({id:a[0],x:a[1],y:a[2],ph:Math.random()*TAU,dead:false}));pups=m.pups.map(a=>({id:a[0],x:a[1],y:a[2],type:a[3],ph:Math.random()*TAU,dead:false}));setItems(m.items);
+  worms=worms.filter(w=>!w.isRemote||(w.isBot?me.bots.has(w.netId):me.players.has(w.netId)));
+  if(player&&player.alive){player.ghost=Math.max(player.ghost||0,1.5);player.safe=Math.max(player.safe||0,1.5)}
+  const q=me.pend;me.pend=[];for(const o of q)netSend(o);me.sendT=0;
+  announce('📶 ต่อกลับแล้ว เล่นต่อได้เลย')}
+function netWatch(){const me=NET;if(!me||me.reconn||!me.opened||!me.id||document.hidden)return;
+  if(netCanResume(me)&&performance.now()-me.lastMsg>NET_STALL)netResume(me)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&NET)NET.lastMsg=performance.now()});   // เพิ่งกลับมาจากพับแอป ให้เวลาข้อมูลตามมาก่อน
+function netBye(ws){try{if(ws&&ws.readyState===1)ws.send('{"t":"bye"}')}catch(e){}try{ws.onclose=null;ws.close()}catch(e){}}   // ออกเอง → บอกเซิร์ฟเวอร์ให้เอาขบวนออกเลย (ไม่ต้องเก็บไว้รอต่อกลับ)
+addEventListener('pagehide',()=>{if(NET&&NET.ws)netBye(NET.ws)});
+function netLeave(silent){netWarn(false);if(!NET)return;const n=NET;NET=null;netBye(n.ws);worms=worms.filter(w=>!w.isRemote&&!w.isP&&!w.isBot);bossActive=null;$('coopBar').classList.add('hidden');if(!silent)toMenu()}
 function setFoods(list){foods=list.map(a=>mkFood(a[1],a[2],a[3],a[0],a[4],a[5]));FG_V++}
 // ===== เซิร์ฟเวอร์อัปเดตเวอร์ชันใหม่ (เจ้าของสั่ง 7 พ.ย. 19:13): แจ้งนับถอยหลัง → ครบแล้วออกจากเกม (เก็บเหรียญ/RP ให้ ไม่หักแต้ม) → โหลดเวอร์ชันใหม่ =====
 // สัญญาณ: เซิร์ฟเวอร์ส่ง reset{s} (เครื่องเก่าเห็นว่าเวอร์ชันใหม่ขึ้นแล้ว หรือโดนสั่งปิด) · หรือเครื่องเราถาม /version ทุก 30 วิ แล้วเวอร์ชันไม่ตรง
@@ -3272,15 +3316,17 @@ const inGameNow=()=>state==='play'&&!!player;
 function doResetExit(){if(!RESET||RESET.done)return;RESET.done=true;$('resetTxt').innerHTML='⏳ กำลังโหลดเวอร์ชันใหม่…';$('resetNow').style.display='none';
   try{if(state==='play'&&player&&player.alive&&(!NET||NET.ffa))finish(false,true,true)}catch(e){}
   try{saveProf();pushProf()}catch(e){}
-  setTimeout(()=>{try{if(NET&&NET.ws)NET.ws.close()}catch(e){}location.reload()},2200)}
+  setTimeout(()=>{if(NET&&NET.ws)netBye(NET.ws);location.reload()},2200)}
 if(!APP_VER.startsWith('__'))setInterval(()=>{if(RESET||document.hidden)return;
   fetch('/version',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j&&j.v&&j.v!==APP_VER)startResetCountdown(inGameNow()||NET?60:15)}).catch(()=>{})},30000);
 function netMsg(m){
   switch(m.t){
     case'reset':startResetCountdown(m.s);break;
-    case'err':if(NET.ffa){const n=NET;NET=null;try{n.ws.close()}catch(e){}announce(m.msg+' — หาโลกอื่นให้แทน');netConnect('','','ffa');break}netStatus('❌ '+m.msg);break;
+    case'rsfail':{const me=NET;me.reconn=null;netLost(me);break}   // เซิร์ฟเวอร์ไม่มีขบวนเราแล้ว (หลุดนานเกิน)
+    case'err':if(NET.ffa){const n=NET;NET=null;netBye(n.ws);announce(m.msg+' — หาโลกอื่นให้แทน');netConnect('','','ffa');break}netStatus('❌ '+m.msg);break;
     case'welcome':{
-      NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';if(!NET.ffa)stations=[stations[0],stations[2]];   // 2v2 เหลือ 2 สถานี อยู่ตรงข้ามกัน (เจ้าของสั่ง 12 พ.ย. 12:08)
+      if(m.resumed&&NET.reconn&&m.id===NET.id){netResumed(m);break}
+      NET.rkey=m.rkey||null;NET.id=m.id;NET.phase=m.phase;NET.shrink=m.shrink||120;WR=AR=m.R;buildWorld(WR);NET.ffa=m.mode==='ffa';if(!NET.ffa)stations=[stations[0],stations[2]];   // 2v2 เหลือ 2 สถานี อยู่ตรงข้ามกัน (เจ้าของสั่ง 12 พ.ย. 12:08)
       mode=NET.ffa?'inf':'online';if(NET.ffa){NET.room=m.code;NET.diff=m.diff||'normal';loadBest();resetPlayBtn();resetItems()}
       OBST=(m.rocks||[]).map(a=>({k:'rock',x:a[0],y:a[1],r:a[2],sd:a[3]}));if(OBST.length)try{obPreload(1)}catch(e){}   // 🔴 Hard: หิน (ชน = ตาย)
       {const cm=$('coopMode'),od=NET.ffa&&OMODE[NET.diff];if(cm){cm.textContent=od?od.ic+' '+od.n:'';cm.style.borderColor=od?od.col:'';cm.classList.add('hidden')}}
@@ -3456,13 +3502,13 @@ function netJit(L){const n=performance.now();NJ*=Math.pow(.72,(n-NJ_T)/1000);NJ_
 function interpTick(dt){const n=performance.now();NJ*=Math.pow(.72,(n-NJ_T)/1000);NJ_T=n;const tg=Math.max(INTERP_MIN,Math.min(INTERP_MAX,95+NJ*.9));INTERP+=(tg-INTERP)*Math.min(1,dt*(tg>INTERP?3:.4))}   // ขยายเร็ว หดช้า (ไม่ให้เวลากระตุก)
 // ---------- 📈 วัดความลื่นระหว่างเล่น (14 พ.ย.): เฟรมช้า / ข้อมูลเน็ตมาช้า / ต้องเดาตำแหน่งคนอื่น → แนบไปกับ 🐞 แจ้งบั๊ก และส่งสรุปให้เซิร์ฟเวอร์ตอนจบเกมออนไลน์ (ผู้ดูแลดูใน 🛡️) ----------
 const PERF={
-  reset(){Object.assign(this,{t0:performance.now(),fr:0,sum:0,s50:0,s100:0,s250:0,max:0,gN:0,gMax:0,g150:0,g300:0,lN:0,l100:0,lMax:0,ext:0,lastS:0,ring:[],off:undefined})},
+  reset(){Object.assign(this,{t0:performance.now(),fr:0,sum:0,s50:0,s100:0,s250:0,max:0,gN:0,gMax:0,g150:0,g300:0,lN:0,l100:0,lMax:0,ext:0,lastS:0,ring:[],off:undefined,rc:0})},
   frame(d){if(state!=='play'||document.hidden)return;this.fr++;this.sum+=d;if(d>50)this.s50++;if(d>100)this.s100++;if(d>250)this.s250++;if(d>this.max&&d<3000)this.max=d;this.ring.push(Math.round(d));if(this.ring.length>600)this.ring.shift()},
   sgap(T){const n=performance.now();if(this.lastS&&!document.hidden){const g=n-this.lastS;this.gN++;if(g>this.gMax&&g<5000)this.gMax=g;if(g>150)this.g150++;if(g>300)this.g300++}this.lastS=n;
     if(T){const o=Date.now()-T;this.off=this.off===undefined||o<this.off?o:this.off+(o-this.off)*.01;const L=o-this.off;this.lN++;if(L>100)this.l100++;if(L>this.lMax&&L<5000)this.lMax=L}},   // L = ข้อมูลชุดนี้มาช้ากว่าปกติกี่ ms
   summary(){const sec=(performance.now()-this.t0)/1000,min=Math.max(.1,this.fr*(this.sum/Math.max(1,this.fr))/60000),r=this.ring.slice().sort((a,b)=>a-b),q=x=>r.length?r[Math.min(r.length-1,Math.floor(r.length*x))]:0;
     return{sec:Math.round(sec),fps:this.fr?Math.round(1000*this.fr/this.sum):0,p95:q(.95),max:Math.round(this.max),s50m:+(this.s50/min).toFixed(1),s100m:+(this.s100/min).toFixed(1),s250:this.s250,
-      gMax:Math.round(this.gMax),g150m:+(this.g150/min).toFixed(1),g300:this.g300,l100m:+(this.l100/min).toFixed(1),lMax:Math.round(this.lMax),ext:this.ext,ip:Math.round(INTERP)}}};
+      gMax:Math.round(this.gMax),g150m:+(this.g150/min).toFixed(1),g300:this.g300,l100m:+(this.l100/min).toFixed(1),lMax:Math.round(this.lMax),ext:this.ext,ip:Math.round(INTERP),rc:this.rc|0}}};
 PERF.reset();
 function devInfo(){const u=navigator.userAgent,os=/iPhone|iPad|iPod/.test(u)||(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?'ios':/Android/.test(u)?'android':/Windows/.test(u)?'win':/Mac/.test(u)?'mac':'other';
   const br=/FBAN|FBAV/.test(u)?'fb':/Line\//.test(u)?'line':/CriOS|Chrome\//.test(u)&&!/Edg/.test(u)?'chrome':/Edg/.test(u)?'edge':/Firefox|FxiOS/.test(u)?'firefox':/Safari/.test(u)?'safari':'other';
@@ -3508,13 +3554,14 @@ function netUpdate(w,dt){
   w.angle=a;if(m)w.mass=m;w.follow();
 }
 function netTick(dt){
-  if(!NET)return;
+  if(!NET)return;netWatch();if(!NET)return;
+  if(NET.reconn&&player&&player.alive){player.safe=Math.max(player.safe||0,.3);player.ghost=Math.max(player.ghost||0,.3)}   // ระหว่างต่อใหม่: รถไฟคนอื่นค้างบนจอ → ไม่ให้ชนตาย
   NET.timeLeft=Math.max(0,NET.timeLeft-dt);
   if(player&&!player.alive&&NET.respawnT>0){NET.respawnT-=dt;if(NET.respawnT<=0&&NET.phase==='play'){const sc=player.kills,kp=player.kPaid;netSpawnMe();player.kills=sc;player.kPaid=kp;player.safe=2.5}}
   NET.sendT-=dt;if(NET.sendT<=0&&player){NET.sendT=.05;
     const h=player.pts[0],fl=(player.boost&&player.energy>0?1:0)|(player.gold?2:0)|(player.alive?4:0)|(player.slow>0?8:0)|(player.safe>0?16:0)|(player.ghost>0?32:0)|(carryBomb(player)?64:0)|(player.hslow>0?128:0);
     const o={t:'st',x:Math.round(h.x),y:Math.round(h.y),a:+player.angle.toFixed(3),m:+player.mass.toFixed(1),f:fl,ts:Date.now()};
-    if(NET.q.eat.length){o.eat=NET.q.eat;NET.q.eat=[]}netSend(o)}
+    if(NET.q.eat.length)o.eat=NET.q.eat;if(netSend(o)&&o.eat)NET.q.eat=[]}   // ส่งไม่ได้ (กำลังต่อใหม่) → เก็บพลอยที่กินไว้ส่งรอบหน้า
 }
 function netEnd(m){
   perfSend('vs');NET.phase='lobby';state='lobby';const my=NET.me?NET.me.team:'A',win=m.winner===my;

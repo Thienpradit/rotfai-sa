@@ -63,7 +63,7 @@ const PUBLIC = path.join(__dirname, 'public');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.json': 'application/json', '.webmanifest': 'application/manifest+json' };
 const server = http.createServer((req, res) => {
   let p = decodeURIComponent((req.url || '/').split('?')[0]);
-  if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ })); }
+  if (p === '/wsinfo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify({ deflate: !!DEFLATE, ...WSZ, resume: RS })); }
   if (p === '/version') { res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); return res.end(JSON.stringify({ v: VERSION, boot: BOOT, reset: resetAt ? Math.max(0, Math.ceil((resetAt - Date.now()) / 1000)) : 0 })); }
   if (p === '/online') {   // 🌍 คนจริงที่กำลังเล่นแต่ละโหมด (ปุ่มเลือกโหมดในเกม)
     const n = { easy: 0, normal: 0, hard: 0 }; for (const r of rooms.values()) if (r.ffa) n[r.diff] = (n[r.diff] || 0) + r.players.size;
@@ -214,6 +214,17 @@ wss.on('connection', (ws, req) => {
       if (m.t === 'idle') { idle.set(ws, { name: clean(m.name, 14) }); return; }   // เล่นผจญภัยอยู่ → รอรับคำชวน 2v2
       if (m.t !== 'join') return;
       idle.delete(ws);
+      // 📶 ต่อกลับเข้าห้องเดิม (17 พ.ย.): เน็ตขาดช่วงแล้วเครื่องต่อใหม่ → ได้ขบวนเดิม id เดิม (เก็บไว้ RESUME_MS หลังหลุด)
+      if (m.resume) {
+        const r = rooms.get((m.mode === 'ffa' || m.mode === 'coop' ? 'F:' : 'V:') + clean(m.room, 8).toUpperCase()), p = r && r.players.get(m.resume.id | 0);
+        if (!p || !p.rkey || p.rkey !== String(m.resume.key || '')) { send(ws, { t: 'rsfail' }); return; }
+        const old = p.ws; p.ws = ws; p.dcAt = 0; room = r; me = p; if (old && old !== ws) try { old.close(4002, 'resumed'); } catch (e) {}
+        me.lastT = Date.now(); RS.ok++;
+        send(ws, { t: 'welcome', resumed: 1, id: me.id, rkey: me.rkey, R: room.cfg.R, mode: room.ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
+          foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room), rocks: room.rocks });
+        if (resetAt) send(ws, { t: 'reset', s: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) });
+        return;
+      }
       const ffa = m.mode === 'ffa' || m.mode === 'coop', d = DIFFS.includes(m.diff) ? m.diff : 'normal';   // 🌍 โลกออนไลน์ 3 โหมด easy/normal/hard (14 พ.ย.) · เข้าด้วยรหัสโลก = ใช้โหมดของโลกนั้น
       let code = clean(m.room, 8).toUpperCase().replace(/[^0-9A-Z]/g, '');
       if (ffa && !code) {   // จับคู่อัตโนมัติ: เข้าโลกที่ระดับความยากเดียวกันและยังไม่เต็ม ถ้าไม่มีก็เปิดโลกใหม่
@@ -227,19 +238,20 @@ wss.on('connection', (ws, req) => {
       const nA = [...room.players.values()].filter(p => p.team === 'A').length;
       me = { id: nextId++, ws, cz: !!m.cz, name: clean(m.name, 14) || 'ผู้เล่น', team: ffa ? null : nA <= room.players.size - nA ? 'A' : 'B',
         host: room.players.size === 0, skin: Array.isArray(m.skin) ? m.skin.slice(0, 3).map(c => clean(c, 9)) : ['#ffd23f', '#ff8c42'],
-        loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now() };
+        loco: clean(m.loco, 10), smoke: clean(m.smoke, 10), wag: clean(m.wag, 10), kfx: clean(m.kfx, 10), title: clean(m.title, 24), rk: Math.max(0, Math.min(30, m.rk | 0)), kills: 0, maxLen: 20, st: null, lastT: Date.now(), rkey: Math.random().toString(36).slice(2) + Date.now().toString(36) };
       room.players.set(me.id, me); me.easy = room.ffa && room.diff === 'easy';
       me.inLobby = true;
       // บัญชีที่ล็อกอิน: เซิร์ฟเวอร์จดเวลาเล่น/เกม/กำจัดที่เห็นเอง ไว้ตรวจโกงตอนแจกรางวัล (accounts.js reviewOf)
       me.aud = { sec: 0, g: 0, k0: 0, ml: 0 }; if (m.tok) tokenUser(m.tok).then(l => { if (l && me) me.acct = l; }).catch(() => {});
       if (!ffa && room.phase === 'lobby') room.cdAt = null;   // มีคนเข้ามาใหม่ → นับ 30 วิใหม่ให้เขา
-      send(ws, { t: 'welcome', id: me.id, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
+      send(ws, { t: 'welcome', id: me.id, rkey: me.rkey, R: room.cfg.R, mode: ffa ? 'ffa' : 'vs', code: room.code, diff: room.diff, shrink: SHRINK, phase: room.phase, timeLeft: room.timeLeft, players: pubPlayers(room),
         foods: foodsNow(room), whites: [...room.whites.values()], pups: [...room.pups.values()], items: room.items, bots: pubBots(room), rocks: room.rocks });
       if (resetAt) send(ws, { t: 'reset', s: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)) });
       lobby(room);
       if (ffa && d !== 'easy') announceJoin(me, room, ws);   // ใครเข้าโหมด Normal/Hard → ทุกคนที่ออนไลน์เห็น (14 พ.ย.)
       return;
     }
+    if (me.ws !== ws) return;   // ต่อใหม่ไปแล้ว ไม่รับจากสายเก่า
     switch (m.t) {
       case 'team':
         if (room.ffa || room.phase !== 'lobby') break;
@@ -254,6 +266,7 @@ wss.on('connection', (ws, req) => {
           if (ps.length === 1 ? me.host : ps.every(p => p.ready)) startMatch(room);   // คนไม่ครบ → เซิร์ฟเวอร์เติมบอทให้ทีมที่ขาด
         }
         break;
+      case 'bye': me.bye = true; break;   // ออกเอง (กดออก/ปิดหน้า) → ปิดสายแล้วเอาออกทันที ไม่ต้องรอต่อกลับ
       case 'inlobby': me.inLobby = true; break;   // เปิดหน้าห้องแล้ว (ไม่ได้ค้างหน้าสรุปผล)
       case 'ready':
         if (!room.ffa && room.phase === 'lobby') { me.ready = !!m.v; lobby(room); }
@@ -314,17 +327,30 @@ wss.on('connection', (ws, req) => {
       }
     }
   });
+  ws.on('pong', () => { ws.alive = true; });
   ws.on('close', () => {
     idle.delete(ws);
-    if (me && me.st && (me.st.f & 4) && room && room.ffa) me.aud.g++;
-    flushAud(me);
-    if (!room || !me || me.kicked) return;
-    room.players.delete(me.id);
-    bcast(room, { t: 'left', id: me.id });
-    if (!room.players.size) { rooms.delete(room.key); return; }
-    if (me.host) setHost(room, room.players.values().next().value); else lobby(room);
+    if (!room || !me || me.kicked || me.ws !== ws) { if (me && !room) flushAud(me); return; }
+    // ระหว่างเล่น: เก็บขบวนไว้ RESUME_MS เผื่อเน็ตขาดช่วงแล้วต่อกลับมา (เป็นผี ใครชนก็ไม่ตาย) · ครบเวลาแล้วค่อยออกจริง
+    if (!me.bye && (room.ffa || room.phase === 'play')) { me.dcAt = Date.now(); if (me.st) me.st.f |= 32; RS.dc++; return; }
+    dropPlayer(room, me);
   });
 });
+const RESUME_MS = +process.env.RESUME_MS || 15000, RS = { dc: 0, ok: 0, gone: 0 };
+function dropPlayer(room, me) {
+  if (me.st && (me.st.f & 4) && room.ffa) me.aud.g++;
+  flushAud(me);
+  if (room.players.get(me.id) !== me) return;
+  room.players.delete(me.id);
+  bcast(room, { t: 'left', id: me.id });
+  if (!room.players.size) { rooms.delete(room.key); return; }
+  if (me.host) setHost(room, room.players.values().next().value); else lobby(room);
+}
+setInterval(() => { const now = Date.now();
+  for (const room of [...rooms.values()]) for (const p of [...room.players.values()]) if (p.dcAt && now - p.dcAt > RESUME_MS) { p.dcAt = 0; RS.gone++; dropPlayer(room, p); }
+}, 1000).unref();
+// สายที่ตายเงียบ (มือถือเปลี่ยนเน็ต/สัญญาณหาย ไม่มีใครส่ง close) → ping ทุก 10 วิ ไม่ตอบภายในรอบถัดไป = ตัดทิ้ง (แล้วเข้าช่วงรอต่อกลับ)
+setInterval(() => { for (const ws of wss.clients) { if (ws.alive === false) { try { ws.terminate(); } catch (e) {} continue; } ws.alive = false; try { ws.ping(); } catch (e) {} } }, +process.env.PING_MS || 10000).unref();
 // ส่งเวลาเล่น/เกม/กำจัดที่เซิร์ฟเวอร์เห็นให้ accounts.js (ทุก 60 วิ + ตอนออก) · kills นับจาก p.kills (เซิร์ฟเวอร์ตัดสิน: บอทชนเรา / คนตายแจ้งชื่อเรา)
 function flushAud(p) { if (!p || !p.acct || !p.aud) return; const a = p.aud, k = Math.max(0, p.kills - a.k0);
   if (p.easy) { p.aud = { sec: 0, g: 0, k0: p.kills, ml: 0 }; return; }   // 🌍 Easy ไม่ได้รางวัล → ไม่นับเวลาเล่น/เกม/กำจัดเข้าการตรวจรางวัล
