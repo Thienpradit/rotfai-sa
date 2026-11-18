@@ -694,9 +694,9 @@ let profDirty=false,saveT=null;
 function saveProf(){profDirty=false;
   if(ACCT.mode==='local'){try{localStorage.setItem(PROF_KEY,JSON.stringify(prof))}catch(e){}}
   else if(ACCT.mode==='acct'){clearTimeout(saveT);saveT=setTimeout(pushProf,600)}}
-function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;const tok=ACCT.token,sent={coins:prof.coins,rp:prof.rp,onrp:prof.onrp||0};   // ค่าตอนส่ง → ถ้าเซิร์ฟเวอร์ปรับ ให้คงของที่ได้เพิ่มหลังส่ง (13 พ.ย.)
+function pushProf(){clearTimeout(saveT);saveT=null;if(ACCT.mode!=='acct')return;const tok=ACCT.token,sent={coins:prof.coins,rp:prof.rp,onrp:prof.onrp||0},sentPlay=+prof.st.playSec||0;   // ค่าตอนส่ง → ถ้าเซิร์ฟเวอร์ปรับ ให้คงของที่ได้เพิ่มหลังส่ง (13 พ.ย.)
   fetch('/api/save',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+ACCT.token},body:JSON.stringify({data:prof}),keepalive:true})
-    .then(async r=>{if(r.status===401)return authExpired();if(r.status===403){const j=await r.json().catch(()=>({}));return bannedOut(j.err)}const j=await r.json().catch(()=>({}));if(j.fix&&ACCT.mode==='acct'&&ACCT.token===tok)applyFix(j.fix,sent)}).catch(()=>{profDirty=true})}
+    .then(async r=>{if(r.status===401)return authExpired();if(r.status===403){const j=await r.json().catch(()=>({}));return bannedOut(j.err)}const j=await r.json().catch(()=>({}));if(j.play!==undefined&&ACCT.mode==='acct'&&ACCT.token===tok)prof.st.playSec=j.play+Math.max(0,(+prof.st.playSec||0)-sentPlay);if(j.fix&&ACCT.mode==='acct'&&ACCT.token===tok)applyFix(j.fix,sent)}).catch(()=>{profDirty=true})}
 // เซิร์ฟเวอร์ตรวจเหรียญ/RP/ของที่ซื้อแล้วไม่ตรง (เช่น แก้ค่าในเบราว์เซอร์) → ใช้ค่าจากเซิร์ฟเวอร์แทน
 function applyFix(d,sent){sent=sent||{coins:prof.coins,rp:prof.rp,onrp:prof.onrp||0};
   // เดิมเขียนทับด้วยค่าที่ส่งไปก่อนหน้า → เหรียญ/RP ที่ได้ระหว่างรอคำตอบ (เช่น จบเกมพอดี) หาย · ตอนนี้ = ค่าเซิร์ฟเวอร์ + ส่วนที่ได้เพิ่มหลังส่ง
@@ -1021,8 +1021,10 @@ function renderRanks(b){const r=rankOf(prof.rp);
   if(ACCT.mode!=='local')api('/api/top?by=rp').then(j=>{const el=b.querySelector('#przBox');if(el&&typeof j.n==='number'){el.innerHTML=prizeTableHTML(j.n,j.me?j.me.pos:0)+'<button class="btn alt" id="przMore" style="margin:6px 0 0;padding:8px;font-size:13.5px">🎁 ดูรายละเอียดการแจกรางวัล ›</button>';el.querySelector('#przMore').onclick=openPrizes}}).catch(()=>{});
   if(ACCT.mode!=='local'){b.querySelectorAll('#lbTabs .tab').forEach(t=>t.onclick=()=>{lbBy=t.dataset.k;b.querySelectorAll('#lbTabs .tab').forEach(x=>x.classList.toggle('on',x===t));loadLb(b)});loadLb(b)}}
 // สถิติผู้เล่น (โปรไฟล์ตัวเอง + โปรไฟล์คนอื่นจากตารางอันดับ) — เจ้าของขอให้นับการกำจัด (7 พ.ย. 2026)
-function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString(),kg=+st.killsGame>0;   // killsGame เริ่มเก็บ 7 พ.ย. 2026 → ยังไม่มี = "—" ไม่ใช่ 0
-  return `<div class="stg">${[['💀',f('kills'),'กำจัดทั้งหมด'],['👑',f('boss'),'ล้มบอส'],['🎯',kg?f('killsGame'):'—',kg?'กำจัดสูงสุด/เกม':'กำจัดสูงสุด/เกม (เริ่มนับ 7 พ.ย.)'],['🚂',f('maxLen'),'ยาวสุด'],['🎮',f('games'),'เกมที่เล่น'],['🤝',f('teamWin'),'ชนะ 2v2']].map(([i,v,t])=>`<div><b>${i} ${v}</b><small>${t}</small></div>`).join('')}</div>`}
+// ⏱ เวลาเล่นทั้งหมด (เจ้าของสั่ง 18 พ.ย. แทน "กำจัดสูงสุด/เกม") — st.playSec วินาทีที่อยู่ในเกมทุกโหมด · บัญชีเดิมได้ค่าตั้งต้นจากเวลาเล่นจริงที่เซิร์ฟเวอร์จดไว้ตั้งแต่ 13 พ.ย.
+const fmtPlay=s=>{s=Math.floor(+s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h.toLocaleString()+' ชม. '+m+' น.':m?m+' นาที':s?'< 1 นาที':'—'};
+function statsHTML(st){st=st||{};const f=k=>Math.floor(+st[k]||0).toLocaleString();
+  return `<div class="stg">${[['💀',f('kills'),'กำจัดทั้งหมด'],['👑',f('boss'),'ล้มบอส'],['⏱',fmtPlay(st.playSec),'เวลาเล่นทั้งหมด (นับตั้งแต่ 13 พ.ย.)'],['🚂',f('maxLen'),'ยาวสุด'],['🎮',f('games'),'เกมที่เล่น'],['🤝',f('teamWin'),'ชนะ 2v2']].map(([i,v,t])=>`<div><b>${i} ${v}</b><small>${t}</small></div>`).join('')}</div>`}
 // หัวจักร + หวูดที่ใช้อยู่ (เจ้าของสั่ง 10 พ.ย. 2026) — แสดงในหน้าสถิติของเราและโปรไฟล์คนอื่น · รูปหัวจักรวาดจริงด้วย gearDraw หลังใส่ HTML
 // ผจญภัยไปถึงด่านไหน (เจ้าของสั่ง 11 พ.ย. 2026) — หน้าบัญชีเรา + โปรไฟล์คนอื่น (/api/profile ส่ง adv{top,stars})
 const advOf=a=>{a=Array.isArray(a)?a.slice(0,STAGE_N):[];let top=0;a.forEach((v,i)=>{if(v>0)top=i+1});return{top,stars:a.reduce((x,v)=>x+Math.max(0,Math.min(3,+v||0)),0)}};
@@ -2753,7 +2755,7 @@ let helpTab='rules';   // ❓ วิธีเล่น: 📖 กติกา / �
 // localStorage: trainNewsSeen = id ล่าสุดที่เห็น · trainNewsDay = วันที่ (เวลาไทย) ที่โชว์ล่าสุด
 const HUNT_VS='#ffe14d';   // 🎯 นักล่ากลาง 2v2: ชื่อ + มินิแมปสีเหลือง (ผจญภัยยังส้ม)
 const NEWS=[
-  {id:35,d:'17 พ.ย. 2026',t:'📱 iPhone บังคับลื่นขึ้น + 📶 เน็ตสะดุดไม่ค้าง',l:['แก้อาการ "บังคับไม่ได้" บน iPhone/iPad — นิ้วค้างนิ่งนาน ๆ หรือลากเลยขอบจอ รถไฟยังเลี้ยวตามนิ้วได้ ไม่ต้องยกนิ้วแตะใหม่','📶 เน็ตขาดช่วงระหว่างเล่น (รถไฟคนอื่นหยุดนิ่ง) เกมจะต่อใหม่ให้เองภายในไม่กี่วิ แล้วเล่นต่อได้เลย ขบวนเดิมไม่หาย · ระหว่างต่อใหม่ไม่ตายเพราะชนรถไฟที่ค้างบนจอ','🖱️ เล่นบนคอม: คลิกขวา = 📯 หวูด · คลิกปุ่มกลาง (ล้อเมาส์) = 💣 ระเบิด (สลับจากเดิม · คีย์ H / B ใช้ได้เหมือนเดิม)','⚔️ 2v2: กำจัด 🎯 นักล่ากลางสีเหลือง ไม่ได้แต้มแล้ว — แต้มทีมนับเฉพาะการกำจัดฝ่ายตรงข้าม','ขอบคุณทุกคนที่กด 🐞 แจ้งบั๊กมานะ!','🍃 ควันใบไม้ซื้อได้แล้วในร้านค้า แท็บ 💨 ควัน (22,000 🪙) ไม่ต้องรอร้านวันนี้']},
+  {id:35,d:'17 พ.ย. 2026',t:'📱 iPhone บังคับลื่นขึ้น + 📶 เน็ตสะดุดไม่ค้าง',l:['แก้อาการ "บังคับไม่ได้" บน iPhone/iPad — นิ้วค้างนิ่งนาน ๆ หรือลากเลยขอบจอ รถไฟยังเลี้ยวตามนิ้วได้ ไม่ต้องยกนิ้วแตะใหม่','📶 เน็ตขาดช่วงระหว่างเล่น (รถไฟคนอื่นหยุดนิ่ง) เกมจะต่อใหม่ให้เองภายในไม่กี่วิ แล้วเล่นต่อได้เลย ขบวนเดิมไม่หาย · ระหว่างต่อใหม่ไม่ตายเพราะชนรถไฟที่ค้างบนจอ','🖱️ เล่นบนคอม: คลิกขวา = 📯 หวูด · คลิกปุ่มกลาง (ล้อเมาส์) = 💣 ระเบิด (สลับจากเดิม · คีย์ H / B ใช้ได้เหมือนเดิม)','⚔️ 2v2: กำจัด 🎯 นักล่ากลางสีเหลือง ไม่ได้แต้มแล้ว — แต้มทีมนับเฉพาะการกำจัดฝ่ายตรงข้าม','⏱ หน้าสถิติ/โปรไฟล์โชว์ เวลาเล่นทั้งหมด แทน กำจัดสูงสุดต่อเกม (นับตั้งแต่ 13 พ.ย.)','ขอบคุณทุกคนที่กด 🐞 แจ้งบั๊กมานะ!','🍃 ควันใบไม้ซื้อได้แล้วในร้านค้า แท็บ 💨 ควัน (22,000 🪙) ไม่ต้องรอร้านวันนี้']},
   {id:36,d:'25 พ.ย. 2026',from:'2026-11-25',t:'💎 1 ธ.ค. ชิงอัญมณีแท้ส่งถึงบ้าน!',l:['1 ธ.ค. แรงก์ทุกคนเริ่มใหม่จาก 0 พร้อมกัน! จบเดือน ธ.ค. อันดับ 1–3 ได้เพชรแท้ · โกเมนอุมบาไลต์ 1 กะรัต · เพอริดอท 15 เม็ด','ตัดผลเที่ยงคืนวันสิ้นเดือน ผู้ชนะเปิดเกมแล้วจะมีใบแจ้งรางวัล + วิธีติดต่อรับของ · รางวัลเดือน พ.ย. แจกตามปกติ','มีระบบตรวจโกง — โกงจะถูกตัดสิทธิ์หรือแบนบัญชีถาวร · ดูรายละเอียดที่ 🏆 แรงก์ › 🎁 รางวัลจบเดือน']},
   {id:34,d:'14 พ.ย. 2026',t:'🐞 แจ้งบั๊กได้แล้ว + ออนไลน์ลื่นขึ้น',l:['เจออะไรแปลก ๆ กดปุ่ม 🐞 ที่หน้าแรก หรือ ⚙️ ตั้งค่าในเกม แล้วเล่าให้ทีมงานฟังได้เลย (แนบภาพหน้าจอได้)','เน็ตสะดุดแป๊บ ๆ รถไฟคนอื่นไม่หยุดค้างแล้วกระโดดแล้ว — วิ่งต่อเนียน ๆ จนข้อมูลมาถึง']},
   {id:33,d:'14 พ.ย. 2026',t:'🌍 โลกออนไลน์ 3 โหมด',l:['กด 🌍 เล่นออนไลน์ แล้วเลือกโหมดได้ · ปุ่มบอกด้วยว่าแต่ละโหมดมีคนเล่นกี่คน','🟢 <b>Easy</b> ฝึกเล่น บอทอ่อน — ไม่ได้เหรียญ แรงก์ ภารกิจ','🔵 <b>Normal</b> แบบเดิม','🔴 <b>Hard</b> บอทโหดไล่ตัดหน้าเก่ง + 🪨 หินกลางสนาม ชนแล้วตาย — ได้เหรียญและแรงก์ <b>×1.3</b>']},
@@ -3620,7 +3622,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)presClose()
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'&&canPause()&&!PAUSED)setPause(true)});
 function loop(t){
   requestAnimationFrame(loop);
-  fpsWatch(t-last);PERF.frame(t-last);const dt=Math.min((t-last)/1000,.05);last=t;frame++;
+  fpsWatch(t-last);PERF.frame(t-last);const dt=Math.min((t-last)/1000,.05);
+  if(state==='play'&&player&&player.alive&&!PAUSED&&prof&&prof.st)prof.st.playSec=(+prof.st.playSec||0)+Math.min((t-last)/1000,1);   // ⏱ เวลาเล่นทั้งหมด (ทุกโหมด · พับแอป rAF หยุด = ไม่นับ)
+  last=t;frame++;
   if(!PAUSED)step(dt*60,dt);sprPump();render();
   profT+=dt;if(profT>(ACCT.mode==='acct'?20:4)){profT=0;if(profDirty)saveProf()}
 }

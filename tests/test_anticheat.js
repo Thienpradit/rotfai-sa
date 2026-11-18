@@ -103,3 +103,9 @@ console.log('anticheat OK — 19 cases (ข้อมูลค้างไม่�
   let r = AC.validate(o, { ...o, rp: 0, onrp: 0, st: { games: 11 } }, T); assert(r.fixed); assert.strictEqual(r.data.rp, 2495);
   r = AC.validate(o, { ...o, rp: 2400, onrp: 2400, st: { games: 12 } }, T); assert.strictEqual(r.data.rp, 2400); }
 console.log('anticheat OK — 20 cases');
+// 21) ⏱ เวลาเล่นทั้งหมด (18 พ.ย.): เพิ่มได้ไม่เกินเวลาจริงที่ผ่านไป · ไม่ลด · เกินแล้วปรับเงียบ ๆ (ไม่ fixed)
+{ const T = Date.now(), o = { coins: 0, rp: 0, onrp: 0, onv: 2, st: { games: 5, playSec: 1000 }, owned: {}, ach: {}, _srv: { cb: 0, rb: 0, t: T - 600000, paid: [], claims: [] } };
+  let r = AC.validate(o, { ...o, st: { games: 6, playSec: 1500 } }, T); assert.strictEqual(r.data.st.playSec, 1500); assert(!r.fixed);
+  r = AC.validate(o, { ...o, st: { games: 6, playSec: 99999 } }, T); assert.strictEqual(r.data.st.playSec, 1000 + 600 + 120); assert(!r.fixed);
+  r = AC.validate(o, { ...o, st: { games: 6, playSec: 10 } }, T); assert.strictEqual(r.data.st.playSec, 1000); }
+console.log('anticheat OK — 21 cases (เวลาเล่น)');

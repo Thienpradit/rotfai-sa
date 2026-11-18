@@ -53,7 +53,8 @@ function fileStore(note) {
     async migrateOnline() { let n = 0; for (const u of Object.values(db)) if ((u.data || {}).onv !== 2) { u.data = AC.seedOnline(u.data); n++; } if (n) flush(); return n; },
     async cleanAdminOwned() { const fixed = []; for (const u of Object.values(db)) { if (adminPolluted((u.data || {}).owned)) { u.data = cleanOwnedData(u.data); fixed.push(u.name); }
         const r = restoreOwned(u.lname, u.data); if (r) { u.data = r; fixed.push('+' + u.name); }
-        const r2 = restoreStats(u.lname, u.data); if (r2) { u.data = r2; u.rp = rpOf(r2); fixed.push('+stats ' + u.name); } } if (fixed.length) flush(); return fixed; },
+        const r2 = restoreStats(u.lname, u.data); if (r2) { u.data = r2; u.rp = rpOf(r2); fixed.push('+stats ' + u.name); }
+        const r3 = seedPlay(u.data, u.audit); if (r3) { u.data = r3; fixed.push('+time ' + u.name); } } if (fixed.length) flush(); return fixed; },
     async snapSeason(k) { if (seasons[k]) return seasons[k];   // ภาพนิ่งอันดับตอนจบฤดูกาล (ทำครั้งเดียว)
       const all = Object.values(db).filter(u => !u.ban && (u.data || {}).season === k && LB_VAL.rp(u) > 0).sort((a, b) => LB_VAL.rp(b) - LB_VAL.rp(a) || (a.updated || 0) - (b.updated || 0)), ranks = {};
       all.forEach((u, i) => { ranks[u.lname] = [i + 1, LB_VAL.rp(u)]; });
@@ -116,10 +117,11 @@ if (DB_URL) {
     async migrateOnline() { await ready; if (store !== dbStore) return store.migrateOnline();
       const r = await pool.query("SELECT lname, data FROM players WHERE COALESCE(data->>'onv','') <> '2'"); for (const u of r.rows) await pool.query("UPDATE players SET data=$2 WHERE lname=$1 AND COALESCE(data->>'onv','') <> '2'", [u.lname, AC.seedOnline(u.data)]); return r.rows.length; },
     async cleanAdminOwned() { await ready; if (store !== dbStore) return store.cleanAdminOwned(); const fixed = [];
-      const r = await pool.query("SELECT lname, name, data FROM players WHERE data ? 'owned' OR lname = ANY($1)", [[...OWN_RESTORE.map(x => x[0]), ...STAT_RESTORE.map(x => x[0])]]);
+      const r = await pool.query("SELECT lname, name, data, audit FROM players WHERE data ? 'owned' OR lname = ANY($1) OR NOT (data ? 'playSeed')", [[...OWN_RESTORE.map(x => x[0]), ...STAT_RESTORE.map(x => x[0])]]);
       for (const u of r.rows) { let d = u.data, ch = false; if (adminPolluted((d || {}).owned)) { d = cleanOwnedData(d); ch = true; fixed.push(u.name); }
         const rs = restoreOwned(u.lname, d); if (rs) { d = rs; ch = true; fixed.push('+' + u.name); }
         const r2 = restoreStats(u.lname, d); if (r2) { d = r2; ch = true; fixed.push('+stats ' + u.name); }
+        const r3 = seedPlay(d, u.audit); if (r3) { d = r3; ch = true; if (r3.st.playSec > 0) fixed.push('+time ' + u.name); }
         if (ch) await pool.query('UPDATE players SET data=$2, rp=$3 WHERE lname=$1', [u.lname, d, rpOf(d)]); } return fixed; },
     async addBug(b) { await ready; if (store !== dbStore) return store.addBug(b);
       const r = await pool.query('INSERT INTO bugs (lname,name,cat,text,info,shot) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [b.lname || null, b.name || null, b.cat, b.text, JSON.stringify(b.info || {}), b.shot || null]);
@@ -159,7 +161,7 @@ const accountsDown = () => LIVE && store.kind === 'file';
 // ตารางอันดับนับเฉพาะโหมดออนไลน์ (เจ้าของสั่ง 7 พ.ย. 18:45): onrp / st.okills / st.omaxLen (ดู AC.seedOnline)
 const LB_VAL = { rp: u => Math.floor(+(u.data || {}).onrp || 0), len: u => Math.floor(+((u.data || {}).st || {}).omaxLen || 0), coins: u => Math.floor(+(u.data || {}).coins || 0), kills: u => Math.floor(+((u.data || {}).st || {}).okills || 0) };
 // โปรไฟล์สาธารณะของผู้เล่น (แตะชื่อในตารางอันดับ) — ส่งเฉพาะสถิติ ไม่ส่งข้อมูลส่วนตัว
-const PUB_ST = ['kills', 'boss', 'maxLen', 'games', 'teamWin', 'vsGames', 'killsGame', 'jewels', 'stations'];
+const PUB_ST = ['kills', 'boss', 'maxLen', 'games', 'teamWin', 'vsGames', 'killsGame', 'jewels', 'stations', 'playSec'];
 function pubProfile(u) { const d = u.data || {}, st = d.st || {}, o = {}; for (const k of PUB_ST) o[k] = Math.floor(+st[k] || 0);
   return { name: u.name, rp: +u.rp || 0, season: d.season || '', tid: (d.eq || {}).title || '', loco: (d.eq || {}).loco || '', horn: (d.eq || {}).horn || '', ach: Object.keys(d.ach || {}).length, st: o, adv: advOf(d.stage) }; }
 // ผจญภัย (เจ้าของสั่ง 11 พ.ย. 2026): ผ่านถึงด่านไหน + ดาวรวม — stage = [ดาว 0–3 ต่อด่าน] 30 ด่าน
@@ -343,6 +345,9 @@ function restoreOwned(l, d) { let ch = false; d = { ...(d || {}) };
 // คืนสถิติ/RP/เหรียญที่หายเพราะมีเครื่องส่งโปรไฟล์ว่างมาทับ (เจ้าของสั่ง 15 พ.ย. 23:08 "คืนเท่าที่รู้") · ใช้ค่ามากสุด ไม่ลดของที่มีอยู่ · ครั้งเดียวต่อ key (data.restored)
 //   st.games +1 → เครื่องที่ยังถือข้อมูลว่างค้างอยู่จะถูกนับเป็นข้อมูลเก่า (anticheat stale) ส่งมาทับไม่ได้
 const STAT_RESTORE = [['gemreaper', 's1', { rp: 2495, coins: 31426, st: { kills: 2343, okills: 2343, maxLen: 1740, omaxLen: 1740 } }]];
+// ⏱ เวลาเล่นทั้งหมด (18 พ.ย.): บัญชีเดิมเริ่มจากเวลาเล่นจริงที่เซิร์ฟเวอร์จดไว้ (audit · ตั้งแต่ 13 พ.ย.) ทำครั้งเดียว (data.playSeed)
+function seedPlay(d, audit) { if (!d || d.playSeed) return null; let sec = 0; for (const a of Object.values(audit || {})) sec += Math.max(0, +(a && a.sec) || 0);
+  const st = { ...(d.st || {}) }; st.playSec = Math.max(+st.playSec || 0, Math.round(sec)); return { ...d, st, playSeed: 1 }; }
 function restoreStats(l, d) { let ch = false; d = { ...(d || {}) };
   for (const [ll, key, v] of STAT_RESTORE) { if (ll !== l || (d.restored || []).includes(key)) continue;
     d.rp = Math.max(+d.rp || 0, v.rp || 0); d.onrp = Math.max(+d.onrp || 0, d.rp); d.coins = Math.max(+d.coins || 0, v.coins || 0);
@@ -472,7 +477,8 @@ async function handleApi(req, res, p) {
       await store.save(u.lname, keepReal(u, data), rpOf(data));
       if (fixed) bumpAudit(u.lname, a => { a.fix++; });
       const resync = !isAdmin(u) && adminPolluted(raw.owned);   // หน้าเว็บเก่าส่งของผู้ดูแลมา → ส่งของจริงกลับไปให้เครื่องปรับ
-      return out(200, fixed || resync ? { ok: true, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0, ...(stale ? { st: data.st, ach: data.ach } : {}) } } : { ok: true });   // stale = เครื่องถือข้อมูลค้าง/ว่าง → ส่งสถิติ+เหรียญตราจริงกลับไปด้วย
+      const play = Math.floor(+((data.st || {}).playSec) || 0);   // ⏱ เวลาเล่นที่บันทึกจริง → เครื่องใช้ค่านี้ (+ที่เล่นเพิ่มหลังส่ง)
+      return out(200, fixed || resync ? { ok: true, play, fix: { coins: data.coins, rp: data.rp, onrp: data.onrp, owned: data.owned, maxLen: data.st.maxLen || 0, ...(stale ? { st: data.st, ach: data.ach } : {}) } } : { ok: true, play });   // stale = เครื่องถือข้อมูลค้าง/ว่าง → ส่งสถิติ+เหรียญตราจริงกลับไปด้วย
     }
     if (p === '/api/password') {   // เปลี่ยนรหัสผ่าน (token เดิมของทุกเครื่องใช้ไม่ได้อีก)
       if (limited(req)) return out(429, { err: 'ลองบ่อยเกินไป รอสักครู่แล้วลองใหม่' });

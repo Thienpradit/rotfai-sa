@@ -129,6 +129,8 @@ function validate(old, nu, now = Date.now(), prize = 0) {   // prize = เหร
   { const ost0 = old.st && typeof old.st === 'object' ? old.st : {}; for (const k of Object.keys(ost0).slice(0, 60)) { const v = +ost0[k]; if (Number.isFinite(v) && v > (st[k] || 0)) st[k] = Math.min(1e7, v); } }
   const oml = +((old.st || {}).maxLen) || 0, mlCap = reg ? 3000 : oml + 300 + 40 * Math.min(el, 600);
   if ((st.maxLen || 0) > Math.max(oml, mlCap)) { st.maxLen = Math.floor(Math.max(oml, mlCap)); fixed = true; }
+  { const ops = +((old.st || {}).playSec) || 0, pcap = reg ? 36000 : ops + Math.min(el, 86400) + 120;   // ⏱ เวลาเล่นเพิ่มได้ไม่เกินเวลาจริงที่ผ่านไป
+    if ((st.playSec || 0) > pcap) st.playSec = Math.floor(pcap); }   // ปรับเงียบ ๆ (เซิร์ฟเวอร์ส่งค่าจริงกลับใน play)
   // สถิติออนไลน์: RP ออนไลน์เพิ่มได้ไม่เกิน RP ที่เพิ่มจริง (และไม่เกิน RP ทั้งหมด) · กำจัด/ยาวสุดออนไลน์ไม่เกินของรวม · เครื่องเก่าที่ไม่ส่งค่า → ใช้ค่าเดิม
   { const so = seedOnline(old), newSeason = nu.season && so.season && nu.season > so.season, ost = so.st || {};
     nu = { ...nu, onrp: rp, onv: 2 };   // RP ได้เฉพาะออนไลน์แล้ว → RP ออนไลน์ = RP (ผ่านกันโกง rp แล้ว)
