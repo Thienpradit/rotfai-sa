@@ -143,4 +143,15 @@ ok(ms < 8, 'เวลาคำนวณต่อ tick ' + ms.toFixed(2) + ' ms (
   let crashed = null; try { for (let k = 0; k < 400; k++) { step(r, 1); for (const b of r.bots.values()) if (b.alive && Math.random() < .05) { b.alive = false; b.dead = 0.01; } } } catch (e) { crashed = e; }
   ok(!crashed, 'วง 2v2 หดแน่น + บอทตาย/เกิดใหม่รัว ๆ ไม่ล่ม' + (crashed ? ' — ' + crashed.message : '')); }
 
+// ⚔️ 2v2: กำจัดนักล่ากลาง (สีเหลือง) ไม่ได้แต้ม · กำจัดบอททีมยังได้ (18 พ.ย.)
+{ const r = mkRoom(false); r.arena = () => 2200;
+  r.players.set(1, { id: 1, team: 'A', kills: 0, st: { x: -900, y: 0, a: 0, m: 30, f: 4 } });
+  step(r, 140); const h = live(r).find(b => b.hunter), tb = live(r).find(b => b.team === 'B');
+  h.safe = h.ghost = tb.safe = tb.ghost = 0; r.msgs = []; botsim.onBomb(r, r.players.get(1), h.pts[0].x, h.pts[0].y);
+  ok(!h.alive && r.players.get(1).kills === 0, '2v2 ระเบิดนักล่ากลางตาย → ผู้เล่นไม่ได้แต้มกำจัด (kills ' + r.players.get(1).kills + ')');
+  ok(r.msgs.some(m => m.t === 'kill' && m.v === h.id && m.k === 1 && m.np === 1), 'ส่ง kill{np:1} ให้เครื่องผู้เล่นรู้ว่าไม่นับแต้ม');
+  botsim.onBomb(r, r.players.get(1), tb.pts[0].x, tb.pts[0].y);
+  ok(!tb.alive && r.players.get(1).kills >= 1, '2v2 ระเบิดบอททีมตรงข้ามตาย → ยังได้ +1 กำจัด (alive ' + tb.alive + ' kills ' + r.players.get(1).kills + ' team ' + tb.team + ')');
+}
+
 console.log(fail ? `\n${fail} ข้อไม่ผ่าน` : '\nผ่านทั้งหมด'); process.exit(fail ? 1 : 0);

@@ -224,12 +224,12 @@ function killBot(room, w, killer, how) {
   if (how !== 'trim') { const m = w.mass * .8, cnt = Math.max(6, Math.min(160, Math.floor(w.pts.length / 2))), drop = [];
     for (let i = 0; i < cnt; i++) { const q = w.pts[Math.floor(i / cnt * w.pts.length)]; drop.push([Math.round(q.x + rnd(-10, 10)), Math.round(q.y + rnd(-10, 10))]); }
     S.drop(room, drop, m / cnt, DROP_TTL); }
-  let kid = null;
-  if (killer && killer.human) { const p = room.players.get(killer.pid); if (p && (room.ffa || p.team !== w.team)) { p.kills++; kid = p.id; } }
-  else if (killer && killer.bot && killer !== w) { if (!ally(killer, w)) killer.kills++; kid = killer.id; }
+  let kid = null; const noPt = !room.ffa && w.hunter;   // ⚔️ 2v2: กำจัด 🎯 นักล่ากลาง (สีเหลือง) ไม่ได้แต้ม (เจ้าของสั่ง 18 พ.ย.)
+  if (killer && killer.human) { const p = room.players.get(killer.pid); if (p && (room.ffa || p.team !== w.team)) { if (!noPt) p.kills++; kid = p.id; } }
+  else if (killer && killer.bot && killer !== w) { if (!ally(killer, w) && !noPt) killer.kills++; kid = killer.id; }
   if (room.ffa) room.bots.delete(w.id); else { w.st = null; w.dead = true; }
   if (w.isBoss) { S.boss = null; S.bossT = 150; }
-  const msg = { t: 'kill', v: w.id, k: kid }; if (how === 'bomb') msg.b = 1; S.bcast(room, msg);
+  const msg = { t: 'kill', v: w.id, k: kid }; if (how === 'bomb') msg.b = 1; if (noPt) msg.np = 1; S.bcast(room, msg);
 }
 function cutBot(room, w, idx) {
   const p = w.pts; if (idx >= p.length) return; const removed = p.slice(idx), old = w.mass;
